@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import { timingSafeEqual } from 'crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 export const IS_PUBLIC = 'isPublic';
@@ -19,6 +20,7 @@ export const UserId = createParamDecorator((_: unknown, ctx: ExecutionContext): 
 
 /**
  * AUTH_MODE=supabase → verifies the Supabase access token (SUPABASE_JWKS_URL, or legacy SUPABASE_JWT_SECRET) and uses `sub`.
+ * AUTH_MODE=apikey   → requires X-API-Key == API_KEY (private deployments).
  * AUTH_MODE=dev      → trusts the X-User-Id header (local development only).
  */
 @Injectable()
@@ -34,6 +36,16 @@ export class AuthGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [ctx.getHandler(), ctx.getClass()])) return true;
     const req = ctx.switchToHttp().getRequest();
     const mode = this.config.get<string>('AUTH_MODE') ?? 'dev';
+
+    if (mode === 'apikey') {
+      // Single shared key for a private deployment; user id still comes from X-User-Id.
+      const expected = this.config.get<string>('API_KEY');
+      const given = req.headers['x-api-key'];
+      if (!expected || typeof given !== 'string' || !safeEqual(given, expected)) throw new UnauthorizedException('Invalid API key');
+      const id = req.headers['x-user-id'];
+      req.userId = typeof id === 'string' && id ? id : 'owner';
+      return true;
+    }
 
     if (mode === 'dev') {
       const id = req.headers['x-user-id'];
@@ -59,4 +71,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
   }
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
 }

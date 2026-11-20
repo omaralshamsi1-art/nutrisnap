@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage("apiBaseURL") private var apiBaseURL = ""
     @AppStorage("accessToken") private var accessToken = ""
     @AppStorage("devUserId") private var devUserId = "local-user"
+    @AppStorage("apiKey") private var apiKey = ""
 
     @State private var profile: Profile?
     @State private var message: String?
@@ -64,8 +65,9 @@ struct SettingsView: View {
                 Section("الخادم") {
                     TextField("عنوان الخادم", text: $apiBaseURL, prompt: Text("http://localhost:3000"))
                         .textInputAutocapitalization(.never).keyboardType(.URL)
+                    SecureField("مفتاح الخادم (API_KEY)", text: $apiKey)
                     SecureField("رمز الدخول (Supabase)", text: $accessToken)
-                    TextField("معرّف المستخدم (وضع التطوير)", text: $devUserId).textInputAutocapitalization(.never)
+                    TextField("معرّف المستخدم", text: $devUserId).textInputAutocapitalization(.never)
                 }
                 if let message { Section { Text(message) } }
             }

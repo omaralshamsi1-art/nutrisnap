@@ -1,4 +1,9 @@
-import { Pool } from 'pg';
+import { readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { Pool, types } from 'pg';
+
+// Return DATE columns as 'YYYY-MM-DD' strings (no timezone shifting).
+types.setTypeParser(1082, (v) => v);
 import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 import { rankKnown, Repository } from './repository';
@@ -7,8 +12,21 @@ import { rankKnown, Repository } from './repository';
 export class PostgresRepository implements Repository {
   constructor(private readonly pool: Pool) {}
 
-  static fromUrl(url: string) {
-    return new PostgresRepository(new Pool({ connectionString: url, max: 10 }));
+  static async fromUrl(url: string) {
+    const repo = new PostgresRepository(new Pool({ connectionString: url, max: 10 }));
+    await repo.migrate();
+    return repo;
+  }
+
+  /** Applies supabase/migrations/*.sql once each (idempotent SQL; tracked in schema_migrations). */
+  async migrate(dir = join(__dirname, '..', '..', 'supabase', 'migrations')) {
+    await this.pool.query(`create table if not exists schema_migrations (name text primary key, applied_at timestamptz default now())`);
+    const done = new Set((await this.pool.query(`select name from schema_migrations`)).rows.map((r) => r.name));
+    for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+      if (done.has(f)) continue;
+      await this.pool.query(readFileSync(join(dir, f), 'utf8'));
+      await this.pool.query(`insert into schema_migrations (name) values ($1)`, [f]);
+    }
   }
 
   async saveMeal(m: Meal) {

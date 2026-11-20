@@ -20,6 +20,7 @@ final class APIClient {
     }
     var accessToken: String? { UserDefaults.standard.string(forKey: "accessToken").flatMap { $0.isEmpty ? nil : $0 } }
     var devUserId: String { UserDefaults.standard.string(forKey: "devUserId") ?? "local-user" }
+    var apiKey: String? { UserDefaults.standard.string(forKey: "apiKey").flatMap { $0.isEmpty ? nil : $0 } }
 
     private let session: URLSession = {
         let c = URLSessionConfiguration.default
@@ -123,6 +124,7 @@ final class APIClient {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = accessToken { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         else { req.setValue(devUserId, forHTTPHeaderField: "X-User-Id") }
+        if let apiKey { req.setValue(apiKey, forHTTPHeaderField: "X-API-Key") } // AUTH_MODE=apikey
         return req
     }
 

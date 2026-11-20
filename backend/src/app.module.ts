@@ -26,7 +26,7 @@ import { REPOSITORY } from './storage/repository';
     { provide: ANTHROPIC_CLIENT, useFactory: anthropicFactory, inject: [ConfigService] },
     {
       provide: REPOSITORY,
-      useFactory: (c: ConfigService) => {
+      useFactory: async (c: ConfigService) => {
         const url = c.get<string>('DATABASE_URL');
         return url ? PostgresRepository.fromUrl(url) : new MemoryRepository();
       },
