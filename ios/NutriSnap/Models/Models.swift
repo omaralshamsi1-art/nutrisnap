@@ -74,10 +74,13 @@ struct NutritionEstimate: Codable, Hashable {
     var sources: [SourceRef]
     var assumptions: [String]
     var warnings: [String]
+    var swaps: [Swap]?
+    var coachNoteAr: String?
 
     enum CodingKeys: String, CodingKey {
-        case restaurant, source, confidence, items, totals, sources, assumptions, warnings
+        case restaurant, source, confidence, items, totals, sources, assumptions, warnings, swaps
         case mealName = "meal_name", mealNameAr = "meal_name_ar", servingDescription = "serving_description"
+        case coachNoteAr = "coach_note_ar"
     }
 }
 
@@ -89,6 +92,7 @@ struct Meal: Codable, Identifiable, Hashable {
     var estimate: NutritionEstimate
     var final: NutritionEstimate
     var edited: Bool
+    var score: MealScore?
     var isConfirmed: Bool { status == "confirmed" }
 }
 
@@ -103,9 +107,16 @@ struct Balance: Codable {
     struct MealRow: Codable, Identifiable {
         let id: String; let eatenAt: Date; let status: String
         let name: String; let nameAr: String; let restaurant: String?; let source: String; let calories: Double
-        enum CodingKeys: String, CodingKey { case id, eatenAt, status, name, restaurant, source, calories; case nameAr = "name_ar" }
+        let proteinG: Double?
+        enum CodingKeys: String, CodingKey { case id, eatenAt, status, name, restaurant, source, calories; case nameAr = "name_ar"; case proteinG = "protein_g" }
     }
     struct Split: Codable { let protein: Int; let carbs: Int; let fat: Int }
+    struct MacroTargets: Codable {
+        let proteinG: Double; let carbsG: Double; let fatG: Double; let fiberG: Double
+        enum CodingKeys: String, CodingKey { case proteinG = "protein_g", carbsG = "carbs_g", fatG = "fat_g", fiberG = "fiber_g" }
+    }
+    struct Tip: Codable, Hashable { let kind: String; let textAr: String
+        enum CodingKeys: String, CodingKey { case kind; case textAr = "text_ar" } }
     let date: String
     let intake: Nutrients
     let pendingDrafts: Nutrients
@@ -116,22 +127,201 @@ struct Balance: Codable {
     let targetIntakeKcal: Double?
     let remainingKcal: Double?
     let netKcal: Double?
+    let macroTargets: MacroTargets?
     let macroSplitPct: Split
+    let ramadan: RamadanView?
+    let tips: [Tip]?
+    let onboarded: Bool?
+    let activity: DayActivity?
     let meals: [MealRow]
 }
 
+struct RamadanView: Codable {
+    struct Split: Codable { let suhoor: Double; let iftar: Double; let evening: Double }
+    let active: Bool
+    let detected: Bool
+    let needsChoice: Bool
+    let fasting: Bool
+    let suhoorTime: String
+    let iftarTime: String
+    let split: Split?
+    let minutesToIftar: Int?
+}
+
+struct Workout: Codable, Identifiable {
+    let id: String
+    let source: String
+    let sport: String
+    let sportAr: String?
+    let kind: String?
+    let start: Date
+    let end: Date
+    let durationMin: Double
+    let kcal: Double?
+    let strain: Double?
+    let avgHr: Double?
+    let maxHr: Double?
+    let distanceM: Double?
+}
+
+struct DayActivity: Codable {
+    let date: String
+    let workouts: [Workout]
+    let totalMin: Double
+    let totalKcal: Double
+    let maxStrain: Double?
+}
+
+struct MealScore: Codable, Hashable {
+    struct Reason: Codable, Hashable { let good: Bool; let textAr: String
+        enum CodingKeys: String, CodingKey { case good; case textAr = "text_ar" } }
+    let score: Double
+    let grade: String
+    let labelAr: String
+    let reasons: [Reason]
+    enum CodingKeys: String, CodingKey { case score, grade, reasons; case labelAr = "label_ar" }
+}
+
+struct Swap: Codable, Hashable {
+    let insteadOfAr: String
+    let chooseAr: String
+    let deltaKcal: Double
+    let deltaProteinG: Double
+    let whyAr: String
+    enum CodingKeys: String, CodingKey {
+        case insteadOfAr = "instead_of_ar", chooseAr = "choose_ar", deltaKcal = "delta_kcal"
+        case deltaProteinG = "delta_protein_g", whyAr = "why_ar"
+    }
+}
+
+struct PlanNotice: Codable, Hashable { let level: String; let code: String?; let textAr: String
+    enum CodingKeys: String, CodingKey { case level, code; case textAr = "text_ar" } }
+
+struct Plan: Codable {
+    struct BurnData: Codable { let days: Int; let needed: Int; let window: Int; let avgKcal: Double? }
+    let goal: String
+    let effectiveGoal: String
+    let pace: String?
+    let maintenanceKcal: Double
+    let maintenanceSource: String
+    let dailyDeltaKcal: Double
+    let targetKcal: Double
+    let floorKcal: Double?
+    let limitedByFloor: Bool?
+    let weeklyChangeKg: Double?
+    let proteinG: Double
+    let fatG: Double
+    let carbsG: Double
+    let fiberG: Double
+    let bmi: Double?
+    let targetBmi: Double?
+    let etaDate: String?
+    let weeksToGoal: Double?
+    let notices: [PlanNotice]
+    let currentWeightKg: Double?
+    let startWeightKg: Double?
+    let targetWeightKg: Double?
+    let progressPct: Double?
+    let changeSinceStartKg: Double?
+    let burnData: BurnData?
+    let activityLevel: String?
+}
+
+struct WeightEntry: Codable, Identifiable { let date: String; let kg: Double; let trend: Double; let source: String?
+    var id: String { date }
+    var day: Date { DateFormatter.isoDay.date(from: date) ?? Date() } }
+struct WeightLog: Codable { let entries: [WeightEntry]; let current: Double? }
+
+struct HistoryDay: Codable, Identifiable {
+    let date: String; let intakeKcal: Double; let proteinG: Double; let meals: Int; let burnKcal: Double?; let targetKcal: Double?
+    var id: String { date }
+    var day: Date { DateFormatter.isoDay.date(from: date) ?? Date() }
+}
+struct History: Codable { let days: [HistoryDay]; let avgIntakeKcal: Double?; let daysOnTarget: Int; let loggedDays: Int }
+
+struct Motivation: Codable {
+    struct Streak: Codable { let current: Int; let best: Int; let loggedToday: Bool? }
+    struct Badge: Codable, Identifiable { let id: String; let titleAr: String; let descAr: String; let earned: Bool; let progress: Double; let target: Double
+        enum CodingKeys: String, CodingKey { case id, earned, progress, target; case titleAr = "title_ar", descAr = "desc_ar" } }
+    struct Challenge: Codable { let id: String; let titleAr: String; let descAr: String; let target: Double; let unit: String; let progress: Double; let done: Bool; let daysLeft: Int
+        enum CodingKeys: String, CodingKey { case id, target, unit, progress, done, daysLeft; case titleAr = "title_ar", descAr = "desc_ar" } }
+    let streak: Streak
+    let onTargetStreak: Streak?
+    let badges: [Badge]
+    let earnedCount: Int
+    let challenge: Challenge?
+}
+
+struct Suggestions: Codable {
+    struct Option: Codable, Hashable { let titleAr: String; let whereAr: String; let kcal: Double; let proteinG: Double; let whyAr: String
+        enum CodingKeys: String, CodingKey { case kcal; case titleAr = "title_ar", whereAr = "where_ar", proteinG = "protein_g", whyAr = "why_ar" } }
+    let slot: String
+    let remainingKcal: Double
+    let proteinLeftG: Double
+    let introAr: String
+    let options: [Option]
+    enum CodingKeys: String, CodingKey { case slot, remainingKcal, proteinLeftG, options; case introAr = "intro_ar" }
+}
+
+struct WeeklyReport: Codable {
+    struct Stats: Codable {
+        let from: String; let to: String; let loggedDays: Int; let daysOnTarget: Int
+        let avgKcal: Double?; let targetKcal: Double?; let avgProtein: Double?; let proteinTarget: Double?
+        let avgFiber: Double?; let fiberTarget: Double?; let avgBurn: Double?; let avgDeficit: Double?
+        let weightChangeKg: Double?; let workouts: Int; let workoutMinutes: Double; let goal: String
+    }
+    struct Narrative: Codable {
+        let headlineAr: String; let winsAr: [String]; let improveAr: [String]; let nextWeekGoalAr: String
+        enum CodingKeys: String, CodingKey { case headlineAr = "headline_ar", winsAr = "wins_ar", improveAr = "improve_ar", nextWeekGoalAr = "next_week_goal_ar" }
+    }
+    let stats: Stats
+    let narrative: Narrative
+}
+
+struct Favorite: Codable, Identifiable, Hashable {
+    let key: String; let name: String; let nameAr: String?; let restaurant: String?
+    let calories: Double; let proteinG: Double?; let timesLogged: Int?
+    var id: String { key }
+    var title: String { (nameAr?.isEmpty == false ? nameAr! : name) }
+    enum CodingKeys: String, CodingKey { case key, name, restaurant, calories, timesLogged; case nameAr = "name_ar", proteinG = "protein_g" }
+}
+
+struct BarcodeProduct: Codable {
+    struct Per100: Codable {
+        let calories: Double; let proteinG: Double; let carbsG: Double; let fatG: Double; let fiberG: Double; let sugarG: Double; let sodiumMg: Double
+        enum CodingKeys: String, CodingKey { case calories; case proteinG = "protein_g", carbsG = "carbs_g", fatG = "fat_g", fiberG = "fiber_g", sugarG = "sugar_g", sodiumMg = "sodium_mg" }
+    }
+    let barcode: String; let name: String; let nameAr: String?; let brand: String?
+    let servingG: Double?; let servingLabel: String?; let per100: Per100; let imageUrl: String?
+    var title: String { nameAr?.isEmpty == false ? nameAr! : name }
+    enum CodingKeys: String, CodingKey { case barcode, name, brand, servingG, servingLabel, per100, imageUrl; case nameAr = "name_ar" }
+}
+
+struct AuthUser: Codable { let id: String; let email: String?; let name: String?; let role: String; let account: Bool? }
+struct AuthResponse: Codable { let token: String; let user: AuthUser }
+struct Invite: Codable, Identifiable { let code: String; let usedBy: String?; let usedByName: String?; let createdAt: Date; let expiresAt: Date
+    var id: String { code } }
+
+/// Only the fields the app reads; writes go through `APIClient.updateProfile(_:)` as partial patches.
 struct Profile: Codable {
+    struct Ramadan: Codable { var enabled: Bool?; var suhoorTime: String; var iftarTime: String }
+    struct Reminders: Codable { var meals: Bool; var weight: Bool }
+    struct Screening: Codable { var pregnant: Bool?; var breastfeeding: Bool?; var medicalSupervision: Bool?; var edHistory: Bool? }
     var sex: String?
     var birthYear: Int?
     var heightCm: Double?
     var weightKg: Double?
     var activityLevel: String
     var goal: String
-    var goalDeltaKcal: Double
     var preferredEnergySource: String?
     var timezone: String
     var city: String?
-    var country: String?
+    var targetWeightKg: Double?
+    var pace: String?
+    var screening: Screening?
+    var onboarded: Bool?
+    var ramadan: Ramadan?
+    var reminders: Reminders?
 }
 
 struct EnergySample: Codable {

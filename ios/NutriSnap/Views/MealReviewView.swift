@@ -38,6 +38,40 @@ struct MealReviewView: View {
                     }
                 }
             }
+            if let sc = meal.score {
+                Section {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle().fill(scoreColor(sc).opacity(0.15))
+                            Text(fmt1(sc.score)).font(.title2.bold()).foregroundStyle(scoreColor(sc))
+                        }
+                        .frame(width: 56, height: 56)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(sc.labelAr).font(.headline)
+                            FlowReasons(reasons: sc.reasons)
+                        }
+                    }
+                    if let note = meal.final.coachNoteAr, !note.isEmpty {
+                        Label(note, systemImage: "sparkles").font(.callout).foregroundStyle(Theme.brand2)
+                    }
+                } header: { Text("تقييم الوجبة") }
+            }
+            if let swaps = meal.final.swaps, !swaps.isEmpty {
+                Section("بدائل أذكى") {
+                    ForEach(swaps, id: \.self) { sw in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("بدل \(sw.insteadOfAr) ← \(sw.chooseAr)").font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(signed(sw.deltaKcal)).font(.caption.bold()).monospacedDigit()
+                                    .foregroundStyle(Theme.status(meal.final.totals.calories > 0 && sw.deltaKcal <= 0))
+                                    .environment(\.layoutDirection, .leftToRight)
+                            }
+                            Text(sw.whyAr).font(.caption).foregroundStyle(Theme.muted)
+                        }
+                    }
+                }
+            }
             Section("الإجمالي") {
                 HStack {
                     Text("\(Int(liveTotals.calories))").font(.system(size: 34, weight: .bold)).monospacedDigit()
@@ -77,11 +111,13 @@ struct MealReviewView: View {
 
             Section {
                 Button { Task { await confirm() } } label: {
-                    HStack { Spacer(); if busy { ProgressView() } else { Text(meal.isConfirmed ? "حفظ التعديلات" : "تأكيد وإضافة لليوم").bold() }; Spacer() }
+                    HStack { Spacer(); if busy { ProgressView() } else { Text(meal.isConfirmed ? "حفظ التعديلات" : "تأكيد وإضافة لليوم").bold().foregroundStyle(Theme.brand2) }; Spacer() }
                 }.disabled(busy || items.isEmpty)
                 Button(role: .destructive) { Task { await remove() } } label: { HStack { Spacer(); Text("حذف الوجبة"); Spacer() } }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("مراجعة الوجبة")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -164,6 +200,37 @@ struct ItemEditor: View {
             TextField(label, value: value, format: .number.precision(.fractionLength(0...1)))
                 .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 90)
         }
+    }
+}
+
+private func scoreColor(_ s: MealScore) -> Color {
+    s.score >= 7 ? Theme.good : s.score >= 4.5 ? Theme.warn : Theme.bad
+}
+
+struct FlowReasons: View {
+    let reasons: [MealScore.Reason]
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(reasons, id: \.self) { r in
+                Label(r.textAr, systemImage: r.good ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .font(.caption).foregroundStyle(r.good ? Theme.good : Theme.warn)
+            }
+        }
+    }
+}
+
+struct MacroBar: View {
+    let n: Nutrients
+    var body: some View {
+        HStack {
+            macro("بروتين", n.proteinG, Theme.protein)
+            macro("كربوهيدرات", n.carbsG, Theme.carbs)
+            macro("دهون", n.fatG, Theme.fat)
+            macro("ألياف", n.fiberG, Theme.fiber)
+        }
+    }
+    private func macro(_ t: String, _ g: Double, _ c: Color) -> some View {
+        VStack { Text("\(fmt(g)) غ").bold().foregroundStyle(c); Text(t).font(.caption).foregroundStyle(Theme.muted) }.frame(maxWidth: .infinity)
     }
 }
 

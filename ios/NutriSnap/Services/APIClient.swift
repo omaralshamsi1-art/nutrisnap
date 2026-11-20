@@ -8,8 +8,7 @@ enum APIError: LocalizedError {
     }
 }
 
-/// Talks to the NutriSnap backend. Auth: Supabase access token (Bearer) in production,
-/// or X-User-Id when the server runs with AUTH_MODE=dev.
+/// Talks to the NutriSnap backend. Auth: the owner's server key (+ X-User-Id), or an account token (Bearer).
 final class APIClient {
     static let shared = APIClient()
 
@@ -93,14 +92,81 @@ final class APIClient {
         let _: [String: Int] = try await send(req)
     }
 
-    // MARK: Profile
+    // MARK: Profile & plan
 
     func profile() async throws -> Profile { try await send(request("profile")) }
-    func saveProfile(_ p: Profile) async throws -> Profile {
-        var req = request("profile", method: "PUT")
-        req.httpBody = try encoder.encode(p)
-        return try await send(req)
+    /// Partial update — only the keys given are changed on the server.
+    @discardableResult
+    func updateProfile(_ patch: [String: Any]) async throws -> Profile {
+        try await send(jsonRequest("profile", method: "PUT", patch))
     }
+    func plan() async throws -> Plan { try await send(request("plan")) }
+    func planPreview(_ patch: [String: Any]) async throws -> Plan { try await send(jsonRequest("plan/preview", method: "POST", patch)) }
+    func weights(days: Int = 90) async throws -> WeightLog { try await send(request("weights?days=\(days)")) }
+    func addWeight(_ kg: Double) async throws {
+        let _: WeightLog = try await send(jsonRequest("weights", method: "POST", ["kg": kg]))
+    }
+    func history(days: Int = 7) async throws -> History { try await send(request("history?days=\(days)")) }
+
+    // MARK: Coach & motivation
+
+    func motivation() async throws -> Motivation { try await send(request("motivation")) }
+    func suggest(force: Bool = false) async throws -> Suggestions {
+        try await send(request("coach/suggest\(force ? "?force=1" : "")", method: "POST"))
+    }
+    func weekly(force: Bool = false) async throws -> WeeklyReport {
+        try await send(request("coach/weekly\(force ? "?force=1" : "")"))
+    }
+
+    // MARK: Fast logging
+
+    func analyzeText(_ text: String, restaurant: String?) async throws -> AnalyzeResponse {
+        var body: [String: Any] = ["text": text, "eatenAt": ISO8601DateFormatter().string(from: Date())]
+        if let restaurant, !restaurant.trimmingCharacters(in: .whitespaces).isEmpty { body["restaurant"] = restaurant }
+        return try await send(jsonRequest("meals/analyze-text", method: "POST", body))
+    }
+    func favorites() async throws -> [Favorite] { try await send(request("meals/favorites")) }
+    func logFavorite(key: String, portion: Double) async throws {
+        let _: Meal = try await send(jsonRequest("meals/favorites/log", method: "POST",
+            ["key": key, "portionFactor": portion, "eatenAt": ISO8601DateFormatter().string(from: Date())]))
+    }
+    func barcode(_ code: String) async throws -> BarcodeProduct {
+        let safe = code.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? code
+        return try await send(request("foods/barcode/\(safe)"))
+    }
+    /// Manual meal (used for barcode products — no AI call).
+    func createMeal(from p: BarcodeProduct, grams: Double) async throws -> Meal {
+        let f = grams / 100
+        let n = p.per100
+        let r = { (v: Double) in (v * f * 10).rounded() / 10 }
+        let item: [String: Any] = [
+            "name": p.name, "name_ar": p.title, "quantity": grams, "unit": "g", "grams": grams,
+            "calories": r(n.calories), "protein_g": r(n.proteinG), "carbs_g": r(n.carbsG), "fat_g": r(n.fatG),
+            "fiber_g": r(n.fiberG), "sugar_g": r(n.sugarG), "sodium_mg": r(n.sodiumMg),
+        ]
+        var body: [String: Any] = [
+            "meal_name": p.name, "meal_name_ar": p.title, "source": "database", "confidence": 0.9, "items": [item],
+            "sources": [["title": "Open Food Facts", "url": "https://world.openfoodfacts.org/product/\(p.barcode)"]],
+            "eatenAt": ISO8601DateFormatter().string(from: Date()),
+        ]
+        if let b = p.brand { body["restaurant"] = b }
+        return try await send(jsonRequest("meals", method: "POST", body))
+    }
+
+    // MARK: Accounts
+
+    func login(email: String, password: String) async throws -> AuthResponse {
+        try await send(jsonRequest("auth/login", method: "POST", ["email": email, "password": password]))
+    }
+    func register(inviteCode: String?, name: String, email: String, password: String, claimUserId: String? = nil) async throws -> AuthResponse {
+        var body: [String: Any] = ["name": name, "email": email, "password": password]
+        if let inviteCode { body["inviteCode"] = inviteCode }
+        if let claimUserId { body["claimUserId"] = claimUserId }
+        return try await send(jsonRequest("auth/register", method: "POST", body))
+    }
+    func me() async throws -> AuthUser { try await send(request("auth/me")) }
+    func invites() async throws -> [Invite] { try await send(request("auth/invites")) }
+    func createInvite() async throws -> Invite { try await send(request("auth/invites", method: "POST")) }
 
     // MARK: WHOOP
 
@@ -130,9 +196,21 @@ final class APIClient {
         var req = URLRequest(url: URL(string: path, relativeTo: baseURL.appendingPathComponent("/"))!)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token = accessToken { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        else { req.setValue(devUserId, forHTTPHeaderField: "X-User-Id") }
-        if let apiKey { req.setValue(apiKey, forHTTPHeaderField: "X-API-Key") } // AUTH_MODE=apikey
+        // Owner: server key + user id. Invited users: account token from /auth/login.
+        if let apiKey {
+            req.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+            req.setValue(devUserId, forHTTPHeaderField: "X-User-Id")
+        } else if let token = accessToken {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            req.setValue(devUserId, forHTTPHeaderField: "X-User-Id")
+        }
+        return req
+    }
+
+    private func jsonRequest(_ path: String, method: String, _ body: [String: Any]) -> URLRequest {
+        var req = request(path, method: method)
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         return req
     }
 
@@ -141,11 +219,14 @@ final class APIClient {
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
+            if code == 401 { await MainActor.run { NotificationCenter.default.post(name: .nutriSnapUnauthorized, object: nil) } }
             throw APIError.http(code, msg ?? String(data: data, encoding: .utf8) ?? "")
         }
         return try decoder.decode(T.self, from: data)
     }
 }
+
+extension Notification.Name { static let nutriSnapUnauthorized = Notification.Name("nutriSnapUnauthorized") }
 
 struct MultipartForm {
     private let boundary = "NutriSnap-\(UUID().uuidString)"

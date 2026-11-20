@@ -20,6 +20,8 @@ targets:
         NSCameraUsageDescription: "لتصوير وجبتك وحساب قيمتها الغذائية"
         NSPhotoLibraryUsageDescription: "لاختيار صورة وجبة من ألبومك"
         NSHealthShareUsageDescription: "لقراءة السعرات المحروقة (النشطة والأساسية) ومقارنتها بما تأكله"
+        NSSpeechRecognitionUsageDescription: "لتحويل وصفك الصوتي للوجبة إلى نص"
+        NSMicrophoneUsageDescription: "لتسجيل وصف الوجبة بصوتك"
         NSHealthUpdateUsageDescription: "لحفظ وجباتك وقيمها الغذائية في تطبيق صحتي"
         CFBundleURLTypes:
           - CFBundleURLName: ae.sheen.nutrisnap
@@ -36,5 +38,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ae.sheen.nutrisnap
         SWIFT_VERSION: "5.10"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: "2"
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
