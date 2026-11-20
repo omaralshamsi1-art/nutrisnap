@@ -205,7 +205,7 @@ struct OnboardingView: View {
         if let y = num(birthYear) { p["birthYear"] = Int(y) }
         if let h = num(height) { p["heightCm"] = h }
         if let w = num(weight) { p["weightKg"] = w }
-        p["targetWeightKg"] = goal == "maintain" ? NSNull() : (num(target).map { $0 as Any } ?? NSNull())
+        p["targetWeightKg"] = goal == "maintain" ? NSNull() as Any : (num(target).map { $0 as Any } ?? NSNull() as Any)
         return p
     }
 

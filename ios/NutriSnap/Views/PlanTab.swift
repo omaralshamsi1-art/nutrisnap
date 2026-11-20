@@ -294,7 +294,7 @@ struct RamadanSettingsCard: View {
     }
     private func save() async {
         // Off + never chosen = keep automatic detection during Ramadan.
-        let flag: Any = enabled ? true : (profile.ramadan?.enabled == nil ? NSNull() : false)
+        let flag: Any = enabled ? true as Any : (profile.ramadan?.enabled == nil ? NSNull() as Any : false as Any)
         let r: [String: Any] = ["enabled": flag, "suhoorTime": hhmm(suhoor), "iftarTime": hhmm(iftar)]
         _ = try? await APIClient.shared.updateProfile(["ramadan": r])
         onSaved()
