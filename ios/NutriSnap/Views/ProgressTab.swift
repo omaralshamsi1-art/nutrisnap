@@ -111,14 +111,14 @@ struct GoalProgressCard: View {
                     if let ch = plan.changeSinceStartKg {
                         let good = plan.goal == "gain" ? ch >= 0 : ch <= 0
                         Text("التغيّر: ").foregroundColor(Theme.muted) +
-                        Text("\(ch > 0 ? "+" : ch < 0 ? "−" : "")\(fmt1(abs(ch))) كغ").bold().foregroundColor(Theme.status(good))
+                        Text(signedKg(ch)).bold().foregroundColor(Theme.status(good))
                     }
                     Spacer()
                     Text("\(fmt(pct))٪").font(.caption.bold()).foregroundStyle(Theme.good)
                 }
                 .font(.footnote)
                 if let eta = plan.etaDate, let d = DateFormatter.isoDay.date(from: eta) {
-                    Text("الموعد المتوقع: \(d.formatted(.dateTime.month(.wide).year()))").font(.footnote).foregroundStyle(Theme.muted)
+                    Text("الموعد المتوقع: \(d.arMonthYear)").font(.footnote).foregroundStyle(Theme.muted)
                 }
             } else {
                 Text("هدفك: \(goalName(plan.effectiveGoal)) — \(fmt(plan.targetKcal)) سعرة يومياً").font(.subheadline)
@@ -179,7 +179,7 @@ struct WeeklyReportCard: View {
                     tile("متوسط الأكل", r.stats.avgKcal.map(fmt) ?? "—")
                     tile("متوسط البروتين", r.stats.avgProtein.map { "\(fmt($0)) غ" } ?? "—")
                     if let d = r.stats.avgDeficit { tile("متوسط الفرق", signed(d), color: Theme.status(r.stats.goal == "gain" ? d <= 0 : d >= 0)) }
-                    if let w = r.stats.weightChangeKg { tile("تغيّر الوزن", "\(w > 0 ? "+" : w < 0 ? "−" : "")\(fmt1(abs(w))) كغ") }
+                    if let w = r.stats.weightChangeKg { tile("تغيّر الوزن", signedKg(w)) }
                 }
                 bullets("ما أحسنت فيه", r.narrative.winsAr, Theme.good, "checkmark.circle.fill")
                 bullets("ما يمكن تحسينه", r.narrative.improveAr, Theme.warn, "arrow.up.right.circle.fill")

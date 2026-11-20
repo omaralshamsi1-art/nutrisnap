@@ -134,8 +134,8 @@ struct OnboardingView: View {
                     }
                     HStack {
                         stat("بروتين", "\(fmt(p.proteinG)) غ")
-                        stat("أسبوعياً", p.weeklyChangeKg.map { $0 == 0 ? "—" : "\($0 > 0 ? "+" : "−")\(fmt1(abs($0))) كغ" } ?? "—")
-                        stat("الوصول", p.etaDate.flatMap { DateFormatter.isoDay.date(from: $0) }.map { $0.formatted(.dateTime.month(.abbreviated).year()) } ?? "—")
+                        stat("أسبوعياً", p.weeklyChangeKg.map { $0 == 0 ? "—" : signedKg($0) } ?? "—")
+                        stat("الوصول", p.etaDate.flatMap { DateFormatter.isoDay.date(from: $0) }.map { $0.formatted(.dateTime.month(.abbreviated).year().locale(arabic)) } ?? "—")
                     }
                 }
                 ForEach(p.notices, id: \.self) { Notice(text: $0.textAr, level: $0.level) }

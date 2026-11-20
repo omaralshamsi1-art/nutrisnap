@@ -161,7 +161,19 @@ func fmt1(_ v: Double) -> String { v.formatted(.number.precision(.fractionLength
 func signed(_ v: Double) -> String {
     guard v.isFinite else { return "—" }
     let n = Int(v.rounded())
-    return (n > 0 ? "+" : n < 0 ? "−" : "") + abs(n).formatted(.number.locale(Locale(identifier: "en_US")))
+    return ltr((n > 0 ? "+" : n < 0 ? "−" : "") + abs(n).formatted(.number.locale(Locale(identifier: "en_US"))))
+}
+/// Signed kg value ("+0.4 كغ" / "−1.2 كغ"), sign kept in front in Arabic text.
+func signedKg(_ v: Double) -> String { ltr((v > 0 ? "+" : v < 0 ? "−" : "") + fmt1(abs(v))) + " كغ" }
+/// Left-to-right isolate so signs and ranges are not reordered inside Arabic text.
+func ltr(_ s: String) -> String { "\u{2066}" + s + "\u{2069}" }
+
+let arabic = Locale(identifier: "ar")
+extension Date {
+    var arDayMonth: String { formatted(.dateTime.day().month(.wide).locale(arabic)) }
+    var arWeekday: String { formatted(.dateTime.weekday(.wide).locale(arabic)) }
+    var arMonthYear: String { formatted(.dateTime.month(.wide).year().locale(arabic)) }
+    var arTime: String { formatted(.dateTime.hour().minute().locale(arabic)) }
 }
 
 func sourceName(_ s: String) -> String {

@@ -65,8 +65,8 @@ struct PlanSummaryCard: View {
             }
             VStack(alignment: .leading, spacing: 6) {
                 row("حرقك اليومي (الصيانة)", "\(fmt(plan.maintenanceKcal)) • \(sourceName(plan.maintenanceSource))")
-                row("العجز/الفائض اليومي", signed(plan.dailyDeltaKcal), ltr: true)
-                if let w = plan.weeklyChangeKg, w != 0 { row("التغيّر المتوقع أسبوعياً", "\(w > 0 ? "+" : "−")\(fmt1(abs(w))) كغ", ltr: true) }
+                row("العجز/الفائض اليومي", signed(plan.dailyDeltaKcal))
+                if let w = plan.weeklyChangeKg, w != 0 { row("التغيّر المتوقع أسبوعياً", signedKg(w)) }
                 if let bmi = plan.bmi { row("مؤشر كتلة الجسم", fmt1(bmi)) }
                 if let bd = plan.burnData, plan.maintenanceSource != "device" {
                     row("قياسات الحرق من الساعة", "\(bd.days) من \(bd.needed) أيام")

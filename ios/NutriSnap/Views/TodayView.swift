@@ -46,9 +46,9 @@ struct TodayView: View {
     private var header: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(store.isToday ? "اليوم" : store.day.formatted(.dateTime.weekday(.wide)))
+                Text(store.isToday ? "اليوم" : store.day.arWeekday)
                     .font(.title.bold()).foregroundStyle(Theme.ink)
-                Text(store.day.formatted(.dateTime.day().month(.wide)))
+                Text(store.day.arDayMonth)
                     .font(.subheadline).foregroundStyle(Theme.muted)
             }
             Spacer()
@@ -93,6 +93,7 @@ struct EnergyCard: View {
                         .stroke(Theme.status(within), style: StrokeStyle(lineWidth: 16, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeOut(duration: 0.6), value: progress)
+                        .environment(\.layoutDirection, .leftToRight)
                     VStack(spacing: 2) {
                         Text(fmt(abs(remaining)))
                             .font(.system(size: 44, weight: .bold, design: .rounded)).monospacedDigit()
@@ -289,7 +290,7 @@ struct ActivityCard: View {
         }
     }
     private func details(_ w: Workout) -> String {
-        var parts = ["\(fmt(w.durationMin)) د", w.start.formatted(date: .omitted, time: .shortened)]
+        var parts = ["\(fmt(w.durationMin)) د", w.start.arTime]
         if let s = w.strain { parts.append("إجهاد \(fmt1(s))") }
         if let hr = w.avgHr { parts.append("نبض \(fmt(hr))") }
         if let d = w.distanceM, d > 0 { parts.append("\(fmt1(d / 1000)) كم") }
@@ -316,7 +317,7 @@ struct MealsCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(m.nameAr.isEmpty ? m.name : m.nameAr).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                                 .lineLimit(1)
-                            Text([m.restaurant, m.eatenAt.formatted(date: .omitted, time: .shortened)].compactMap { $0 }.joined(separator: " • "))
+                            Text([m.restaurant, m.eatenAt.arTime].compactMap { $0 }.joined(separator: " • "))
                                 .font(.caption).foregroundStyle(Theme.muted).lineLimit(1)
                         }
                         Spacer()
