@@ -90,7 +90,7 @@ export class CoachService {
 
     const slot = ram.active
       ? ram.fasting ? 'iftar (the user is fasting now)' : hour < 4 || hour >= 22 ? 'suhoor' : 'evening meal after iftar'
-      : hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 21 ? 'dinner' : 'light late snack';
+      : hour < 5 || hour >= 22 ? 'light late snack' : hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 19 ? 'afternoon snack or early dinner' : 'dinner';
     const key = `suggest:${today}:${slot}:${Math.round(remaining / 75)}:${Math.round(proteinLeft / 10)}`;
     return this.cached(userId, key, opts.force ? 0 : minutes(45), async () => {
       const system = `You are NutriSnap's nutrition coach. Suggest 3 or 4 concrete meal options for the user's next meal.\n${SAFETY}\nEach option must state realistic kcal and protein. Prefer options close to the user's habits; include at least one home option and at least one from a restaurant they already use if any.`;
