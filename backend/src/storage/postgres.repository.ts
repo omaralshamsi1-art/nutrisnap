@@ -4,7 +4,7 @@ import { Pool, types } from 'pg';
 
 // Return DATE columns as 'YYYY-MM-DD' strings (no timezone shifting).
 types.setTypeParser(1082, (v) => v);
-import { CacheEntry, EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
+import { CacheEntry, EnergyDay, Invite, KnownMeal, Meal, OAuthTokens, Profile, PushSub, User, WeightEntry, Workout } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 import { rankKnown, Repository } from './repository';
 
@@ -78,6 +78,11 @@ export class PostgresRepository implements Repository {
         JSON.stringify(k.items), k.totals, JSON.stringify(k.sources), k.timesLogged, k.updatedAt,
       ],
     );
+  }
+
+  async listUserKnown(userId: string, limit: number) {
+    const r = await this.pool.query(`select * from known_meals where user_id=$1 order by times_logged desc, updated_at desc limit $2`, [userId, limit]);
+    return r.rows.map(rowToKnown);
   }
 
   async upsertEnergy(d: EnergyDay) {
@@ -162,6 +167,55 @@ export class PostgresRepository implements Repository {
     );
   }
 
+  async createUser(u: User) {
+    await this.pool.query(
+      `insert into users (id, email, name, password_hash, role, created_at) values ($1,$2,$3,$4,$5,$6)`,
+      [u.id, u.email, u.name, u.passwordHash, u.role, u.createdAt],
+    );
+  }
+  async getUserByEmail(email: string) {
+    const r = await this.pool.query(`select * from users where email=$1`, [email]);
+    return r.rows[0] ? rowToUser(r.rows[0]) : null;
+  }
+  async getUserById(id: string) {
+    const r = await this.pool.query(`select * from users where id=$1`, [id]);
+    return r.rows[0] ? rowToUser(r.rows[0]) : null;
+  }
+  async createInvite(i: Invite) {
+    await this.pool.query(`insert into invites (code, created_by, used_by, created_at, expires_at) values ($1,$2,$3,$4,$5)`, [
+      i.code, i.createdBy, i.usedBy, i.createdAt, i.expiresAt,
+    ]);
+  }
+  async getInvite(code: string) {
+    const r = await this.pool.query(`select * from invites where code=$1`, [code]);
+    return r.rows[0] ? rowToInvite(r.rows[0]) : null;
+  }
+  async useInvite(code: string, userId: string, now: string) {
+    const r = await this.pool.query(`update invites set used_by=$2 where code=$1 and used_by is null and expires_at > $3`, [code, userId, now]);
+    return (r.rowCount ?? 0) === 1;
+  }
+  async listInvites(createdBy: string) {
+    const r = await this.pool.query(`select * from invites where created_by=$1 order by created_at desc limit 50`, [createdBy]);
+    return r.rows.map(rowToInvite);
+  }
+
+  async savePushSub(s: PushSub) {
+    await this.pool.query(
+      `insert into push_subs (endpoint, user_id, keys, created_at) values ($1,$2,$3,$4)
+       on conflict (endpoint) do update set user_id=$2, keys=$3`,
+      [s.endpoint, s.userId, JSON.stringify(s.keys), s.createdAt],
+    );
+  }
+  async deletePushSub(endpoint: string) {
+    await this.pool.query(`delete from push_subs where endpoint=$1`, [endpoint]);
+  }
+  async listPushSubs(userId?: string) {
+    const r = userId
+      ? await this.pool.query(`select * from push_subs where user_id=$1`, [userId])
+      : await this.pool.query(`select * from push_subs`);
+    return r.rows.map((x) => ({ endpoint: x.endpoint, userId: x.user_id, keys: x.keys, createdAt: new Date(x.created_at).toISOString() }));
+  }
+
   async getProfile(userId: string) {
     const r = await this.pool.query(`select data from profiles where user_id=$1`, [userId]);
     return r.rows[0] ? ({ ...r.rows[0].data, userId } as Profile) : null;
@@ -230,5 +284,15 @@ function rowToKnown(x: any): KnownMeal {
     sources: x.sources,
     timesLogged: x.times_logged,
     updatedAt: new Date(x.updated_at).toISOString(),
+  };
+}
+
+function rowToUser(x: any): User {
+  return { id: x.id, email: x.email, name: x.name, passwordHash: x.password_hash, role: x.role, createdAt: new Date(x.created_at).toISOString() };
+}
+function rowToInvite(x: any): Invite {
+  return {
+    code: x.code, createdBy: x.created_by, usedBy: x.used_by,
+    createdAt: new Date(x.created_at).toISOString(), expiresAt: new Date(x.expires_at).toISOString(),
   };
 }

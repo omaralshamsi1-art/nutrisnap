@@ -1,4 +1,4 @@
-import { CacheEntry, EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
+import { CacheEntry, EnergyDay, Invite, KnownMeal, Meal, OAuthTokens, Profile, PushSub, User, WeightEntry, Workout } from '../common/types';
 import { rankKnown, Repository } from './repository';
 
 /** In-memory store for local development and tests. */
@@ -11,6 +11,9 @@ export class MemoryRepository implements Repository {
   private weights = new Map<string, WeightEntry>();
   private workouts = new Map<string, Workout>();
   private cache = new Map<string, CacheEntry>();
+  private users = new Map<string, User>();
+  private invites = new Map<string, Invite>();
+  private pushSubs = new Map<string, PushSub>();
 
   async saveMeal(m: Meal) {
     this.meals.set(m.id, structuredClone(m));
@@ -41,6 +44,13 @@ export class MemoryRepository implements Repository {
   }
   async upsertKnown(k: KnownMeal) {
     this.known.set(`${k.userId ?? '*'}::${k.key}`, structuredClone(k));
+  }
+  async listUserKnown(userId: string, limit: number) {
+    return [...this.known.values()]
+      .filter((k) => k.userId === userId)
+      .sort((a, b) => b.timesLogged - a.timesLogged || b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, limit)
+      .map((k) => structuredClone(k));
   }
   /** test helper */
   async getKnown(userId: string | null, key: string) {
@@ -87,6 +97,42 @@ export class MemoryRepository implements Repository {
   }
   async setCache(e: CacheEntry) {
     this.cache.set(`${e.userId}|${e.key}`, structuredClone(e));
+  }
+
+  async createUser(u: User) {
+    if ([...this.users.values()].some((x) => x.email === u.email) || this.users.has(u.id)) throw new Error('duplicate');
+    this.users.set(u.id, { ...u });
+  }
+  async getUserByEmail(email: string) {
+    return [...this.users.values()].find((u) => u.email === email) ?? null;
+  }
+  async getUserById(id: string) {
+    return this.users.get(id) ?? null;
+  }
+  async createInvite(i: Invite) {
+    this.invites.set(i.code, { ...i });
+  }
+  async getInvite(code: string) {
+    return this.invites.get(code) ?? null;
+  }
+  async useInvite(code: string, userId: string, now: string) {
+    const i = this.invites.get(code);
+    if (!i || i.usedBy || i.expiresAt < now) return false;
+    i.usedBy = userId;
+    return true;
+  }
+  async listInvites(createdBy: string) {
+    return [...this.invites.values()].filter((i) => i.createdBy === createdBy).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async savePushSub(s: PushSub) {
+    this.pushSubs.set(s.endpoint, { ...s });
+  }
+  async deletePushSub(endpoint: string) {
+    this.pushSubs.delete(endpoint);
+  }
+  async listPushSubs(userId?: string) {
+    return [...this.pushSubs.values()].filter((s) => !userId || s.userId === userId);
   }
 
   async getProfile(userId: string) {

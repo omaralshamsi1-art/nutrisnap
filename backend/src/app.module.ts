@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ANTHROPIC_CLIENT, anthropicFactory, NutritionAgentService } from './agent/nutrition-agent.service';
 import { AuthGuard } from './auth/auth.guard';
+import { AuthService, UsageService } from './auth/auth.service';
 import {
   EnergyController,
   HealthController,
@@ -10,6 +11,10 @@ import {
   PlanController,
   WorkoutsController,
   CoachController,
+  AuthController,
+  FoodsController,
+  MotivationController,
+  PushController,
   ProfileController,
   WhoopController,
 } from './controllers';
@@ -20,13 +25,16 @@ import { ProfileService } from './profile/profile.service';
 import { PlanService } from './plan/plan.service';
 import { WorkoutsService } from './workouts/workouts.service';
 import { CoachService } from './coach/coach.service';
+import { FoodsService } from './foods/foods.service';
+import { MotivationService } from './coach/motivation.service';
+import { RemindersService } from './coach/reminders.service';
 import { MemoryRepository } from './storage/memory.repository';
 import { PostgresRepository } from './storage/postgres.repository';
 import { REPOSITORY } from './storage/repository';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [HealthController, MealsController, PlanController, WorkoutsController, CoachController, EnergyController, ProfileController, WhoopController],
+  controllers: [HealthController, AuthController, FoodsController, MotivationController, PushController, MealsController, PlanController, WorkoutsController, CoachController, EnergyController, ProfileController, WhoopController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: ANTHROPIC_CLIENT, useFactory: anthropicFactory, inject: [ConfigService] },
@@ -43,6 +51,11 @@ import { REPOSITORY } from './storage/repository';
     PlanService,
     WorkoutsService,
     CoachService,
+    AuthService,
+    UsageService,
+    FoodsService,
+    MotivationService,
+    RemindersService,
     MealsService,
     EnergyService,
     WhoopService,

@@ -14,8 +14,10 @@ export interface MessagesClient {
 }
 
 export interface AnalyzeInput {
-  image: Buffer;
-  mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+  image?: Buffer | null;
+  mediaType?: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+  /** free-text description (typed or dictated), used with or without a photo */
+  description?: string | null;
   mealName?: string | null;
   restaurant?: string | null;
   portion?: string | null;
@@ -105,10 +107,9 @@ export class NutritionAgentService {
       {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: input.mediaType, data: input.image.toString('base64') },
-          },
+          ...(input.image
+            ? [{ type: 'image', source: { type: 'base64', media_type: input.mediaType, data: input.image.toString('base64') } }]
+            : []),
           { type: 'text', text: buildUserText(input) },
         ],
       },
@@ -232,7 +233,7 @@ export class NutritionAgentService {
         {
           role: 'user',
           parts: [
-            { inline_data: { mime_type: input.mediaType, data: input.image.toString('base64') } },
+            ...(input.image ? [{ inline_data: { mime_type: input.mediaType, data: input.image.toString('base64') } }] : []),
             { text: buildUserText(input) },
           ],
         },

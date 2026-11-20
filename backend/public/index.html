@@ -125,6 +125,31 @@ button { font: inherit; color: inherit; }
 .ram .split span { font-size: 12px; opacity: .85; }
 .wk-head { font-size: 18px; font-weight: 700; line-height: 1.5; margin: 6px 0 10px; }
 .blist { margin: 6px 0 0; padding-inline-start: 20px; line-height: 1.8; font-size: 14px; }
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--card); border-radius: 18px; padding: 6px; box-shadow: var(--shadow); margin: 12px 0; }
+.modes button { border: 0; background: transparent; border-radius: 13px; padding: 10px 2px; font-size: 13px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); min-height: 56px; }
+.modes button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-2); font-weight: 700; }
+textarea { width: 100%; font: inherit; font-size: 16px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card-2); color: var(--ink); min-height: 96px; resize: vertical; }
+.mic { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--brand); color: #fff; display: grid; place-items: center; margin: 12px auto 4px; cursor: pointer; }
+.mic.on { background: var(--bad); animation: pulse 1.2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(210,59,42,.45); } 70% { box-shadow: 0 0 0 16px rgba(210,59,42,0); } 100% { box-shadow: 0 0 0 0 rgba(210,59,42,0); } }
+video.scan { width: 100%; border-radius: 18px; background: #000; max-height: 300px; object-fit: cover; }
+.fav { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
+.fav + .fav { border-top: 1px solid var(--line); }
+.fav .t { flex: 1; min-width: 0; }
+.fav .t b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.fav select { width: auto; padding: 8px; font-size: 14px; }
+.fav button { width: auto; min-height: 40px; padding: 8px 14px; margin: 0 !important; }
+.streak { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--warn); font-weight: 700; padding: 6px 12px; border-radius: 999px; font-size: 14px; margin-top: 8px; }
+.badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.badge { text-align: center; padding: 12px 6px; border-radius: 18px; background: var(--card-2); border: 1px solid var(--line); }
+.badge .ico { width: 46px; height: 46px; margin: 0 auto 6px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: var(--line); filter: grayscale(1); opacity: .55; }
+.badge.on .ico { background: var(--accent-soft); filter: none; opacity: 1; }
+.badge b { display: block; font-size: 13px; }
+.badge span { font-size: 11px; color: var(--muted); }
+.authtabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--card-2); border-radius: 14px; padding: 4px; margin-bottom: 6px; }
+.authtabs button { border: 0; border-radius: 11px; padding: 10px 2px; background: transparent; cursor: pointer; font-size: 14px; }
+.authtabs button[aria-pressed="true"] { background: var(--card); box-shadow: var(--shadow); font-weight: 700; color: var(--brand-2); }
+.code { font-family: ui-monospace, Menlo, monospace; font-size: 20px; letter-spacing: 3px; font-weight: 700; direction: ltr; }
 .empty { text-align: center; padding: 20px 10px; color: var(--muted); }
 /* forms */
 label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
@@ -231,17 +256,32 @@ a { color: var(--brand-2); }
     </div>
   </div>
 
-  <!-- ============ SETUP (device key) ============ -->
+  <!-- ============ AUTH ============ -->
   <section id="v-setup" class="hidden fade">
     <div class="greet">أهلاً بك 👋</div>
-    <p class="sub">أدخلي مفتاح الخادم مرة واحدة على هذا الجهاز (قيمة <b>API_KEY</b> من Railway ← خدمة api ← Variables).</p>
+    <p class="sub">صوّر وجبتك، واعرف قيمتها، وتابع هدفك.</p>
     <div class="card">
-      <label for="setupKey">مفتاح الخادم</label>
-      <input id="setupKey" type="password" autocomplete="off" placeholder="API_KEY">
-      <label for="setupUser">اسم المستخدم</label>
-      <input id="setupUser" value="meera" autocomplete="off">
-      <div style="height:14px"></div>
-      <button class="btn" id="setupSave">دخول</button>
+      <div class="authtabs" id="authTabs"><button data-t="login" aria-pressed="true">دخول</button><button data-t="register">حساب جديد</button><button data-t="owner">المالك</button></div>
+      <div data-pane="login">
+        <label for="liEmail">البريد الإلكتروني</label><input id="liEmail" type="email" autocomplete="email" inputmode="email">
+        <label for="liPass">كلمة المرور</label><input id="liPass" type="password" autocomplete="current-password">
+        <div style="height:14px"></div><button class="btn" id="liBtn">دخول</button>
+      </div>
+      <div data-pane="register" class="hidden">
+        <label for="rgCode">رمز الدعوة</label><input id="rgCode" autocomplete="off" placeholder="مثل: K7M2QX9P" style="text-transform:uppercase;direction:ltr">
+        <label for="rgName">الاسم</label><input id="rgName" autocomplete="name">
+        <label for="rgEmail">البريد الإلكتروني</label><input id="rgEmail" type="email" autocomplete="email" inputmode="email">
+        <label for="rgPass">كلمة المرور (8 أحرف على الأقل)</label><input id="rgPass" type="password" autocomplete="new-password">
+        <div style="height:14px"></div><button class="btn" id="rgBtn">إنشاء الحساب</button>
+        <p class="small muted" style="margin:10px 0 0">التسجيل بدعوة فقط. اطلب رمزاً من صاحب التطبيق.</p>
+      </div>
+      <div data-pane="owner" class="hidden">
+        <label for="setupKey">مفتاح الخادم (API_KEY)</label>
+        <input id="setupKey" type="password" autocomplete="off">
+        <label for="setupUser">معرّف بياناتك</label>
+        <input id="setupUser" value="meera" autocomplete="off" style="direction:ltr">
+        <div style="height:14px"></div><button class="btn" id="setupSave">دخول كمالك</button>
+      </div>
     </div>
   </section>
 
@@ -328,6 +368,7 @@ a { color: var(--brand-2); }
   <section id="v-today" class="hidden fade">
     <div class="greet" id="greet">مرحباً</div>
     <div class="sub" id="goalLine"></div>
+    <div id="streakChip"></div>
 
     <div class="card">
       <div class="hero">
@@ -361,6 +402,14 @@ a { color: var(--brand-2); }
     </div>
 
     <div id="tips"></div>
+
+    <div class="card hidden" id="chalCard">
+      <h3>تحدي الأسبوع <span class="small" id="chalLeft"></span></h3>
+      <b id="chalTitle" style="font-size:16px"></b>
+      <p class="small muted" id="chalDesc" style="margin:4px 0 10px"></p>
+      <div class="row small" style="margin-bottom:6px"><span id="chalProg"></span><b id="chalDone"></b></div>
+      <div class="bar"><i id="chalBar" style="width:0;background:var(--accent)"></i></div>
+    </div>
 
     <div class="card">
       <h3>ماذا آكل الآن؟ <button class="chip src" id="sugRefresh" style="cursor:pointer" aria-label="اقتراحات جديدة">تحديث</button></h3>
@@ -404,6 +453,12 @@ a { color: var(--brand-2); }
     </div>
 
     <div class="card">
+      <h3>شاراتك <span class="small" id="bdgCount"></span></h3>
+      <div class="row" style="margin-bottom:12px"><span class="small muted">أطول سلسلة تسجيل</span><b class="num" id="bestStreak">—</b></div>
+      <div class="badges" id="badges"></div>
+    </div>
+
+    <div class="card">
       <h3>تقرير الأسبوع <button class="chip src" id="wkRefresh" style="cursor:pointer">تحديث</button></h3>
       <div id="wkBody"><button class="btn ghost" id="wkBtn"><svg width="20" height="20"><use href="#i-chart"/></svg>اعرض تقرير آخر 7 أيام</button></div>
     </div>
@@ -422,26 +477,67 @@ a { color: var(--brand-2); }
 
   <!-- ============ SNAP ============ -->
   <section id="v-snap" class="hidden fade">
-    <div class="greet">صوّري وجبتك</div>
-    <p class="sub">ذكر المطعم واسم الوجبة يعطي نتيجة أدق.</p>
-    <input id="file" type="file" accept="image/*" capture="environment" class="hidden">
-    <input id="fileLib" type="file" accept="image/*" class="hidden">
-    <div class="card" style="padding:12px">
-      <button id="drop" class="drop"><span class="ci"><svg width="30" height="30"><use href="#i-camera"/></svg></span><b>اضغطي للتصوير</b><div class="small muted" style="margin-top:6px">أو <a href="#" id="pickLib">اختاري من الصور</a></div></button>
-      <img id="preview" class="photo hidden" alt="صورة الوجبة">
+    <div class="greet">سجّل وجبتك</div>
+    <div class="modes" id="snapModes">
+      <button data-m="photo" aria-pressed="true"><svg width="22" height="22"><use href="#i-camera"/></svg>صورة</button>
+      <button data-m="text"><svg width="22" height="22"><use href="#i-bulb"/></svg>كتابة/صوت</button>
+      <button data-m="barcode"><svg width="22" height="22"><use href="#i-chart"/></svg>باركود</button>
+      <button data-m="fav"><svg width="22" height="22"><use href="#i-heart"/></svg>المفضلة</button>
     </div>
-    <div class="card">
-      <div class="grid2">
-        <div><label for="hName" style="margin-top:0">اسم الوجبة</label><input id="hName" placeholder="شاورما دجاج"></div>
-        <div><label for="hRest" style="margin-top:0">المطعم</label><input id="hRest" placeholder="اختياري"></div>
+
+    <div data-mode="photo">
+      <input id="file" type="file" accept="image/*" capture="environment" class="hidden">
+      <input id="fileLib" type="file" accept="image/*" class="hidden">
+      <div class="card" style="padding:12px">
+        <button id="drop" class="drop"><span class="ci"><svg width="30" height="30"><use href="#i-camera"/></svg></span><b>اضغط للتصوير</b><div class="small muted" style="margin-top:6px">أو <a href="#" id="pickLib">اختر من الصور</a></div></button>
+        <img id="preview" class="photo hidden" alt="صورة الوجبة">
       </div>
-      <div class="grid2">
-        <div><label for="hPortion">الكمية</label><input id="hPortion" placeholder="نصف، كبير…"></div>
-        <div><label for="hNote">ملاحظة</label><input id="hNote" placeholder="بدون صوص…"></div>
+      <div class="card">
+        <div class="grid2">
+          <div><label for="hName" style="margin-top:0">اسم الوجبة</label><input id="hName" placeholder="شاورما دجاج"></div>
+          <div><label for="hRest" style="margin-top:0">المطعم</label><input id="hRest" placeholder="اختياري"></div>
+        </div>
+        <div class="grid2">
+          <div><label for="hPortion">الكمية</label><input id="hPortion" placeholder="نصف، كبير…"></div>
+          <div><label for="hNote">ملاحظة</label><input id="hNote" placeholder="بدون صوص…"></div>
+        </div>
+        <div style="height:14px"></div>
+        <button class="btn" id="analyzeBtn" disabled>احسب القيمة الغذائية</button>
+        <div id="analyzing" class="loading hidden"><div class="spinner"></div>يحلل الصورة… قد يستغرق حتى دقيقة</div>
       </div>
-      <div style="height:14px"></div>
-      <button class="btn" id="analyzeBtn" disabled>احسب القيمة الغذائية</button>
-      <div id="analyzing" class="loading hidden"><div class="spinner"></div>يحلل الصورة… قد يستغرق حتى دقيقة</div>
+    </div>
+
+    <div data-mode="text" class="hidden">
+      <div class="card">
+        <label for="txtMeal" style="margin-top:0">صف ما أكلت</label>
+        <textarea id="txtMeal" placeholder="مثال: أكلت ساندويتش شاورما دجاج من الملاح وعصير برتقال صغير"></textarea>
+        <button class="mic" id="micBtn" aria-label="تحدث"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <p class="small muted" style="text-align:center;margin:0" id="micHint">اضغط على الميكروفون وتحدث بالعربي</p>
+        <label for="txtRest">المطعم (اختياري)</label><input id="txtRest">
+        <div style="height:14px"></div>
+        <button class="btn" id="txtBtn">احسب القيمة الغذائية</button>
+        <div id="txtLoading" class="loading hidden"><div class="spinner"></div>يحلل الوصف…</div>
+      </div>
+    </div>
+
+    <div data-mode="barcode" class="hidden">
+      <div class="card">
+        <video id="scanVideo" class="scan hidden" playsinline muted></video>
+        <button class="btn" id="scanBtn"><svg width="20" height="20"><use href="#i-camera"/></svg>امسح الباركود بالكاميرا</button>
+        <div class="grid2" style="margin-top:12px;align-items:end">
+          <div><label for="bcIn" style="margin-top:0">أو اكتب رقم الباركود</label><input id="bcIn" inputmode="numeric" style="direction:ltr"></div>
+          <button class="btn ghost" id="bcBtn">بحث</button>
+        </div>
+        <div id="bcResult"></div>
+        <p class="small muted" style="margin:10px 0 0">المصدر: قاعدة Open Food Facts المفتوحة.</p>
+      </div>
+    </div>
+
+    <div data-mode="fav" class="hidden">
+      <div class="card">
+        <h3>وجباتك المفضلة <span class="small">بضغطة واحدة — بدون انتظار</span></h3>
+        <div id="favList"></div>
+      </div>
     </div>
   </section>
 
@@ -517,6 +613,32 @@ a { color: var(--brand-2); }
     </div>
 
     <div class="card">
+      <h3>حسابي</h3>
+      <div class="kv"><div><span class="muted">الاسم</span><b id="acName">—</b></div><div><span class="muted">البريد</span><b id="acEmail" style="direction:ltr">—</b></div><div><span class="muted">الصلاحية</span><b id="acRole">—</b></div></div>
+      <div id="acClaim" class="hidden" style="margin-top:12px">
+        <p class="small muted">أنشئ دخولاً بالبريد لبياناتك الحالية حتى لا تحتاج مفتاح الخادم على أجهزتك.</p>
+        <div class="grid2"><div><label for="clEmail">البريد</label><input id="clEmail" type="email"></div><div><label for="clPass">كلمة مرور</label><input id="clPass" type="password" autocomplete="new-password"></div></div>
+        <div style="height:10px"></div><button class="btn ghost" id="clBtn">ربط البريد بحسابي</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="invCard">
+      <h3>دعوة مستخدمين</h3>
+      <p class="small muted" style="margin-top:-4px">كل دعوة لشخص واحد وتنتهي بعد 14 يوماً. لكل مستخدم حد يومي: 20 تحليل وجبة و12 طلب للمدرب.</p>
+      <button class="btn ghost" id="invBtn">إنشاء رمز دعوة</button>
+      <div id="invList" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h3>التذكيرات <span class="small" id="pushState">—</span></h3>
+      <p class="small muted" style="margin-top:-4px">نذكّرك في أوقات وجباتك المعتادة إذا لم تسجّل، وبقياس الوزن صباحاً. على الآيفون: أضف التطبيق للشاشة الرئيسية أولاً.</p>
+      <label class="check"><input type="checkbox" id="rmMeals" checked> تذكير الوجبات</label>
+      <label class="check"><input type="checkbox" id="rmWeight" checked> تذكير الوزن الصباحي</label>
+      <button class="btn ghost" id="pushBtn">تفعيل التنبيهات على هذا الجهاز</button>
+      <button class="btn ghost hidden" id="pushTest">إرسال تنبيه تجريبي</button>
+    </div>
+
+    <div class="card">
       <h3>وضع رمضان والصيام</h3>
       <p class="small muted" style="margin-top:-4px">يتفعّل تلقائياً في رمضان (حسب تقويم أم القرى). يمكنك تفعيله يدوياً لأيام الصيام الأخرى.</p>
       <label for="rmMode">الحالة</label>
@@ -538,7 +660,7 @@ a { color: var(--brand-2); }
     </div>
 
     <div class="card">
-      <button class="btn text" id="logout">تسجيل الخروج من هذا الجهاز</button>
+      <button class="btn text" id="logout">تسجيل الخروج</button>
       <p class="small muted" style="text-align:center;margin:6px 0 0">للتثبيت: زر المشاركة ← "إضافة إلى الشاشة الرئيسية" · <a href="privacy.html">الخصوصية</a></p>
       <p class="small muted" style="text-align:center;margin:6px 0 0">NutriSnap أداة متابعة وليس بديلاً عن استشارة طبية.</p>
     </div>
@@ -565,7 +687,8 @@ a { color: var(--brand-2); }
     set(k, v) { mem[k] = v; try { localStorage.setItem(k, v); } catch {} },
     del(k) { delete mem[k]; try { localStorage.removeItem(k); } catch {} },
   };
-  const key = () => ls.get('ns_key'), user = () => ls.get('ns_user', 'meera');
+  const key = () => ls.get('ns_key'), user = () => ls.get('ns_user', 'meera'), token = () => ls.get('ns_token');
+  const signedIn = () => !!(token() || key());
   const fmt = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
   const fmt1 = (n) => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('en-US');
   const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -577,12 +700,15 @@ a { color: var(--brand-2); }
   function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = 'none'), ms); }
 
   async function api(path, opts = {}) {
-    const headers = { 'X-API-Key': key(), 'X-User-Id': user(), ...(opts.headers || {}) };
+    const auth = token() ? { Authorization: `Bearer ${token()}` } : key() ? { 'X-API-Key': key(), 'X-User-Id': user() } : {};
+    const headers = { ...auth, ...(opts.headers || {}) };
     if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.json); }
     const res = await fetch(`/${path}`, { ...opts, headers });
     const text = await res.text();
     let data; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-    if (res.status === 401) { ls.del('ns_key'); show('setup'); throw new Error('المفتاح غير صحيح'); }
+    if (res.status === 401 && !path.startsWith('auth/login') && !path.startsWith('auth/register')) {
+      ls.del('ns_key'); ls.del('ns_token'); show('setup'); throw new Error((data && data.message) || 'سجّل الدخول من جديد');
+    }
     if (!res.ok) throw new Error((data && data.message) || `خطأ ${res.status}`);
     return data;
   }
@@ -592,6 +718,7 @@ a { color: var(--brand-2); }
   function show(v) {
     let scrollTo = 0;
     if (v === 'plan-settings') { v = 'plan'; scrollTo = 1; }
+    if (v !== 'snap' && typeof stopScan === 'function') { try { stopScan(); } catch {} }
     for (const s of VIEWS) $(`v-${s}`).classList.toggle('hidden', s !== v);
     $('nav').classList.toggle('hidden', v === 'setup' || v === 'onb');
     $('dayNav').style.visibility = v === 'today' ? 'visible' : 'hidden';
@@ -604,12 +731,31 @@ a { color: var(--brand-2); }
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => show(b.dataset.v)));
 
   // ---------------- setup ----------------
+  function authTab(t) {
+    $('authTabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === t)));
+    document.querySelectorAll('#v-setup [data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== t));
+  }
+  $('authTabs').querySelectorAll('button').forEach((b) => (b.onclick = () => authTab(b.dataset.t)));
   $('setupSave').onclick = async () => {
-    const k = $('setupKey').value.trim(); if (!k) return toast('أدخلي مفتاح الخادم');
-    ls.set('ns_key', k); ls.set('ns_user', $('setupUser').value.trim() || 'meera');
+    const k = $('setupKey').value.trim(); if (!k) return toast('أدخل مفتاح الخادم');
+    ls.del('ns_token'); ls.set('ns_key', k); ls.set('ns_user', $('setupUser').value.trim() || 'meera');
     try { await boot(); } catch (e) { toast(e.message); }
   };
-  $('logout').onclick = () => { ls.del('ns_key'); show('setup'); };
+  async function afterAuth(r) {
+    ls.del('ns_key'); ls.set('ns_token', r.token); ls.set('ns_name', r.user.name || '');
+    await boot();
+  }
+  $('liBtn').onclick = async () => {
+    try { await afterAuth(await api('auth/login', { method: 'POST', json: { email: $('liEmail').value, password: $('liPass').value } })); }
+    catch (e) { toast(e.message, 3500); }
+  };
+  $('rgBtn').onclick = async () => {
+    try {
+      await afterAuth(await api('auth/register', { method: 'POST', json: { inviteCode: $('rgCode').value, name: $('rgName').value, email: $('rgEmail').value, password: $('rgPass').value } }));
+      toast('أهلاً بك! لنبدأ بخطتك');
+    } catch (e) { toast(e.message, 3500); }
+  };
+  $('logout').onclick = () => { ls.del('ns_key'); ls.del('ns_token'); ls.del('ns_name'); authTab('login'); show('setup'); };
 
   // ---------------- onboarding ----------------
   const onb = { step: 1, goal: 'lose', sex: null, act: 'light', pace: 'moderate' };
@@ -767,7 +913,8 @@ a { color: var(--brand-2); }
 
   async function loadToday() {
     $('dayLabel').textContent = dayLabel();
-    $('greet').textContent = `${greeting()} ${user() === 'meera' ? 'ميرا' : esc(user())}`;
+    const nm = ls.get('ns_name') || (user() === 'meera' ? 'ميرا' : user());
+    $('greet').textContent = `${greeting()} ${nm}`;
     $('mealList').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     await autoSyncWhoop();
     try {
@@ -793,6 +940,7 @@ a { color: var(--brand-2); }
       $('tips').innerHTML = (b.tips || []).map((t) => `<div class="tip fade"><svg width="20" height="20"><use href="#i-bulb"/></svg><div>${esc(t.text_ar)}</div></div>`).join('');
       planGoal = b.goal;
       renderActivity(b.activity);
+      loadMotivation();
       renderRamadan(b.ramadan);
       _loadToday();
       ramCtx = b.ramadan;
@@ -806,6 +954,30 @@ a { color: var(--brand-2); }
       }).join('') : '<div class="empty">لا توجد وجبات بعد.<br>اضغطي زر الكاميرا لتسجيل وجبتك الأولى.</div>';
       document.querySelectorAll('.meal').forEach((el) => (el.onclick = async () => openReview(await api(`meals/${el.dataset.id}`))));
     } catch (e) { $('mealList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  }
+
+  // ---------------- motivation ----------------
+  const BADGE_ICON = { first_meal: '🍽️', streak_3: '🔥', streak_7: '📅', streak_30: '🏆', meals_50: '⭐', on_target_7: '🎯', protein_5: '💪', first_weight: '⚖️', lose_2: '📉', lose_5: '🥇', gain_2: '📈', gain_5: '🥇', workouts_10: '🏃' };
+  let motCache = null;
+  async function loadMotivation() {
+    try {
+      const m = await api('motivation'); motCache = m;
+      const st = m.streak;
+      $('streakChip').innerHTML = st.current ? `<span class="streak">🔥 ${st.current} ${st.current === 1 ? 'يوم' : 'أيام'} متتالية${st.loggedToday ? '' : ' — سجّل اليوم لتستمر'}</span>` : '';
+      const c = m.challenge;
+      $('chalCard').classList.remove('hidden');
+      $('chalTitle').textContent = c.title_ar; $('chalDesc').textContent = c.desc_ar;
+      $('chalProg').textContent = `${c.progress} من ${c.target} ${c.unit}`;
+      $('chalDone').textContent = c.done ? 'أنجزته 🎉' : '';
+      $('chalLeft').textContent = c.done ? '' : `باقي ${c.daysLeft} ${c.daysLeft === 1 ? 'يوم' : 'أيام'}`;
+      $('chalBar').style.width = `${(c.progress / c.target) * 100}%`;
+      $('chalBar').style.background = c.done ? 'var(--good)' : 'var(--accent)';
+    } catch (e) { console.warn(e); }
+  }
+  function renderBadges(m) {
+    $('bdgCount').textContent = `${m.earnedCount} من ${m.badges.length}`;
+    $('bestStreak').textContent = `${m.streak.best} ${m.streak.best === 1 ? 'يوم' : 'أيام'}`;
+    $('badges').innerHTML = m.badges.map((b) => `<div class="badge ${b.earned ? 'on' : ''}" title="${esc(b.desc_ar)}"><div class="ico">${BADGE_ICON[b.id] || '⭐'}</div><b>${esc(b.title_ar)}</b><span>${b.earned ? esc(b.desc_ar) : `${fmt1(b.progress)} / ${fmt1(b.target)}`}</span></div>`).join('');
   }
 
   // ---------------- Ramadan ----------------
@@ -926,6 +1098,7 @@ a { color: var(--brand-2); }
       $('wChart').innerHTML = weightChart(w.entries, plan.targetWeightKg);
       planGoal = plan.effectiveGoal;
       $('hChart').innerHTML = barChart(h.days);
+      api('motivation').then(renderBadges).catch(() => {});
       $('hAvg').textContent = h.avgIntakeKcal ? fmt(h.avgIntakeKcal) : '—';
       $('hOn').textContent = `${h.daysOnTarget}/${h.loggedDays || 0}`;
       $('hLogged').textContent = `${h.loggedDays}/7`;
@@ -990,6 +1163,7 @@ a { color: var(--brand-2); }
       $('rmSuhoor').value = rm.suhoorTime; $('rmIftar').value = rm.iftarTime;
       planGoal = p.effectiveGoal;
     } catch (e) { toast(e.message); }
+    loadAccount(); loadPushState();
     try {
       const w = await api('integrations/whoop/status');
       ls.set('ns_whoop', w.connected ? '1' : '0');
@@ -998,6 +1172,81 @@ a { color: var(--brand-2); }
       $('wSync').classList.toggle('hidden', !w.connected);
     } catch { $('wStatus').textContent = '—'; }
   }
+  // ---------------- account & invites ----------------
+  async function loadAccount() {
+    try {
+      const me = await api('auth/me');
+      $('acName').textContent = me.name || '—'; $('acEmail').textContent = me.email || '—';
+      $('acRole').textContent = me.role === 'owner' ? 'المالك' : 'مستخدم';
+      if (me.name) ls.set('ns_name', me.name === 'meera' ? 'ميرا' : me.name);
+      $('acClaim').classList.toggle('hidden', !(me.role === 'owner' && !me.account && key()));
+      $('invCard').classList.toggle('hidden', me.role !== 'owner');
+      if (me.role === 'owner') loadInvites();
+    } catch (e) { console.warn(e); }
+  }
+  $('clBtn').onclick = async () => {
+    try {
+      const r = await api('auth/register', { method: 'POST', json: { email: $('clEmail').value, password: $('clPass').value, name: ls.get('ns_name') || 'ميرا', claimUserId: user() } });
+      ls.set('ns_token', r.token); toast('تم ربط بريدك ✓ يمكنك الدخول به من أي جهاز'); loadAccount();
+    } catch (e) { toast(e.message, 3500); }
+  };
+  async function loadInvites() {
+    try {
+      const list = await api('auth/invites');
+      $('invList').innerHTML = list.slice(0, 8).map((i) => {
+        const used = i.usedBy, expired = !used && Date.parse(i.expiresAt) < Date.now();
+        const link = `${location.origin}/app/#invite=${i.code}`;
+        return `<div class="fav"><div class="t"><span class="code">${esc(i.code)}</span><span class="small muted">${used ? `استُخدمت · ${esc(i.usedByName || '')}` : expired ? 'منتهية' : `صالحة حتى ${new Date(i.expiresAt).toLocaleDateString('ar', { day: 'numeric', month: 'short' })}`}</span></div>${!used && !expired ? `<button class="btn ghost" data-link="${esc(link)}">مشاركة</button>` : ''}</div>`;
+      }).join('');
+      $('invList').querySelectorAll('[data-link]').forEach((b) => (b.onclick = async () => {
+        const url = b.dataset.link, text = `انضم إلى NutriSnap — رمز دعوتك: ${url.split('=')[1]}`;
+        try { if (navigator.share) await navigator.share({ title: 'NutriSnap', text, url }); else { await navigator.clipboard.writeText(url); toast('نُسخ الرابط ✓'); } } catch {}
+      }));
+    } catch (e) { $('invList').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
+  }
+  $('invBtn').onclick = async () => { try { await api('auth/invites', { method: 'POST' }); loadInvites(); } catch (e) { toast(e.message); } };
+
+  // ---------------- push reminders ----------------
+  const b64ToU8 = (b64) => { const p = '='.repeat((4 - (b64.length % 4)) % 4); const r = atob((b64 + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, (c) => c.charCodeAt(0)); };
+  async function swReg() { return 'serviceWorker' in navigator ? navigator.serviceWorker.register('sw.js', { scope: './' }) : null; }
+  async function loadPushState() {
+    try {
+      const prof = await api('profile');
+      const rm = prof.reminders || { meals: true, weight: true };
+      $('rmMeals').checked = rm.meals; $('rmWeight').checked = rm.weight;
+      const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+      if (!supported) { $('pushState').textContent = 'غير مدعوم هنا'; $('pushBtn').disabled = true; return; }
+      const reg = await navigator.serviceWorker.getRegistration('./');
+      const sub = reg && (await reg.pushManager.getSubscription());
+      $('pushState').textContent = sub ? 'مفعّلة ✓' : Notification.permission === 'denied' ? 'محظورة من الإعدادات' : 'غير مفعّلة';
+      $('pushBtn').textContent = sub ? 'إيقاف التنبيهات على هذا الجهاز' : 'تفعيل التنبيهات على هذا الجهاز';
+      $('pushBtn').dataset.on = sub ? '1' : '';
+      $('pushTest').classList.toggle('hidden', !sub);
+    } catch (e) { console.warn(e); }
+  }
+  $('pushBtn').onclick = async () => {
+    try {
+      const reg = await swReg(); if (!reg) return toast('المتصفح لا يدعم التنبيهات');
+      await navigator.serviceWorker.ready;
+      if ($('pushBtn').dataset.on) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) { await api('push/unsubscribe', { method: 'POST', json: { endpoint: sub.endpoint } }); await sub.unsubscribe(); }
+        toast('أوقفنا التنبيهات'); return loadPushState();
+      }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return toast('لم يتم السماح بالتنبيهات');
+      const { publicKey } = await api('push/key');
+      if (!publicKey) return toast('التنبيهات غير مُعدّة على الخادم');
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(publicKey) });
+      await api('push/subscribe', { method: 'POST', json: sub.toJSON() });
+      toast('تم تفعيل التنبيهات ✓'); loadPushState();
+    } catch (e) { toast(e.message || 'تعذّر تفعيل التنبيهات', 3500); }
+  };
+  $('pushTest').onclick = async () => { try { const r = await api('push/test', { method: 'POST' }); toast(r.sent ? 'أرسلنا تنبيهاً تجريبياً' : 'لم يُرسل — أعد التفعيل'); } catch (e) { toast(e.message); } };
+  for (const id of ['rmMeals', 'rmWeight']) $(id).onchange = async () => {
+    try { await api('profile', { method: 'PUT', json: { reminders: { meals: $('rmMeals').checked, weight: $('rmWeight').checked } } }); toast('تم الحفظ ✓'); } catch (e) { toast(e.message); }
+  };
+
   $('pSrc').onchange = async () => { try { await api('profile', { method: 'PUT', json: { preferredEnergySource: $('pSrc').value || null } }); toast('تم الحفظ ✓'); } catch (e) { toast(e.message); } };
   const numOrNull = (v) => (v === '' ? null : Number(v));
   $('eSave').onclick = async () => {
@@ -1018,6 +1267,104 @@ a { color: var(--brand-2); }
       toast(t ? `تمت المزامنة ✓ — حرق اليوم ${fmt(t)} سعرة${r.weightKg ? ` · الوزن ${fmt1(r.weightKg)} كغ` : ''}` : 'تمت المزامنة ✓', 3500);
     } catch (e) { toast(e.message); }
   };
+
+  // ---------------- snap modes ----------------
+  let scanControls = null;
+  function snapMode(m) {
+    $('snapModes').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    document.querySelectorAll('#v-snap [data-mode]').forEach((d) => d.classList.toggle('hidden', d.dataset.mode !== m));
+    if (m !== 'barcode') stopScan();
+    if (m === 'fav') loadFavorites();
+  }
+  $('snapModes').querySelectorAll('button').forEach((b) => (b.onclick = () => snapMode(b.dataset.m)));
+
+  // text + voice
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  if (!SR) { $('micBtn').classList.add('hidden'); $('micHint').textContent = 'الإملاء الصوتي غير مدعوم هنا — استخدم ميكروفون لوحة المفاتيح.'; }
+  $('micBtn').onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = 'ar-AE'; rec.interimResults = true; rec.continuous = false;
+    const base = $('txtMeal').value ? $('txtMeal').value + ' ' : '';
+    rec.onresult = (e) => { $('txtMeal').value = base + Array.from(e.results).map((r) => r[0].transcript).join(' '); };
+    rec.onend = () => { rec = null; $('micBtn').classList.remove('on'); $('micHint').textContent = 'اضغط على الميكروفون وتحدث بالعربي'; };
+    rec.onerror = (e) => toast(e.error === 'not-allowed' ? 'اسمح بالوصول للميكروفون' : 'تعذّر التعرف على الصوت');
+    rec.start(); $('micBtn').classList.add('on'); $('micHint').textContent = 'أستمع… اضغط مرة أخرى للإيقاف';
+  };
+  $('txtBtn').onclick = async () => {
+    const t = $('txtMeal').value.trim(); if (t.length < 3) return toast('اكتب وصفاً للوجبة');
+    $('txtBtn').disabled = true; $('txtLoading').classList.remove('hidden');
+    try {
+      const r = await api('meals/analyze-text', { method: 'POST', json: { text: t, restaurant: $('txtRest').value.trim() || undefined, eatenAt: new Date().toISOString() } });
+      $('txtMeal').value = ''; $('txtRest').value = ''; openReview(r.meal);
+    } catch (e) { toast(e.message, 4000); }
+    finally { $('txtBtn').disabled = false; $('txtLoading').classList.add('hidden'); }
+  };
+
+  // barcode
+  function stopScan() { try { scanControls && scanControls.stop(); } catch {} scanControls = null; $('scanVideo').classList.add('hidden'); $('scanBtn').classList.remove('hidden'); }
+  function loadScript(src) { return new Promise((ok, no) => { if (window.ZXingBrowser) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+  $('scanBtn').onclick = async () => {
+    try {
+      if ('BarcodeDetector' in window && !window.ZXingBrowser) {
+        const det = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const v = $('scanVideo'); v.srcObject = stream; v.classList.remove('hidden'); $('scanBtn').classList.add('hidden'); await v.play();
+        let alive = true;
+        scanControls = { stop: () => { alive = false; stream.getTracks().forEach((t) => t.stop()); } };
+        const loop = async () => { if (!alive) return; try { const c = await det.detect(v); if (c[0]) { stopScan(); return lookupBarcode(c[0].rawValue); } } catch {} requestAnimationFrame(loop); };
+        loop();
+      } else {
+        await loadScript('vendor/zxing-browser.min.js');
+        const reader = new window.ZXingBrowser.BrowserMultiFormatReader();
+        $('scanVideo').classList.remove('hidden'); $('scanBtn').classList.add('hidden');
+        scanControls = await reader.decodeFromVideoDevice(undefined, $('scanVideo'), (result) => { if (result) { stopScan(); lookupBarcode(result.getText()); } });
+      }
+    } catch (e) { stopScan(); toast('تعذّر تشغيل الكاميرا — اكتب الرقم يدوياً'); }
+  };
+  $('bcBtn').onclick = () => lookupBarcode($('bcIn').value);
+  async function lookupBarcode(code) {
+    $('bcIn').value = code;
+    $('bcResult').innerHTML = '<div class="loading"><div class="spinner"></div>نبحث عن المنتج…</div>';
+    try {
+      const p = await api(`foods/barcode/${encodeURIComponent(code)}`);
+      const g0 = p.servingG || 100;
+      $('bcResult').innerHTML = `<div class="opt"><div class="row"><b>${esc(p.name_ar || p.name)}</b>${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" style="width:46px;height:46px;object-fit:contain;border-radius:10px;background:#fff">` : ''}</div>
+        <div class="small muted">${esc(p.brand || '')}${p.servingLabel ? ` · الحصة: ${esc(p.servingLabel)}` : ''}</div>
+        <div class="small" style="margin-top:6px">لكل 100 غ: <b class="num">${fmt(p.per100.calories)}</b> سعرة · بروتين ${fmt1(p.per100.protein_g)} غ · سكر ${fmt1(p.per100.sugar_g)} غ</div>
+        <div class="grid2" style="margin-top:10px;align-items:end"><div><label for="bcG" style="margin-top:0">الكمية (غ أو مل)</label><input id="bcG" type="number" inputmode="decimal" value="${g0}"></div><div class="small" id="bcCalc" style="padding-bottom:12px"></div></div>
+        <div style="height:10px"></div><button class="btn" id="bcAdd">أضف للوجبات</button></div>`;
+      const calc = () => { const g = Number($('bcG').value) || 0; $('bcCalc').innerHTML = `<b class="num">${fmt((p.per100.calories * g) / 100)}</b> سعرة · <b class="num">${fmt1((p.per100.protein_g * g) / 100)}</b> غ بروتين`; };
+      $('bcG').oninput = calc; calc();
+      $('bcAdd').onclick = async () => {
+        const g = Number($('bcG').value) || 0; if (!g) return toast('أدخل الكمية');
+        const f = g / 100, k = (x) => Math.round(x * f * 10) / 10;
+        const item = { name: p.name, name_ar: p.name_ar || p.name, quantity: g, unit: 'g', grams: g, calories: Math.round(p.per100.calories * f), protein_g: k(p.per100.protein_g), carbs_g: k(p.per100.carbs_g), fat_g: k(p.per100.fat_g), fiber_g: k(p.per100.fiber_g), sugar_g: k(p.per100.sugar_g), sodium_mg: Math.round(p.per100.sodium_mg * f) };
+        try {
+          const m = await api('meals', { method: 'POST', json: { meal_name: p.name, meal_name_ar: p.name_ar || p.name, restaurant: p.brand, source: 'database', confidence: 0.9, items: [item], sources: [{ title: 'Open Food Facts', url: `https://world.openfoodfacts.org/product/${p.barcode}` }], eatenAt: new Date().toISOString() } });
+          $('bcResult').innerHTML = ''; $('bcIn').value = '';
+          openReview(await api(`meals/${m.id}`));
+        } catch (e) { toast(e.message); }
+      };
+    } catch (e) { $('bcResult').innerHTML = `<div class="empty small">${esc(e.message)}<br>جرّب التصوير أو الكتابة بدلاً من ذلك.</div>`; }
+  }
+
+  // favourites
+  async function loadFavorites() {
+    $('favList').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    try {
+      const list = await api('meals/favorites');
+      $('favList').innerHTML = list.length ? list.map((f, i) => `<div class="fav"><div class="t"><b>${esc(f.name_ar || f.name)}</b><span class="small muted">${f.restaurant ? esc(f.restaurant) + ' · ' : ''}<span class="num">${fmt(f.calories)}</span> سعرة · <span class="num">${fmt(f.protein_g)}</span> غ بروتين · ${f.timesLogged}×</span></div>
+        <select data-p="${i}" aria-label="الكمية"><option value="0.5">½</option><option value="1" selected>1</option><option value="1.5">1½</option><option value="2">2</option></select>
+        <button class="btn" data-k="${i}">سجّل</button></div>`).join('') : '<div class="empty small">كل وجبة تؤكدها تظهر هنا لتسجيلها لاحقاً بضغطة واحدة.</div>';
+      $('favList').querySelectorAll('[data-k]').forEach((b) => (b.onclick = async () => {
+        const f = list[+b.dataset.k], pf = Number($('favList').querySelector(`[data-p="${b.dataset.k}"]`).value);
+        b.disabled = true;
+        try { await api('meals/favorites/log', { method: 'POST', json: { key: f.key, portionFactor: pf, eatenAt: new Date().toISOString() } }); toast(`أُضيفت: ${f.name_ar || f.name} ✓`); show('today'); }
+        catch (e) { toast(e.message); b.disabled = false; }
+      }));
+    } catch (e) { $('favList').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
+  }
 
   // ---------------- capture ----------------
   $('drop').onclick = (e) => { if (e.target.id !== 'pickLib') $('file').click(); };
@@ -1138,10 +1485,15 @@ a { color: var(--brand-2); }
 
   // ---------------- boot ----------------
   async function boot() {
-    if (!key()) return show('setup');
+    if (!signedIn()) return show('setup');
     const prof = await api('profile');
     if (!prof.onboarded) return startOnboarding(prof);
     show('today');
+  }
+  if (location.hash.startsWith('#invite=')) {
+    const code = decodeURIComponent(location.hash.slice(8));
+    history.replaceState(null, '', location.pathname);
+    if (!signedIn()) { setTimeout(() => { authTab('register'); $('rgCode').value = code; }, 0); }
   }
   if (location.hash.startsWith('#whoop')) {
     const ok = location.hash.includes('status=connected');

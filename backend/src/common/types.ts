@@ -112,6 +112,7 @@ export interface Profile {
   onboarded: boolean;
   /** Set by the system when measured burn shows the declared activity level was off. */
   ramadan: { enabled: boolean | null; suhoorTime: string; iftarTime: string };
+  reminders: { meals: boolean; weight: boolean };
   activityCalibration: {
     from: Profile['activityLevel'];
     to: Profile['activityLevel'];
@@ -173,5 +174,29 @@ export interface CacheEntry {
   userId: string;
   key: string;
   payload: unknown;
+  createdAt: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+  role: 'owner' | 'user';
+  createdAt: string;
+}
+
+export interface Invite {
+  code: string;
+  createdBy: string;
+  usedBy: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface PushSub {
+  userId: string;
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
   createdAt: string;
 }

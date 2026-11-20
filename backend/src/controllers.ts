@@ -17,7 +17,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { Public, UserId } from './auth/auth.guard';
+import { Public, Role, UserId, ViaApiKey } from './auth/auth.guard';
+import { AuthService, UsageService } from './auth/auth.service';
 import { isIsoDate } from './common/dates';
 import { Profile } from './common/types';
 import { EnergySampleInput, EnergyService } from './energy/energy.service';
@@ -27,6 +28,9 @@ import { ProfileService } from './profile/profile.service';
 import { PlanService } from './plan/plan.service';
 import { WorkoutInput, WorkoutsService } from './workouts/workouts.service';
 import { CoachService } from './coach/coach.service';
+import { FoodsService } from './foods/foods.service';
+import { MotivationService } from './coach/motivation.service';
+import { RemindersService } from './coach/reminders.service';
 import { Workout } from './common/types';
 import { validateProfilePatch } from './profile/profile.service';
 
@@ -41,19 +45,41 @@ export class HealthController {
 
 @Controller('meals')
 export class MealsController {
-  constructor(private readonly meals: MealsService) {}
+  constructor(
+    private readonly meals: MealsService,
+    private readonly usage: UsageService,
+  ) {}
 
   /** multipart/form-data: photo=<file>, mealName?, restaurant?, portion?, note?, eatenAt? */
   @Post('analyze')
   @UseInterceptors(FileInterceptor('photo', { limits: { fileSize: 5 * 1024 * 1024 } }))
-  analyze(@UserId() userId: string, @UploadedFile() photo: Express.Multer.File, @Body() hints: AnalyzeHints) {
+  async analyze(@UserId() userId: string, @Role() role: string, @UploadedFile() photo: Express.Multer.File, @Body() hints: AnalyzeHints) {
     if (!photo) throw new BadRequestException('photo file is required');
+    await this.usage.consume(userId, role, 'analyze');
     return this.meals.analyzePhoto(userId, photo.buffer, photo.mimetype, hints);
   }
 
   @Post()
   create(@UserId() userId: string, @Body() body: any) {
     return this.meals.createManual(userId, body);
+  }
+
+  /** Typed or dictated description, e.g. "أكلت شاورما دجاج وعصير برتقال". */
+  @Post('analyze-text')
+  async analyzeText(@UserId() userId: string, @Role() role: string, @Body() body: { text: string; restaurant?: string; eatenAt?: string }) {
+    await this.usage.consume(userId, role, 'analyze');
+    return this.meals.analyzeText(userId, body?.text, { restaurant: body?.restaurant, eatenAt: body?.eatenAt });
+  }
+
+  @Get('favorites')
+  favorites(@UserId() userId: string) {
+    return this.meals.favorites(userId);
+  }
+
+  /** One tap: log a favourite again (no AI call, no quota). */
+  @Post('favorites/log')
+  logFavorite(@UserId() userId: string, @Body() body: { key: string; portionFactor?: number; eatenAt?: string }) {
+    return this.meals.logFavorite(userId, body);
   }
 
   @Get()
@@ -218,16 +244,100 @@ export class WorkoutsController {
 
 @Controller('coach')
 export class CoachController {
-  constructor(private readonly coach: CoachService) {}
+  constructor(
+    private readonly coach: CoachService,
+    private readonly usage: UsageService,
+  ) {}
 
   /** "What should I eat now?" (cached ~45 min per budget bucket; force=1 refreshes) */
   @Post('suggest')
-  suggest(@UserId() userId: string, @Query('force') force?: string) {
+  async suggest(@UserId() userId: string, @Role() role: string, @Query('force') force?: string) {
+    await this.usage.consume(userId, role, 'coach');
     return this.coach.suggest(userId, { force: force === '1' });
   }
 
   @Get('weekly')
-  weekly(@UserId() userId: string, @Query('force') force?: string) {
+  async weekly(@UserId() userId: string, @Role() role: string, @Query('force') force?: string) {
+    if (force === '1') await this.usage.consume(userId, role, 'coach');
     return this.coach.weekly(userId, { force: force === '1' });
+  }
+}
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  @Public()
+  @Post('login')
+  login(@Body() body: { email: string; password: string }) {
+    return this.auth.login(body);
+  }
+
+  /** Public with an invite code; the owner (API key) may also claim existing data with claimUserId. */
+  @Public()
+  @Post('register')
+  register(@Body() body: any, @Role() role: 'owner' | 'user', @ViaApiKey() viaApiKey: boolean) {
+    return this.auth.register(body, { role, viaApiKey });
+  }
+
+  @Get('me')
+  me(@UserId() userId: string, @Role() role: string) {
+    return this.auth.me(userId, role);
+  }
+
+  @Post('invites')
+  invite(@UserId() userId: string, @Role() role: string) {
+    return this.auth.createInvite(userId, role);
+  }
+
+  @Get('invites')
+  invites(@UserId() userId: string, @Role() role: string) {
+    return this.auth.listInvites(userId, role);
+  }
+}
+
+@Controller('foods')
+export class FoodsController {
+  constructor(private readonly foods: FoodsService) {}
+
+  @Get('barcode/:code')
+  barcode(@Param('code') code: string) {
+    return this.foods.byBarcode(code);
+  }
+}
+
+@Controller('motivation')
+export class MotivationController {
+  constructor(private readonly motivation: MotivationService) {}
+
+  @Get()
+  summary(@UserId() userId: string) {
+    return this.motivation.summary(userId);
+  }
+}
+
+@Controller('push')
+export class PushController {
+  constructor(private readonly reminders: RemindersService) {}
+
+  @Public()
+  @Get('key')
+  key() {
+    return this.reminders.publicKey();
+  }
+
+  @Post('subscribe')
+  subscribe(@UserId() userId: string, @Body() body: any) {
+    return this.reminders.subscribe(userId, body);
+  }
+
+  @Post('unsubscribe')
+  unsubscribe(@UserId() userId: string, @Body() body: { endpoint: string }) {
+    return this.reminders.unsubscribe(userId, body?.endpoint);
+  }
+
+  @Post('test')
+  test(@UserId() userId: string) {
+    return this.reminders.test(userId);
   }
 }

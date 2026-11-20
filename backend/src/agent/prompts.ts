@@ -57,8 +57,15 @@ export function buildUserText(opts: {
   note?: string | null;
   known: KnownMeal[];
   coach?: CoachContext | null;
+  image?: unknown;
+  description?: string | null;
 }): string {
-  const lines: string[] = ['Analyse the meal in this photo.'];
+  const lines: string[] = [
+    opts.image
+      ? 'Analyse the meal in this photo.'
+      : "There is NO photo. Analyse the meal from the user's description below (it may be Arabic, Gulf dialect, or dictated speech with typos). Split it into items, assume typical UAE portions when unspecified, and list those assumptions.",
+  ];
+  if (opts.description) lines.push(`User description: «${String(opts.description).slice(0, 600)}»`);
   if (opts.coach) {
     const c = opts.coach;
     lines.push(

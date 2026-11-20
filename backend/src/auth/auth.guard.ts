@@ -10,12 +10,23 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { timingSafeEqual } from 'crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { AuthService } from './auth.service';
 
 export const IS_PUBLIC = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
 export const UserId = createParamDecorator((_: unknown, ctx: ExecutionContext): string => {
   return ctx.switchToHttp().getRequest().userId;
+});
+
+/** 'owner' (server API key or owner account) or 'user' (invited account). */
+export const Role = createParamDecorator((_: unknown, ctx: ExecutionContext): 'owner' | 'user' => {
+  return ctx.switchToHttp().getRequest().role ?? 'user';
+});
+
+/** true when the request was authenticated with the server API key. */
+export const ViaApiKey = createParamDecorator((_: unknown, ctx: ExecutionContext): boolean => {
+  return !!ctx.switchToHttp().getRequest().viaApiKey;
 });
 
 /**
@@ -30,12 +41,40 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly config: ConfigService,
     private readonly reflector: Reflector,
+    private readonly auth: AuthService,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [ctx.getHandler(), ctx.getClass()])) return true;
     const req = ctx.switchToHttp().getRequest();
     const mode = this.config.get<string>('AUTH_MODE') ?? 'dev';
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [ctx.getHandler(), ctx.getClass()]);
+
+    if (mode === 'hybrid' || mode === 'accounts') {
+      // Owner: server API key (+ X-User-Id). Everyone else: Bearer token from /auth/login.
+      const expected = this.config.get<string>('API_KEY');
+      const key = req.headers['x-api-key'];
+      if (mode === 'hybrid' && expected && typeof key === 'string' && key && safeEqual(key, expected)) {
+        const id = req.headers['x-user-id'];
+        req.userId = typeof id === 'string' && id ? id : 'owner';
+        req.role = 'owner';
+        req.viaApiKey = true;
+        return true;
+      }
+      const auth: string | undefined = req.headers['authorization'];
+      if (auth?.startsWith('Bearer ')) {
+        try {
+          const v = await this.auth.verifyToken(auth.slice(7));
+          req.userId = v.userId;
+          req.role = v.role;
+          return true;
+        } catch {
+          if (!isPublic) throw new UnauthorizedException('Session expired — please sign in again');
+        }
+      }
+      if (isPublic) return true;
+      throw new UnauthorizedException();
+    }
+    if (isPublic) return true;
 
     if (mode === 'apikey') {
       // Single shared key for a private deployment; user id still comes from X-User-Id.
@@ -44,6 +83,8 @@ export class AuthGuard implements CanActivate {
       if (!expected || typeof given !== 'string' || !safeEqual(given, expected)) throw new UnauthorizedException('Invalid API key');
       const id = req.headers['x-user-id'];
       req.userId = typeof id === 'string' && id ? id : 'owner';
+      req.role = 'owner';
+      req.viaApiKey = true;
       return true;
     }
 
@@ -51,6 +92,7 @@ export class AuthGuard implements CanActivate {
       const id = req.headers['x-user-id'];
       if (!id || typeof id !== 'string') throw new UnauthorizedException('X-User-Id header required in dev mode');
       req.userId = id;
+      req.role = 'owner';
       return true;
     }
 

@@ -87,6 +87,62 @@ export class MealsService {
     return { meal, agent: { model: result.model, searchesUsed: result.searchesUsed, usage: result.usage } };
   }
 
+  /** Text or voice ("أكلت شاورما دجاج وعصير برتقال") — same agent, no photo. */
+  async analyzeText(userId: string, text: string, hints: AnalyzeHints) {
+    const t = String(text ?? '').trim();
+    if (t.length < 3) throw new BadRequestException('اكتب وصفاً للوجبة');
+    if (t.length > 600) throw new BadRequestException('الوصف طويل جداً');
+    const profile = await this.profiles.get(userId);
+    const known = await this.repo.findKnownCandidates(userId, hints.restaurant ?? null, hints.mealName ?? t.slice(0, 60));
+    const at = hints.eatenAt ? new Date(hints.eatenAt) : new Date();
+    const coach = await this.coachContext(userId, localDate(Number.isNaN(at.getTime()) ? new Date() : at, profile.timezone)).catch(() => null);
+    const result = await this.agent.analyze({ description: t, restaurant: hints.restaurant, city: profile.city, country: profile.country, known, coach });
+    const meal = await this.withScore(await this.createMeal(userId, result.estimate, hints.eatenAt, profile.timezone));
+    return { meal, agent: { model: result.model, searchesUsed: result.searchesUsed, usage: result.usage } };
+  }
+
+  /** One-tap favourites: the user's confirmed meals, most logged first. */
+  async favorites(userId: string) {
+    const list = await this.repo.listUserKnown(userId, 30);
+    return list.map((k) => ({
+      key: k.key,
+      name: k.meal_name,
+      name_ar: k.meal_name_ar,
+      restaurant: k.restaurant,
+      calories: k.totals.calories,
+      protein_g: k.totals.protein_g,
+      timesLogged: k.timesLogged,
+      source: k.source,
+    }));
+  }
+
+  /** Re-log a favourite as a confirmed meal (no AI call). */
+  async logFavorite(userId: string, body: { key: string; portionFactor?: number; eatenAt?: string }) {
+    const k = (await this.repo.listUserKnown(userId, 200)).find((x) => x.key === body?.key);
+    if (!k) throw new NotFoundException('الوجبة غير موجودة في المفضلة');
+    const profile = await this.profiles.get(userId);
+    let estimate = normalizeEstimate({
+      meal_name: k.meal_name,
+      meal_name_ar: k.meal_name_ar,
+      restaurant: k.restaurant,
+      source: 'known_meal',
+      confidence: 1,
+      serving_description: '',
+      items: k.items,
+      totals: k.totals,
+      sources: k.sources,
+      assumptions: [],
+      warnings: [],
+    });
+    const f = Number(body.portionFactor ?? 1);
+    if (f !== 1) {
+      if (!(f > 0 && f <= 5)) throw new BadRequestException('portionFactor 0–5');
+      estimate = scaleEstimate(estimate, f);
+    }
+    const meal = await this.createMeal(userId, estimate, body.eatenAt, profile.timezone);
+    return this.withScore(await this.confirm(userId, meal.id));
+  }
+
   /** Manual entry (no photo) — e.g. user types a meal or picks from history. */
   async createManual(userId: string, body: Partial<NutritionEstimate> & { eatenAt?: string }) {
     if (!body.meal_name || !Array.isArray(body.items) || !body.items.length) {

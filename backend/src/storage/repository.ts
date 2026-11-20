@@ -1,4 +1,4 @@
-import { CacheEntry, EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
+import { CacheEntry, EnergyDay, Invite, KnownMeal, Meal, OAuthTokens, Profile, PushSub, User, WeightEntry, Workout } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 
 export const REPOSITORY = Symbol('REPOSITORY');
@@ -14,6 +14,8 @@ export interface Repository {
   /** Candidates for the agent's "experience": user's own + global published meals. */
   findKnownCandidates(userId: string, restaurant: string | null, name: string | null): Promise<KnownMeal[]>;
   upsertKnown(meal: KnownMeal): Promise<void>;
+  /** user's own known meals, most logged first */
+  listUserKnown(userId: string, limit: number): Promise<KnownMeal[]>;
 
   upsertEnergy(day: EnergyDay): Promise<void>;
   listEnergy(userId: string, date: string): Promise<EnergyDay[]>;
@@ -29,6 +31,19 @@ export interface Repository {
 
   getCache(userId: string, key: string): Promise<CacheEntry | null>;
   setCache(e: CacheEntry): Promise<void>;
+
+  createUser(u: User): Promise<void>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUserById(id: string): Promise<User | null>;
+  createInvite(i: Invite): Promise<void>;
+  getInvite(code: string): Promise<Invite | null>;
+  /** atomically marks an unused, unexpired invite as used; returns false if it was not available */
+  useInvite(code: string, userId: string, now: string): Promise<boolean>;
+  listInvites(createdBy: string): Promise<Invite[]>;
+
+  savePushSub(s: PushSub): Promise<void>;
+  deletePushSub(endpoint: string): Promise<void>;
+  listPushSubs(userId?: string): Promise<PushSub[]>;
 
   getProfile(userId: string): Promise<Profile | null>;
   saveProfile(p: Profile): Promise<void>;

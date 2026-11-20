@@ -118,3 +118,85 @@ describe('coach service', () => {
     expect(r.meal.final.swaps?.[0].choose_ar).toBe('سلطة جانبية');
   });
 });
+
+describe('motivation', () => {
+  it('streaks: today without a meal does not break it; best streak tracked', async () => {
+    const { streaks } = await import('../src/coach/motivation.service');
+    const d = (date: string, meals = 1) => ({ date, meals, kcal: 1500, protein: 100, fiber: 20 });
+    const days = [d('2026-11-10'), d('2026-11-11'), d('2026-11-12'), d('2026-11-14'), d('2026-11-15'), d('2026-11-16')];
+    expect(streaks(days, '2026-11-17')).toEqual({ current: 3, best: 3, loggedToday: false });
+    expect(streaks([...days, d('2026-11-17')], '2026-11-17')).toEqual({ current: 4, best: 4, loggedToday: true });
+    expect(streaks(days, '2026-11-18').current).toBe(0);
+  });
+
+  it('weekStart is Monday', async () => {
+    const { weekStart } = await import('../src/coach/motivation.service');
+    expect(weekStart('2026-11-21')).toBe('2026-11-16'); // Saturday → Monday
+    expect(weekStart('2026-11-16')).toBe('2026-11-16');
+  });
+
+  it('summary: badges, stable weekly challenge', async () => {
+    const { MotivationService } = await import('../src/coach/motivation.service');
+    const repo = new MemoryRepository();
+    const profiles = new ProfileService(repo);
+    const plans = new PlanService(repo, profiles);
+    const agent = new NutritionAgentService(null, new ConfigService({}));
+    const meals = new MealsService(repo, agent, profiles, plans);
+    await profiles.update('u', { sex: 'female', birthYear: 1995, heightCm: 165, goal: 'lose', targetWeightKg: 60, onboarded: true });
+    await plans.addWeight('u', { kg: 70 });
+    for (let i = 3; i >= 1; i--) {
+      const m = await meals.createManual('u', { meal_name: 'x', items: [{ name: 'x', name_ar: 'x', quantity: 1, unit: 'p', grams: null, calories: 1200, protein_g: 40, carbs_g: 120, fat_g: 40, fiber_g: 5, sugar_g: 10, sodium_mg: 500 }], eatenAt: new Date(Date.now() - i * 86400000).toISOString() });
+      await meals.confirm('u', m.id);
+    }
+    const mot = new MotivationService(repo, plans, profiles);
+    const s = await mot.summary('u');
+    expect(s.streak.current).toBe(3);
+    expect(s.badges.find((b) => b.id === 'streak_3')?.earned).toBe(true);
+    expect(s.badges.find((b) => b.id === 'first_weight')?.earned).toBe(true);
+    expect(s.badges.find((b) => b.id === 'streak_7')).toMatchObject({ earned: false, progress: 3, target: 7 });
+    expect(s.challenge.id).toBe('log5'); // < 8 logged days in the last 2 weeks
+    const again = await mot.summary('u');
+    expect(again.challenge.id).toBe(s.challenge.id);
+  });
+});
+
+describe('reminders', () => {
+  it('usual meal times need ≥4 days; due windows, quiet hours, fasting and prefs respected', async () => {
+    const { usualMealTimes, dueReminders } = await import('../src/coach/reminders.service');
+    const meal = (date: string, hhmmUtc: string) => ({ id: date + hhmmUtc, userId: 'u', date, eatenAt: `${date}T${hhmmUtc}:00Z`, status: 'confirmed' } as any);
+    // Dubai = UTC+4 → 09:30 UTC = 13:30 local (lunch)
+    const meals = ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14'].map((d) => meal(d, '09:30'));
+    const usual = usualMealTimes([...meals, meal('2026-11-12', '04:00')], 'Asia/Dubai');
+    expect(usual).toEqual({ lunch: 13 * 60 + 30 });
+    const base = { usual, loggedSlotsToday: new Set<any>(), daysSinceWeight: 0, fasting: false, prefs: { meals: true, weight: true } };
+    expect(dueReminders({ ...base, nowMin: 14 * 60 + 30 })[0].key).toBe('meal:lunch');
+    expect(dueReminders({ ...base, nowMin: 14 * 60 })).toHaveLength(0); // too early
+    expect(dueReminders({ ...base, nowMin: 14 * 60 + 30, loggedSlotsToday: new Set(['lunch']) })).toHaveLength(0);
+    expect(dueReminders({ ...base, nowMin: 14 * 60 + 30, fasting: true })).toHaveLength(0);
+    expect(dueReminders({ ...base, nowMin: 14 * 60 + 30, prefs: { meals: false, weight: true } })).toHaveLength(0);
+    expect(dueReminders({ ...base, nowMin: 8 * 60, daysSinceWeight: 3 })[0].key).toBe('weight');
+    expect(dueReminders({ ...base, nowMin: 6 * 60, daysSinceWeight: 3 })).toHaveLength(0); // quiet hours
+  });
+
+  it('tick sends each reminder once per day and drops expired subscriptions', async () => {
+    const { RemindersService } = await import('../src/coach/reminders.service');
+    const repo = new MemoryRepository();
+    const profiles = new ProfileService(repo);
+    const sent: string[] = [];
+    const sender = vi.fn(async (sub: any, payload: string) => {
+      if (sub.endpoint.includes('gone')) throw Object.assign(new Error('gone'), { statusCode: 410 });
+      sent.push(JSON.parse(payload).title);
+    });
+    const svc = new RemindersService(repo, profiles, new ConfigService({ NODE_ENV: 'test' }), sender);
+    await svc.subscribe('u', { endpoint: 'https://push.example/ok', keys: { p256dh: 'a', auth: 'b' } });
+    await svc.subscribe('u', { endpoint: 'https://push.example/gone', keys: { p256dh: 'a', auth: 'b' } });
+    await expect(svc.subscribe('u', { endpoint: 'http://insecure' })).rejects.toThrow();
+    const at = new Date('2026-11-21T04:15:00Z'); // 08:15 Dubai → weight reminder
+    const r1 = await svc.tick(at);
+    expect(r1.sent).toBe(1);
+    expect(sent).toEqual(['قياس الصباح ⚖️']);
+    expect((await repo.listPushSubs('u')).map((s) => s.endpoint)).toEqual(['https://push.example/ok']);
+    const r2 = await svc.tick(new Date('2026-11-21T04:30:00Z'));
+    expect(r2.sent).toBe(0);
+  });
+});
