@@ -17,7 +17,7 @@
 :root {
   --bg: #f4f2ec; --card: #ffffff; --card-2: #f8f7f3; --ink: #17201b; --muted: #66706a; --line: #e7e3da;
   --brand: #0f3d2e; --brand-2: #1f6b4f; --brand-soft: #e4efe8; --accent: #e8a33d; --accent-soft: #fbf0dc;
-  --p: #3b6fd8; --c: #e09a2c; --f: #d0567a; --fi: #2f8f5b; --danger: #c2412d; --ok: #2f8f5b; --warn: #b8741a;
+  --p: #3b6fd8; --c: #e09a2c; --f: #d0567a; --fi: #2f8f5b; --danger: #c2412d; --ok: #2f8f5b; --warn: #b8741a; --good: #1f8a4c; --good-soft: #def2e5; --bad: #d23b2a; --bad-soft: #fde4e0;
   --shadow: 0 1px 2px rgba(20,30,25,.04), 0 8px 24px rgba(20,30,25,.06); --r: 22px;
   --ring-track: #ebe7de;
 }
@@ -25,7 +25,7 @@
   :root {
     --bg: #0d1411; --card: #151e19; --card-2: #1b2620; --ink: #eef3ef; --muted: #9aa69f; --line: #26332c;
     --brand: #8fd3a8; --brand-2: #8fd3a8; --brand-soft: #1d3127; --accent: #f0b04f; --accent-soft: #2e2516;
-    --p: #7aa2f5; --c: #f0b04f; --f: #ec7fa0; --fi: #6cc995; --danger: #ef7a65; --ok: #6cc995; --warn: #f0b04f;
+    --p: #7aa2f5; --c: #f0b04f; --f: #ec7fa0; --fi: #6cc995; --danger: #ef7a65; --ok: #6cc995; --warn: #f0b04f; --good: #5fd08e; --good-soft: #163524; --bad: #ff7b6b; --bad-soft: #3d1b16;
     --shadow: none; --ring-track: #24302a;
   }
 }
@@ -82,6 +82,13 @@ button { font: inherit; color: inherit; }
 .pill.ok { background: var(--brand-soft); color: var(--ok); } .pill.db { background: #e6edfb; color: var(--p); }
 .pill.est, .pill.draft { background: var(--accent-soft); color: var(--warn); }
 @media (prefers-color-scheme: dark) { .pill.db { background: #1b2640; } }
+.status { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; padding: 12px 14px; border-radius: 16px; font-weight: 700; font-size: 15px; text-align: center; line-height: 1.5; }
+.status.good { background: var(--good-soft); color: var(--good); }
+.status.bad { background: var(--bad-soft); color: var(--bad); }
+.status.pending { background: var(--accent-soft); color: var(--warn); }
+.status svg { flex: none; }
+.legend2 { display: flex; justify-content: center; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.legend2 i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-end: 5px; vertical-align: middle; }
 .empty { text-align: center; padding: 20px 10px; color: var(--muted); }
 /* forms */
 label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
@@ -164,6 +171,8 @@ a { color: var(--brand-2); }
     <symbol id="i-up" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20V4M6 10l6-6 6 6"/></symbol>
     <symbol id="i-eq" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M5 9h14M5 15h14"/></symbol>
     <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10 21l2-6-3-3 1-5 4 3 3 1M12 15l3 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7 12.5l3.2 3.2L17 9"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 7v6M12 16.5v.5"/></symbol>
     <symbol id="i-chev-r" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/></symbol>
     <symbol id="i-chev-l" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M15 6l-6 6 6 6"/></symbol>
   </defs>
@@ -284,7 +293,7 @@ a { color: var(--brand-2); }
             <circle cx="84" cy="84" r="72" fill="none" stroke="var(--ring-track)" stroke-width="14"/>
             <circle id="ringArc" cx="84" cy="84" r="72" fill="none" stroke="var(--brand-2)" stroke-width="14" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4" style="transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)"/>
           </svg>
-          <div class="c"><div><div class="big num" id="ringNum">—</div><div class="lbl" id="ringLbl">سعرة متبقية</div></div></div>
+          <div class="c"><div><div class="big num" id="ringNum" dir="ltr" style="unicode-bidi:isolate">—</div><div class="lbl" id="ringLbl">سعرة متبقية</div></div></div>
         </div>
         <div class="kv">
           <div><span class="muted">الهدف</span><b class="num" id="kTarget">—</b></div>
@@ -293,6 +302,8 @@ a { color: var(--brand-2); }
           <div id="kPendRow" class="hidden"><span class="muted">مسودات</span><b class="num" id="kPend" style="color:var(--warn)">—</b></div>
         </div>
       </div>
+      <div class="status" id="dayStatus" role="status"></div>
+      <div class="legend2"><span><i style="background:var(--good)"></i>ضمن الهدف (+)</span><span><i style="background:var(--bad)"></i>تجاوز الهدف (−)</span></div>
       <div class="macro" id="macros"></div>
     </div>
 
@@ -332,7 +343,7 @@ a { color: var(--brand-2); }
     <div class="card">
       <h3>آخر 7 أيام</h3>
       <div id="hChart"></div>
-      <div class="legend"><span><i style="background:var(--brand-2)"></i>أكلت</span><span><i style="background:var(--accent)"></i>الهدف</span></div>
+      <div class="legend"><span><i style="background:var(--good)"></i>ضمن الهدف</span><span><i style="background:var(--bad)"></i>تجاوز الهدف</span><span><i style="background:var(--accent)"></i>خط الهدف</span></div>
       <div class="stats" style="margin-top:14px">
         <div><b class="num" id="hAvg">—</b><span>متوسط يومي</span></div>
         <div><b class="num" id="hOn">—</b><span>أيام ضمن الهدف</span></div>
@@ -409,7 +420,7 @@ a { color: var(--brand-2); }
       <div class="kv" style="margin-top:14px">
         <div><span class="muted">حرقك اليومي المقدّر</span><b class="num" id="plMaint">—</b></div>
         <div><span class="muted">طريقة الحساب</span><b id="plSrc">—</b></div>
-        <div><span class="muted">الفرق اليومي</span><b class="num" id="plDelta">—</b></div>
+        <div><span class="muted">الفرق عن حرقك</span><b class="num" id="plDelta">—</b></div>
         <div><span class="muted">التغيّر المتوقع</span><b class="num" id="plWeekly">—</b></div>
         <div><span class="muted">مؤشر كتلة الجسم</span><b class="num" id="plBmi">—</b></div>
         <div><span class="muted">الألياف</span><b class="num" id="plFiber">—</b></div>
@@ -473,7 +484,7 @@ a { color: var(--brand-2); }
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const arDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' });
   let day = new Date();
-  let current = null, items = [], photo = null, planCache = null;
+  let current = null, items = [], photo = null, planCache = null, planGoal = 'lose';
 
   function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = 'none'), ms); }
 
@@ -636,6 +647,27 @@ a { color: var(--brand-2); }
     }).join('');
   }
 
+  /** Plain-language daily delta: "عجز 683 سعرة يومياً" rather than "-683". */
+  function deltaWords(d) {
+    if (!d) return '';
+    return d < 0 ? ` · عجز ${fmt(-d)} سعرة يومياً لإنقاص الوزن` : ` · فائض ${fmt(d)} سعرة يومياً لزيادة الوزن`;
+  }
+  /**
+   * Green = on target, red = over (lose / maintain). For "gain" the aim is to REACH the target,
+   * so green once eaten ≥ 95% of it, red only if far above (> 115%).
+   */
+  function dayState(goal, eaten, target, meals, isToday) {
+    const over = eaten - target, left = target - eaten;
+    if (goal === 'gain') {
+      if (eaten >= target * 0.95 && eaten <= target * 1.15) return { cls: 'good', color: 'var(--good)', text: 'وصلت هدف اليوم' };
+      if (eaten > target * 1.15) return { cls: 'bad', color: 'var(--bad)', text: `تجاوزت الهدف بـ ${fmt(over)} سعرة` };
+      return { cls: isToday ? 'pending' : 'bad', color: isToday ? 'var(--warn)' : 'var(--bad)', text: isToday ? `يتبقى ${fmt(left)} سعرة لتصل هدف الزيادة` : `نقص ${fmt(left)} سعرة عن هدف الزيادة` };
+    }
+    if (over > 0) return { cls: 'bad', color: 'var(--bad)', text: `تجاوزت هدف اليوم بـ ${fmt(over)} سعرة` };
+    if (!meals) return { cls: 'good', color: 'var(--good)', text: `ضمن الهدف — متاح لك ${fmt(left)} سعرة اليوم` };
+    return { cls: 'good', color: 'var(--good)', text: isToday ? `ممتاز، أنت ضمن هدف اليوم — متبقي ${fmt(left)} سعرة` : `كنت ضمن الهدف — أقل بـ ${fmt(left)} سعرة` };
+  }
+
   async function loadToday() {
     $('dayLabel').textContent = dayLabel();
     $('greet').textContent = `${greeting()} ${user() === 'meera' ? 'ميرا' : esc(user())}`;
@@ -644,13 +676,18 @@ a { color: var(--brand-2); }
     try {
       const b = await api(`balance?date=${isoDay(day)}`);
       if (b.onboarded === false && isoDay(day) === isoDay(new Date())) { startOnboarding(await api('profile')); return; }
-      $('goalLine').textContent = `هدفك: ${GOAL_AR[b.goal] || ''}${b.goalDeltaKcal ? ` · ${b.goalDeltaKcal > 0 ? '+' : ''}${fmt(b.goalDeltaKcal)} سعرة يومياً` : ''}`;
+      $('goalLine').textContent = `هدفك: ${GOAL_AR[b.goal] || ''}${deltaWords(b.goalDeltaKcal)}`;
       const eaten = b.intake.calories, target = b.targetIntakeKcal;
       const p = target ? Math.min(eaten / target, 1) : 0;
       requestAnimationFrame(() => { $('ringArc').style.strokeDashoffset = String(452.4 * (1 - p)); });
-      $('ringArc').setAttribute('stroke', eaten > target * 1.05 ? 'var(--danger)' : 'var(--brand-2)');
-      $('ringNum').textContent = fmt(Math.abs(b.remainingKcal));
-      $('ringLbl').textContent = b.remainingKcal >= 0 ? 'سعرة متبقية' : 'سعرة فوق الهدف';
+      const st = dayState(b.goal, eaten, target, b.meals.length, isoDay(day) === isoDay(new Date()));
+      $('ringArc').setAttribute('stroke', st.color);
+      $('ringNum').textContent = `${b.remainingKcal > 0 ? '+' : b.remainingKcal < 0 ? '−' : ''}${fmt(Math.abs(b.remainingKcal))}`;
+      $('ringNum').style.color = st.color;
+      $('ringNum').style.fontSize = $('ringNum').textContent.length > 5 ? '31px' : '';
+      $('ringLbl').textContent = b.remainingKcal >= 0 ? 'سعرة متبقية لك' : 'سعرة فوق هدفك';
+      $('dayStatus').className = `status ${st.cls}`;
+      $('dayStatus').innerHTML = `<svg width="22" height="22"><use href="#${st.cls === 'good' ? 'i-check' : 'i-alert'}"/></svg><span>${st.text}</span>`;
       $('kTarget').textContent = fmt(target); $('kEaten').textContent = fmt(eaten);
       $('kBurn').textContent = b.burn ? fmt(b.burn.totalKcal) : '—';
       $('kSrc').textContent = b.burn ? `(${SRC[b.burn.source] || b.burn.source})` : '';
@@ -689,6 +726,7 @@ a { color: var(--brand-2); }
         $('pEta').textContent = plan.etaDate ? `بهذا المعدل تصلين تقريباً في ${arDate(plan.etaDate)} (${plan.weeksToGoal} أسبوعاً)` : '';
       }
       $('wChart').innerHTML = weightChart(w.entries, plan.targetWeightKg);
+      planGoal = plan.effectiveGoal;
       $('hChart').innerHTML = barChart(h.days);
       $('hAvg').textContent = h.avgIntakeKcal ? fmt(h.avgIntakeKcal) : '—';
       $('hOn').textContent = `${h.daysOnTarget}/${h.loggedDays || 0}`;
@@ -717,9 +755,10 @@ a { color: var(--brand-2); }
     const bw = (W - gap * (n + 1)) / n;
     const y = (v) => pt + (1 - v / max) * (H - pt - pb);
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="الأكل مقابل الهدف لآخر 7 أيام" style="direction:ltr">${days.map((d, i) => {
-      const x = gap + i * (bw + gap), over = d.intakeKcal > d.targetKcal * 1.1;
+      const x = gap + i * (bw + gap);
+      const ok = planGoal === 'gain' ? d.intakeKcal >= d.targetKcal * 0.95 && d.intakeKcal <= d.targetKcal * 1.15 : d.intakeKcal <= d.targetKcal;
       const lbl = new Date(`${d.date}T12:00:00`).toLocaleDateString('ar', { weekday: 'short' });
-      return `<rect x="${x}" y="${y(d.intakeKcal)}" width="${bw}" height="${Math.max(0, H - pb - y(d.intakeKcal))}" rx="7" fill="${d.meals ? (over ? 'var(--accent)' : 'var(--brand-2)') : 'var(--line)'}"/>
+      return `<rect x="${x}" y="${y(d.intakeKcal)}" width="${bw}" height="${Math.max(0, H - pb - y(d.intakeKcal))}" rx="7" fill="${d.meals ? (ok ? 'var(--good)' : 'var(--bad)') : 'var(--line)'}"/>
         <line x1="${x - 3}" x2="${x + bw + 3}" y1="${y(d.targetKcal)}" y2="${y(d.targetKcal)}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
         <text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--muted)">${lbl}</text>`;
     }).join('')}</svg>`;
@@ -739,7 +778,7 @@ a { color: var(--brand-2); }
       $('plP').textContent = `${fmt(p.proteinG)} غ`; $('plC').textContent = `${fmt(p.carbsG)} غ`; $('plF').textContent = `${fmt(p.fatG)} غ`;
       $('plMaint').textContent = `${fmt(p.maintenanceKcal)} سعرة`;
       $('plSrc').textContent = { adaptive: 'يتعلّم من وزنك وأكلك ✓', device: 'من أجهزتك (آخر 7 أيام)', formula: 'معادلة (تتحسن مع البيانات)' }[p.maintenanceSource];
-      $('plDelta').textContent = `${p.dailyDeltaKcal > 0 ? '+' : ''}${fmt(p.dailyDeltaKcal)} سعرة`;
+      $('plDelta').textContent = p.dailyDeltaKcal < 0 ? `عجز ${fmt(-p.dailyDeltaKcal)} سعرة` : p.dailyDeltaKcal > 0 ? `فائض ${fmt(p.dailyDeltaKcal)} سعرة` : 'لا يوجد (محافظة)';
       $('plWeekly').textContent = p.weeklyChangeKg ? `${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ/أسبوع` : '—';
       $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = `${fmt(p.fiberG)} غ`;
       $('plNotices').innerHTML = renderNotices(p.notices);
