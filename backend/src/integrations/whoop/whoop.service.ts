@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, Logger, Optional, Unauthorized
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { dayBoundsUtc, localDate } from '../../common/dates';
+import { FETCH, FetchFn } from '../../common/fetch';
 import { OAuthTokens } from '../../common/types';
 import { EnergyService } from '../../energy/energy.service';
 import { ProfileService } from '../../profile/profile.service';
@@ -13,8 +14,6 @@ const API_BASE = 'https://api.prod.whoop.com/developer';
 const SCOPES = 'offline read:cycles read:workout read:profile read:body_measurement';
 const KJ_PER_KCAL = 4.184;
 
-export const FETCH = Symbol('FETCH');
-type FetchFn = typeof fetch;
 
 interface WhoopCycle {
   id: number | string;

@@ -292,3 +292,77 @@ describe('WHOOP', () => {
 function json(o: any): any {
   return { ok: true, status: 200, json: async () => o, text: async () => JSON.stringify(o) };
 }
+
+describe('Gemini provider (free tier)', () => {
+  const geminiResponse = (sub: any) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      candidates: [{ content: { parts: [{ text: JSON.stringify(sub) }] }, finishReason: 'STOP' }],
+      usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 200 },
+    }),
+    text: async () => '',
+  });
+
+  it('is chosen automatically when only GEMINI_API_KEY is set; sends image + JSON schema, no search tool', async () => {
+    const calls: any[] = [];
+    const fetchFn: any = vi.fn(async (url: string, init: any): Promise<any> => {
+      calls.push({ url, init, body: JSON.parse(init.body) });
+      return geminiResponse(submission({ source: 'estimate', restaurant: null, sources: [{ title: 'x', url: 'https://made.up' }] }));
+    });
+    const agent = new NutritionAgentService(null, new ConfigService({ GEMINI_API_KEY: 'g-key' }), fetchFn);
+    const r = await agent.analyze({ image: JPEG, mediaType: 'image/jpeg', mealName: 'kabsa', known: [] });
+    expect(calls[0].url).toContain('/models/gemini-3.6-flash:generateContent');
+    expect(calls[0].init.headers['x-goog-api-key']).toBe('g-key');
+    expect(calls[0].body.contents[0].parts[0].inline_data.mime_type).toBe('image/jpeg');
+    expect(calls[0].body.generationConfig.responseMimeType).toBe('application/json');
+    expect(calls[0].body.generationConfig.responseJsonSchema.required).toContain('items');
+    expect(calls[0].body.tools).toBeUndefined();
+    expect(calls[0].body.systemInstruction.parts[0].text).toContain('WEB SEARCH IS NOT AVAILABLE');
+    expect(r.model).toBe('gemini-3.6-flash');
+    expect(r.estimate.sources).toEqual([]); // invented URL dropped
+    expect(r.estimate.totals.calories).toBe(520);
+  });
+
+  it('downgrades recalled "published" values and maps 429 to a friendly error', async () => {
+    let n = 0;
+    const fetchFn: any = vi.fn(async (): Promise<any> =>
+      ++n === 1 ? geminiResponse(submission()) : { ok: false, status: 429, text: async () => 'quota' },
+    );
+    const agent = new NutritionAgentService(null, new ConfigService({ GEMINI_API_KEY: 'k' }), fetchFn);
+    const r = await agent.analyze({ image: JPEG, mediaType: 'image/jpeg', known: [] });
+    expect(r.estimate.confidence).toBeLessThanOrEqual(0.6);
+    await expect(agent.analyze({ image: JPEG, mediaType: 'image/jpeg', known: [] })).rejects.toThrow(/limit/);
+  });
+
+  it('enables Google Search grounding only when GEMINI_GOOGLE_SEARCH=true and keeps grounded URLs', async () => {
+    const fetchFn: any = vi.fn(async (_u: string, init: any): Promise<any> => {
+      expect(JSON.parse(init.body).tools).toEqual([{ google_search: {} }]);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [
+            {
+              content: { parts: [{ text: JSON.stringify(submission({ sources: [] })) }] },
+              groundingMetadata: {
+                webSearchQueries: ['test grill shawarma calories'],
+                groundingChunks: [{ web: { uri: 'https://testgrill.ae/nutrition', title: 'Nutrition' } }],
+              },
+            },
+          ],
+        }),
+      };
+    });
+    const agent = new NutritionAgentService(null, new ConfigService({ LLM_PROVIDER: 'gemini', GEMINI_API_KEY: 'k', GEMINI_GOOGLE_SEARCH: 'true' }), fetchFn);
+    const r = await agent.analyze({ image: JPEG, mediaType: 'image/jpeg', known: [] });
+    expect(r.searchesUsed).toBe(1);
+    expect(r.estimate.sources[0].url).toBe('https://testgrill.ae/nutrition');
+    expect(r.estimate.confidence).toBeGreaterThan(0.9);
+  });
+
+  it('fails clearly when no provider key is configured', async () => {
+    const agent = new NutritionAgentService(null, new ConfigService({}));
+    await expect(agent.analyze({ image: JPEG, mediaType: 'image/jpeg', known: [] })).rejects.toThrow(/No AI provider/);
+  });
+});

@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BadGatewayException, Inject, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { normalizeEstimate } from '../common/nutrition-math';
+import { FETCH, FetchFn } from '../common/fetch';
 import { EMPTY_NUTRIENTS, KnownMeal, NutritionEstimate, SourceRef } from '../common/types';
 import { buildSystemPrompt, buildUserText, SUBMIT_TOOL_NAME, SUBMIT_TOOL_SCHEMA } from './prompts';
 
@@ -40,18 +41,41 @@ export class NutritionAgentService {
   private readonly maxSearches: number;
   private readonly defaultCountry: string;
   private readonly defaultCity: string | null;
+  private readonly provider: 'anthropic' | 'gemini';
+  private readonly geminiKey: string | undefined;
+  private readonly geminiSearch: boolean;
+  private readonly fetchFn: FetchFn;
 
   constructor(
-    @Inject(ANTHROPIC_CLIENT) private readonly client: MessagesClient,
+    @Inject(ANTHROPIC_CLIENT) private readonly client: MessagesClient | null,
     config: ConfigService,
+    @Optional() @Inject(FETCH) fetchFn?: FetchFn,
   ) {
-    this.model = config.get<string>('CLAUDE_MODEL') ?? 'claude-sonnet-5-5';
+    this.fetchFn = fetchFn ?? fetch;
+    this.geminiKey = config.get<string>('GEMINI_API_KEY');
+    // LLM_PROVIDER wins; otherwise use Gemini when only a Gemini key is configured.
+    const explicit = config.get<string>('LLM_PROVIDER');
+    this.provider =
+      explicit === 'gemini' || explicit === 'anthropic'
+        ? explicit
+        : !config.get<string>('ANTHROPIC_API_KEY') && this.geminiKey
+          ? 'gemini'
+          : 'anthropic';
+    // Google Search grounding is not on the Gemini free tier; enable only on a paid project.
+    this.geminiSearch = config.get<string>('GEMINI_GOOGLE_SEARCH') === 'true';
+    this.model =
+      this.provider === 'gemini'
+        ? (config.get<string>('GEMINI_MODEL') ?? 'gemini-3.6-flash')
+        : (config.get<string>('CLAUDE_MODEL') ?? 'claude-sonnet-5-5');
     this.maxSearches = Number(config.get('WEB_SEARCH_MAX_USES') ?? 6);
     this.defaultCountry = config.get<string>('DEFAULT_COUNTRY') ?? 'AE';
     this.defaultCity = config.get<string>('DEFAULT_CITY') ?? null;
   }
 
   async analyze(input: AnalyzeInput): Promise<AnalyzeResult> {
+    if (this.provider === 'gemini') return this.analyzeGemini(input);
+    if (!this.client) throw new ServiceUnavailableException('No AI provider configured (set ANTHROPIC_API_KEY or GEMINI_API_KEY)');
+    const client = this.client;
     const country = input.country ?? this.defaultCountry;
     const city = input.city ?? this.defaultCity;
     const system = buildSystemPrompt({ country, city, today: new Date().toISOString().slice(0, 10) });
@@ -95,7 +119,7 @@ export class NutritionAgentService {
     let forceSubmit = false;
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
-      const resp = await this.client.messages.create({
+      const resp = await client.messages.create({
         model: this.model,
         max_tokens: 8000,
         system,
@@ -146,8 +170,82 @@ export class NutritionAgentService {
     }
     throw new Error('Agent did not produce a result within the turn limit.');
   }
+
+  /** Gemini (free tier friendly): single call, image + JSON schema output; optional Google Search grounding. */
+  private async analyzeGemini(input: AnalyzeInput): Promise<AnalyzeResult> {
+    if (!this.geminiKey) throw new ServiceUnavailableException('GEMINI_API_KEY is not set');
+    const country = input.country ?? this.defaultCountry;
+    const city = input.city ?? this.defaultCity;
+    const system = buildSystemPrompt({
+      country,
+      city,
+      today: new Date().toISOString().slice(0, 10),
+      webSearch: this.geminiSearch,
+      jsonOnly: true,
+    });
+    const body: any = {
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inline_data: { mime_type: input.mediaType, data: input.image.toString('base64') } },
+            { text: buildUserText(input) },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: SUBMIT_TOOL_SCHEMA,
+        temperature: 0.2,
+      },
+      ...(this.geminiSearch ? { tools: [{ google_search: {} }] } : {}),
+    };
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`;
+    const res = await this.fetchFn(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      this.log.warn(`Gemini ${res.status}: ${text.slice(0, 500)}`);
+      if (res.status === 429) throw new ServiceUnavailableException('Gemini free-tier limit reached — try again shortly');
+      throw new BadGatewayException(`Gemini error ${res.status}`);
+    }
+    const data: any = await res.json();
+    const cand = data.candidates?.[0];
+    const text: string = (cand?.content?.parts ?? []).map((p: any) => p.text ?? '').join('');
+    let raw: NutritionEstimate;
+    try {
+      raw = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    } catch {
+      throw new BadGatewayException(`Gemini returned no usable result (${cand?.finishReason ?? 'unknown'})`);
+    }
+    // Grounding sources (only when Google Search is enabled)
+    const found = new Map<string, SourceRef>();
+    for (const c of cand?.groundingMetadata?.groundingChunks ?? []) {
+      if (c.web?.uri) found.set(c.web.uri, { title: c.web.title ?? c.web.uri, url: c.web.uri });
+    }
+    const cited = this.geminiSearch
+      ? [...(raw.sources ?? []).filter((s) => found.has(s.url)), ...(found.size && !(raw.sources ?? []).some((s) => found.has(s.url)) ? [...found.values()].slice(0, 3) : [])]
+      : []; // no search → no verifiable URLs
+    const estimate = normalizeEstimate({ ...raw, sources: cited, totals: { ...EMPTY_NUTRIENTS } });
+    if (estimate.source === 'restaurant_published' && estimate.sources.length === 0) {
+      estimate.warnings.push('Published values recalled without a live source — please verify.');
+      estimate.confidence = Math.min(estimate.confidence, 0.6);
+    }
+    const u = data.usageMetadata ?? {};
+    return {
+      estimate,
+      searchesUsed: this.geminiSearch ? (cand?.groundingMetadata?.webSearchQueries?.length ?? 0) : 0,
+      model: this.model,
+      usage: { input_tokens: u.promptTokenCount ?? 0, output_tokens: u.candidatesTokenCount ?? 0 },
+    };
+  }
 }
 
-export function anthropicFactory(config: ConfigService): MessagesClient {
-  return new Anthropic({ apiKey: config.get<string>('ANTHROPIC_API_KEY') }) as unknown as MessagesClient;
+export function anthropicFactory(config: ConfigService): MessagesClient | null {
+  const apiKey = config.get<string>('ANTHROPIC_API_KEY');
+  return apiKey ? (new Anthropic({ apiKey }) as unknown as MessagesClient) : null;
 }

@@ -2,8 +2,8 @@ import { KnownMeal } from '../common/types';
 
 export const SUBMIT_TOOL_NAME = 'submit_nutrition';
 
-export function buildSystemPrompt(opts: { country: string; city: string | null; today: string }): string {
-  return `You are NutriSnap, an expert nutrition analyst for meals photographed by users, with deep knowledge of Gulf/UAE, Middle Eastern, South Asian and international restaurant food.
+export function buildSystemPrompt(opts: { country: string; city: string | null; today: string; webSearch?: boolean; jsonOnly?: boolean }): string {
+  const base = `You are NutriSnap, an expert nutrition analyst for meals photographed by users, with deep knowledge of Gulf/UAE, Middle Eastern, South Asian and international restaurant food.
 
 GOAL: return the most accurate calories and macronutrients for the meal in the photo, then call the tool "${SUBMIT_TOOL_NAME}" exactly once with the result.
 
@@ -25,6 +25,21 @@ RULES:
 - List every assumption the user may want to correct (e.g. "assumed regular size", "assumed full-fat laban") so they can edit it.
 - Never invent URLs. Only cite pages you actually found.
 - Keep web searches focused (a few targeted queries are enough). Do not write a long prose answer — the tool call is the answer.`;
+  if (opts.webSearch !== false && !opts.jsonOnly) return base;
+  // Providers without web search / tool calling (e.g. Gemini free tier): answer from knowledge + photo, output JSON.
+  let out = base;
+  if (opts.webSearch === false) {
+    out += `
+
+WEB SEARCH IS NOT AVAILABLE in this deployment. Use KNOWN MEALS first; otherwise use well-known published values you are confident about for major chains (set source="restaurant_published" only if you are confident, and leave "sources" empty), else database or visual estimate. Lower confidence accordingly.`;
+  }
+  if (opts.jsonOnly) {
+    out = out.replace(/call the tool "submit_nutrition" exactly once with the result/, 'return the result as a single JSON object matching the response schema');
+    out += `
+
+Respond ONLY with the JSON object. Never invent URLs.`;
+  }
+  return out;
 }
 
 export function buildUserText(opts: {
