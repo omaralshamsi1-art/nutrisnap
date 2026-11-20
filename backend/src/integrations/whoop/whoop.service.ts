@@ -39,15 +39,24 @@ export class WhoopService {
   }
 
   // ---------- OAuth ----------
-  authorizeUrl(userId: string): string {
+  authorizeUrl(userId: string, target: 'app' | 'web' = 'app'): string {
     const p = new URLSearchParams({
       response_type: 'code',
       client_id: this.req('WHOOP_CLIENT_ID'),
       redirect_uri: this.req('WHOOP_REDIRECT_URI'),
       scope: SCOPES,
-      state: this.signState(userId),
+      state: this.signState(userId, target),
     });
     return `${AUTH_URL}?${p}`;
+  }
+
+  /** Where the browser should go after OAuth, decoded from a state value (falls back to the app). */
+  callbackTarget(state: string): 'app' | 'web' {
+    try {
+      return JSON.parse(Buffer.from((state ?? '').split('.')[0], 'base64url').toString()).r === 'web' ? 'web' : 'app';
+    } catch {
+      return 'app';
+    }
   }
 
   async handleCallback(code: string, state: string): Promise<string> {
@@ -169,8 +178,8 @@ export class WhoopService {
   }
 
   // ---------- signed OAuth state (CSRF + carries user id through the browser round-trip) ----------
-  private signState(userId: string): string {
-    const payload = Buffer.from(JSON.stringify({ u: userId, t: Date.now(), n: randomBytes(8).toString('hex') })).toString(
+  private signState(userId: string, target: 'app' | 'web' = 'app'): string {
+    const payload = Buffer.from(JSON.stringify({ u: userId, r: target, t: Date.now(), n: randomBytes(8).toString('hex') })).toString(
       'base64url',
     );
     return `${payload}.${this.hmac(payload)}`;

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NutriSnap">
+<title>NutriSnap — حاسبة الوجبات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1c2420; --muted: #6b746f; --line: #e6e2d9;
+    --brand: #0f3d2e; --brand-2: #1f6b4f; --accent: #e8a33d; --danger: #c2412d; --ok: #2f8f5b; --warn: #c7861c;
+    --p: #3b6fd8; --c: #e8a33d; --f: #d0567a; --radius: 18px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans Arabic", system-ui, -apple-system, sans-serif; }
+  body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  header { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff; padding: calc(14px + env(safe-area-inset-top)) 18px 14px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .2px; }
+  header .day { display: flex; align-items: center; gap: 6px; font-size: 14px; opacity: .95; }
+  header button { background: rgba(255,255,255,.14); color: #fff; border: 0; width: 32px; height: 32px; border-radius: 10px; font-size: 16px; }
+  main { max-width: 560px; margin: 0 auto; padding: 14px; }
+  .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 0 var(--line); }
+  .card h2 { margin: 0 0 10px; font-size: 15px; color: var(--muted); font-weight: 600; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .num { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .ring { position: relative; width: 210px; height: 210px; margin: 6px auto 4px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring .big { font-size: 44px; font-weight: 700; line-height: 1; }
+  .macros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+  .macros b { display: block; font-size: 18px; }
+  .macros span { font-size: 12px; color: var(--muted); }
+  .bar i { display: block; height: 100%; }
+  .bar { height: 8px; border-radius: 8px; background: var(--line); overflow: hidden; display: flex; margin-top: 10px; }
+  .meal { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; }
+  .meal + .meal { border-top: 1px solid var(--line); }
+  .meal .ic { width: 42px; height: 42px; border-radius: 12px; background: #eef3ef; display: grid; place-items: center; font-size: 20px; flex: none; }
+  .meal .t { flex: 1; min-width: 0; }
+  .meal .t b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+  .pill.ok { background: #e3f3ea; color: var(--ok); } .pill.db { background: #e6edfb; color: var(--p); }
+  .pill.est { background: #fbf0dc; color: var(--warn); } .pill.draft { background: #fbf0dc; color: var(--warn); }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 5px; }
+  input, select, textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); }
+  input[type=range] { padding: 0; border: 0; accent-color: var(--brand-2); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 14px; font: inherit; font-size: 16px; font-weight: 600; background: var(--brand); color: #fff; cursor: pointer; }
+  .btn.secondary { background: #e9efe9; color: var(--brand); }
+  .btn.danger { background: transparent; color: var(--danger); }
+  .btn:disabled { opacity: .5; }
+  .btn + .btn { margin-top: 8px; }
+  .photo { width: 100%; max-height: 300px; object-fit: cover; border-radius: 14px; display: block; }
+  .drop { border: 2px dashed #cfd8d1; border-radius: 16px; padding: 28px 12px; text-align: center; color: var(--muted); cursor: pointer; background: #fbfcfb; }
+  .drop .big { font-size: 40px; }
+  .item { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; }
+  .item summary { list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 8px; }
+  .item summary::-webkit-details-marker { display: none; }
+  .item .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .item .fields label { margin: 4px 0 3px; }
+  .item .fields input { padding: 9px; }
+  .total { font-size: 40px; font-weight: 700; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 6; }
+  nav button { flex: 1; background: none; border: 0; padding: 10px 0 12px; font: inherit; font-size: 12px; color: var(--muted); }
+  nav button .i { display: block; font-size: 22px; }
+  nav button.on { color: var(--brand); font-weight: 600; }
+  nav .snap .i { background: var(--brand); color: #fff; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; margin: -22px auto 2px; box-shadow: 0 6px 16px rgba(15,61,46,.3); }
+  .toast { pointer-events: none; position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 9; max-width: 90%; display: none; }
+  .loading { text-align: center; padding: 26px 0; color: var(--muted); }
+  .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--brand-2); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  ul.notes { margin: 0; padding-inline-start: 18px; } ul.notes li { margin: 4px 0; font-size: 14px; }
+  a { color: var(--brand-2); }
+</style>
+</head>
+<body>
+<header>
+  <h1>NutriSnap</h1>
+  <div class="day" id="dayNav">
+    <button id="prevDay" aria-label="اليوم السابق">›</button>
+    <span id="dayLabel">اليوم</span>
+    <button id="nextDay" aria-label="اليوم التالي">‹</button>
+  </div>
+</header>
+
+<main>
+  <!-- SETUP -->
+  <section id="v-setup" class="hidden">
+    <div class="card">
+      <h2>الإعداد لأول مرة</h2>
+      <p class="muted">ضعي مفتاح الخادم (قيمة <b>API_KEY</b> من Railway ← خدمة api ← Variables). يُحفظ على هذا الجهاز فقط.</p>
+      <label>مفتاح الخادم</label>
+      <input id="setupKey" type="password" autocomplete="off" placeholder="API_KEY">
+      <label>اسم المستخدم</label>
+      <input id="setupUser" value="meera" autocomplete="off">
+      <div style="height:12px"></div>
+      <button class="btn" id="setupSave">دخول</button>
+    </div>
+  </section>
+
+  <!-- TODAY -->
+  <section id="v-today" class="hidden">
+    <div class="card">
+      <div class="ring">
+        <svg width="210" height="210" viewBox="0 0 210 210">
+          <circle cx="105" cy="105" r="90" fill="none" stroke="#ebe7de" stroke-width="16"/>
+          <circle id="ringArc" cx="105" cy="105" r="90" fill="none" stroke="#2f8f5b" stroke-width="16" stroke-linecap="round" stroke-dasharray="565.5" stroke-dashoffset="565.5"/>
+        </svg>
+        <div class="center"><div><div class="big num" id="ringNum">—</div><div class="muted" id="ringLbl">سعرة متبقية</div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>الأكل مقابل الحرق</h2>
+      <div class="row"><span>🍽️ أكلت</span><span class="num" id="bIntake">—</span></div>
+      <div class="row"><span>🔥 حرقت <span class="muted" id="bSource"></span></span><span class="num" id="bBurn">—</span></div>
+      <div class="row"><span>🎯 هدفك اليوم</span><span class="num" id="bTarget">—</span></div>
+      <div class="row hidden" id="bPendingRow"><span>⏳ بانتظار التأكيد</span><span class="num" id="bPending">—</span></div>
+      <p class="muted hidden" id="bNote"></p>
+    </div>
+    <div class="card">
+      <h2>العناصر الغذائية</h2>
+      <div class="macros" id="macros"></div>
+      <div class="bar" id="macroBar"></div>
+    </div>
+    <div class="card">
+      <h2>وجبات اليوم</h2>
+      <div id="mealList"></div>
+    </div>
+  </section>
+
+  <!-- CAPTURE -->
+  <section id="v-snap" class="hidden">
+    <div class="card">
+      <input id="file" type="file" accept="image/*" capture="environment" class="hidden">
+      <input id="fileLib" type="file" accept="image/*" class="hidden">
+      <div id="drop" class="drop"><div class="big">📷</div><div><b>اضغطي لتصوير الوجبة</b></div><div class="muted" style="margin-top:6px">أو <a href="#" id="pickLib">اختاري من الصور</a></div></div>
+      <img id="preview" class="photo hidden" alt="">
+    </div>
+    <div class="card">
+      <h2>معلومات تساعد الوكيل (اختياري)</h2>
+      <label>اسم الوجبة</label><input id="hName" placeholder="مثلاً: شاورما دجاج">
+      <label>المطعم</label><input id="hRest" placeholder="مثلاً: ماكدونالدز">
+      <label>الكمية</label><input id="hPortion" placeholder="مثلاً: نصف، حجم كبير">
+      <label>ملاحظة</label><input id="hNote" placeholder="مثلاً: بدون صوص">
+      <p class="muted">ذكر المطعم واسم الوجبة يعطي نتيجة أدق.</p>
+      <button class="btn" id="analyzeBtn" disabled>احسب القيمة الغذائية</button>
+      <div id="analyzing" class="loading hidden"><div class="spinner"></div>يحلل الصورة ويحسب القيم… قد يستغرق حتى دقيقة</div>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <section id="v-review" class="hidden">
+    <div class="card">
+      <input id="rName" style="font-size:20px;font-weight:700;border:0;padding:4px 0">
+      <input id="rRest" placeholder="المطعم" style="border:0;padding:4px 0;color:var(--muted)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px">
+        <span id="rBadge" class="pill"></span><span class="muted" id="rServing"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>الإجمالي</h2>
+      <div><span class="total num" id="rTotal">0</span> سعرة</div>
+      <div class="macros" id="rMacros" style="margin-top:10px"></div>
+      <label>الكمية التي أكلتها: <b id="rPortionLbl">100٪</b></label>
+      <input type="range" id="rPortion" min="0.25" max="2" step="0.25" value="1">
+    </div>
+    <div class="card">
+      <h2>المكونات (اضغطي للتعديل)</h2>
+      <div id="rItems"></div>
+      <button class="btn secondary" id="rAdd">+ إضافة صنف</button>
+    </div>
+    <div class="card hidden" id="rAssumeCard"><h2>افتراضات الوكيل — عدّليها إن لم تكن صحيحة</h2><ul class="notes" id="rAssume"></ul></div>
+    <div class="card hidden" id="rWarnCard"><h2>تنبيهات</h2><ul class="notes" id="rWarn" style="color:var(--warn)"></ul></div>
+    <div class="card hidden" id="rSrcCard"><h2>المصادر</h2><ul class="notes" id="rSrc"></ul></div>
+    <div class="card">
+      <button class="btn" id="rConfirm">تأكيد وإضافة لليوم</button>
+      <button class="btn secondary" id="rBack">رجوع</button>
+      <button class="btn danger" id="rDelete">حذف الوجبة</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="v-settings" class="hidden">
+    <div class="card">
+      <h2>الحرق اليوم (إدخال يدوي)</h2>
+      <p class="muted">نسخة الويب لا تقرأ Apple Health. أدخلي السعرات من تطبيق "صحتي" أو ساعتك، أو اربطي WHOOP.</p>
+      <div class="grid2">
+        <div><label>نشط (Active)</label><input id="eActive" type="number" inputmode="numeric" placeholder="مثلاً 450"></div>
+        <div><label>أساسي (Resting)</label><input id="eBasal" type="number" inputmode="numeric" placeholder="مثلاً 1400"></div>
+      </div>
+      <div style="height:10px"></div>
+      <button class="btn" id="eSave">حفظ الحرق</button>
+    </div>
+    <div class="card">
+      <h2>WHOOP</h2>
+      <div class="row"><span>الحالة</span><span id="wStatus" class="muted">—</span></div>
+      <button class="btn secondary" id="wConnect">ربط WHOOP</button>
+      <button class="btn secondary hidden" id="wSync">مزامنة الآن</button>
+    </div>
+    <div class="card">
+      <h2>ملفك والهدف</h2>
+      <div class="grid2">
+        <div><label>الجنس</label><select id="pSex"><option value="">—</option><option value="female">أنثى</option><option value="male">ذكر</option></select></div>
+        <div><label>سنة الميلاد</label><input id="pYear" type="number" inputmode="numeric"></div>
+        <div><label>الطول (سم)</label><input id="pHeight" type="number" inputmode="decimal"></div>
+        <div><label>الوزن (كغ)</label><input id="pWeight" type="number" inputmode="decimal"></div>
+      </div>
+      <label>مستوى النشاط</label>
+      <select id="pAct"><option value="sedentary">خامل</option><option value="light">نشاط خفيف</option><option value="moderate">متوسط</option><option value="active">نشيط</option><option value="very_active">نشيط جداً</option></select>
+      <div class="grid2">
+        <div><label>الهدف</label><select id="pGoal"><option value="lose">إنقاص الوزن</option><option value="maintain">المحافظة</option><option value="gain">زيادة</option></select></div>
+        <div><label>الفرق اليومي (سعرة)</label><input id="pDelta" type="number" inputmode="numeric" step="50"></div>
+      </div>
+      <label>مصدر الحرق المفضل</label>
+      <select id="pSrc"><option value="">تلقائي</option><option value="whoop">WHOOP</option><option value="apple_health">Apple Health</option><option value="manual">يدوي</option></select>
+      <div style="height:12px"></div>
+      <button class="btn" id="pSave">حفظ الملف</button>
+    </div>
+    <div class="card">
+      <button class="btn danger" id="logout">تسجيل الخروج من هذا الجهاز</button>
+      <p class="muted" style="text-align:center">للإضافة إلى الشاشة الرئيسية: زر المشاركة ← "إضافة إلى الشاشة الرئيسية"</p>
+    </div>
+  </section>
+</main>
+
+<nav id="nav" class="hidden">
+  <button data-v="today" class="on"><span class="i">🔥</span>اليوم</button>
+  <button data-v="snap" class="snap"><span class="i">📷</span>صوّري</button>
+  <button data-v="settings"><span class="i">⚙️</span>الإعدادات</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get key() { try { return localStorage.getItem('ns_key') || ''; } catch { return mem.key || ''; } },
+    get user() { try { return localStorage.getItem('ns_user') || 'meera'; } catch { return mem.user || 'meera'; } },
+    set(k, u) { mem.key = k; mem.user = u; try { localStorage.setItem('ns_key', k); localStorage.setItem('ns_user', u); } catch {} },
+    clear() { mem.key = ''; try { localStorage.removeItem('ns_key'); } catch {} },
+  };
+  const mem = {};
+  const fmt = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
+  const fmt1 = (n) => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('en-US');
+  const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let day = new Date();
+  let current = null; // meal under review
+  let items = [];
+  let photo = null;
+
+  function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = 'none'), ms); }
+  function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  async function api(path, opts = {}) {
+    const headers = { 'X-API-Key': store.key, 'X-User-Id': store.user, ...(opts.headers || {}) };
+    if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.json); }
+    const res = await fetch(`/${path}`, { ...opts, headers });
+    const text = await res.text();
+    let data; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+    if (res.status === 401) { store.clear(); show('setup'); throw new Error('المفتاح غير صحيح'); }
+    if (!res.ok) throw new Error((data && data.message) || `خطأ ${res.status}`);
+    return data;
+  }
+
+  // ---------- navigation ----------
+  function show(v) {
+    for (const s of ['setup', 'today', 'snap', 'review', 'settings']) $(`v-${s}`).classList.toggle('hidden', s !== v);
+    $('nav').classList.toggle('hidden', v === 'setup');
+    $('dayNav').style.visibility = v === 'today' ? 'visible' : 'hidden';
+    document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+    window.scrollTo(0, 0);
+    if (v === 'today') loadToday();
+    if (v === 'settings') loadSettings();
+  }
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => show(b.dataset.v)));
+
+  // ---------- setup ----------
+  $('setupSave').onclick = async () => {
+    const k = $('setupKey').value.trim(); const u = $('setupUser').value.trim() || 'meera';
+    if (!k) return toast('أدخلي مفتاح الخادم');
+    store.set(k, u);
+    try { await api('profile'); show('today'); } catch (e) { toast(e.message); }
+  };
+  $('logout').onclick = () => { store.clear(); show('setup'); };
+
+  // ---------- today ----------
+  function dayLabel() {
+    const t = new Date(); const y = new Date(); y.setDate(t.getDate() - 1);
+    if (isoDay(day) === isoDay(t)) return 'اليوم';
+    if (isoDay(day) === isoDay(y)) return 'أمس';
+    return day.toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'short' });
+  }
+  $('prevDay').onclick = () => { day.setDate(day.getDate() - 1); loadToday(); };
+  $('nextDay').onclick = () => { if (isoDay(day) === isoDay(new Date())) return; day.setDate(day.getDate() + 1); loadToday(); };
+
+  const SRC = { apple_health: 'Apple Health', whoop: 'WHOOP', health_connect: 'Health Connect', garmin: 'Garmin', fitbit: 'Fitbit', manual: 'يدوي', estimate: 'تقدير' };
+  const BADGE = {
+    restaurant_published: ['ok', 'قيمة معلنة من المطعم'], known_meal: ['ok', 'من وجباتك السابقة'],
+    database: ['db', 'قاعدة بيانات غذائية'], estimate: ['est', 'تقدير تقريبي من الصورة'],
+  };
+
+  async function loadToday() {
+    $('dayLabel').textContent = dayLabel();
+    $('mealList').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    try {
+      const b = await api(`balance?date=${isoDay(day)}`);
+      const eaten = b.intake.calories, target = b.targetIntakeKcal;
+      const p = target ? Math.min(eaten / target, 1) : 0;
+      $('ringArc').style.strokeDashoffset = String(565.5 * (1 - p));
+      $('ringArc').setAttribute('stroke', target && eaten > target ? '#c2412d' : '#2f8f5b');
+      if (b.remainingKcal != null) { $('ringNum').textContent = fmt(Math.abs(b.remainingKcal)); $('ringLbl').textContent = b.remainingKcal >= 0 ? 'سعرة متبقية' : 'سعرة فوق الهدف'; }
+      else { $('ringNum').textContent = fmt(eaten); $('ringLbl').textContent = 'سعرة اليوم'; }
+      $('bIntake').textContent = `${fmt(eaten)} سعرة`;
+      $('bBurn').textContent = b.burn ? `${fmt(b.burn.totalKcal)} سعرة` : '—';
+      $('bSource').textContent = b.burn ? `(${SRC[b.burn.source] || b.burn.source})` : '';
+      $('bTarget').textContent = target != null ? `${fmt(target)} سعرة` : '—';
+      $('bPendingRow').classList.toggle('hidden', !(b.pendingDrafts.calories > 0));
+      $('bPending').textContent = `${fmt(b.pendingDrafts.calories)} سعرة`;
+      const note = !b.burn ? 'أكملي ملفك في الإعدادات أو أدخلي الحرق يدوياً لحساب الهدف.' : b.burnIsPartialDay ? 'الحرق حتى الآن؛ الهدف محسوب على تقدير اليوم كاملاً.' : '';
+      $('bNote').textContent = note; $('bNote').classList.toggle('hidden', !note);
+      renderMacros($('macros'), b.intake);
+      const s = b.macroSplitPct;
+      $('macroBar').innerHTML = `<i style="width:${s.protein}%;background:var(--p)"></i><i style="width:${s.carbs}%;background:var(--c)"></i><i style="width:${s.fat}%;background:var(--f)"></i>`;
+      $('mealList').innerHTML = b.meals.length ? b.meals.map((m) => {
+        const [cls] = BADGE[m.source] || ['est'];
+        const time = new Date(m.eatenAt).toLocaleTimeString('ar', { hour: 'numeric', minute: '2-digit' });
+        return `<div class="meal" data-id="${esc(m.id)}"><div class="ic">🍽️</div><div class="t"><b>${esc(m.name_ar || m.name)}</b><span class="muted">${esc([m.restaurant, time].filter(Boolean).join(' • '))}</span></div>
+          <div style="text-align:left"><div class="num">${fmt(m.calories)}</div>${m.status !== 'confirmed' ? '<span class="pill draft">مسودة</span>' : `<span class="pill ${cls}" style="font-size:10px">✓</span>`}</div></div>`;
+      }).join('') : '<p class="muted">لا توجد وجبات بعد — اضغطي 📷 لتصوير وجبتك.</p>';
+      document.querySelectorAll('.meal').forEach((el) => (el.onclick = async () => openReview(await api(`meals/${el.dataset.id}`))));
+    } catch (e) { $('mealList').innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+  }
+
+  function renderMacros(el, n) {
+    el.innerHTML = [['بروتين', n.protein_g, 'var(--p)'], ['كربوهيدرات', n.carbs_g, 'var(--c)'], ['دهون', n.fat_g, 'var(--f)'], ['ألياف', n.fiber_g, 'var(--ok)']]
+      .map(([t, g, c]) => `<div><b style="color:${c}">${fmt(g)} غ</b><span>${t}</span></div>`).join('');
+  }
+
+  // ---------- capture ----------
+  $('drop').onclick = (e) => { if (e.target.id !== 'pickLib') $('file').click(); };
+  $('pickLib').onclick = (e) => { e.preventDefault(); e.stopPropagation(); $('fileLib').click(); };
+  $('preview').onclick = () => $('file').click();
+  for (const id of ['file', 'fileLib']) $(id).onchange = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try { photo = await resize(f); $('preview').src = URL.createObjectURL(photo); $('preview').classList.remove('hidden'); $('drop').classList.add('hidden'); $('analyzeBtn').disabled = false; }
+    catch { toast('تعذّر قراءة الصورة'); }
+  };
+
+  async function resize(file, max = 1568) {
+    const bmp = await createImageBitmap(file).catch(() => null);
+    const src = bmp || await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });
+    const w = src.width, h = src.height, s = Math.min(1, max / Math.max(w, h));
+    const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
+    c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+    return await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.82));
+  }
+
+  $('analyzeBtn').onclick = async () => {
+    if (!photo) return;
+    $('analyzeBtn').disabled = true; $('analyzing').classList.remove('hidden');
+    const fd = new FormData();
+    fd.append('photo', photo, 'meal.jpg');
+    for (const [k, id] of [['mealName', 'hName'], ['restaurant', 'hRest'], ['portion', 'hPortion'], ['note', 'hNote']]) { const v = $(id).value.trim(); if (v) fd.append(k, v); }
+    fd.append('eatenAt', new Date().toISOString());
+    try {
+      const r = await api('meals/analyze', { method: 'POST', body: fd });
+      resetCapture(); openReview(r.meal);
+    } catch (e) { toast(e.message, 4000); }
+    finally { $('analyzeBtn').disabled = !photo; $('analyzing').classList.add('hidden'); }
+  };
+  function resetCapture() {
+    photo = null; $('preview').classList.add('hidden'); $('drop').classList.remove('hidden'); $('analyzeBtn').disabled = true;
+    for (const id of ['hName', 'hRest', 'hPortion', 'hNote', 'file', 'fileLib']) $(id).value = '';
+  }
+
+  // ---------- review ----------
+  const NUM_FIELDS = [['calories', 'السعرات'], ['protein_g', 'بروتين (غ)'], ['carbs_g', 'كربوهيدرات (غ)'], ['fat_g', 'دهون (غ)'], ['fiber_g', 'ألياف (غ)'], ['sugar_g', 'سكر (غ)'], ['sodium_mg', 'صوديوم (ملغ)'], ['grams', 'الوزن (غ)']];
+
+  function openReview(meal) {
+    current = meal; const f = meal.final;
+    items = f.items.map((i) => ({ ...i }));
+    $('rName').value = f.meal_name_ar || f.meal_name; $('rRest').value = f.restaurant || '';
+    const [cls, lbl] = BADGE[f.source] || ['est', f.source];
+    $('rBadge').className = `pill ${cls}`; $('rBadge').textContent = `${lbl} • ثقة ${fmt(f.confidence * 100)}٪`;
+    $('rServing').textContent = f.serving_description || '';
+    $('rPortion').value = 1; $('rPortionLbl').textContent = '100٪';
+    list($('rAssume'), $('rAssumeCard'), f.assumptions.map(esc));
+    list($('rWarn'), $('rWarnCard'), f.warnings.map((w) => esc(w.replace(/^\[check\]\s*/, ''))));
+    list($('rSrc'), $('rSrcCard'), f.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`));
+    $('rConfirm').textContent = meal.status === 'confirmed' ? 'حفظ التعديلات' : 'تأكيد وإضافة لليوم';
+    renderItems(); show('review');
+  }
+  function list(ul, card, arr) { ul.innerHTML = arr.map((x) => `<li>${x}</li>`).join(''); card.classList.toggle('hidden', !arr.length); }
+
+  function renderItems() {
+    $('rItems').innerHTML = items.map((it, idx) => `
+      <details class="item"><summary><span><b>${esc(it.name_ar || it.name)}</b><br><span class="muted">${fmt1(it.quantity)} ${esc(it.unit)}${it.grams ? ` • ${fmt(it.grams)} غ` : ''}</span></span><span class="num">${fmt(it.calories)}</span></summary>
+        <label>الاسم</label><input data-i="${idx}" data-k="name_ar" value="${esc(it.name_ar)}">
+        <div class="fields">
+          <div><label>الكمية</label><input data-i="${idx}" data-k="quantity" type="number" inputmode="decimal" step="0.25" value="${it.quantity}"></div>
+          <div><label>الوحدة</label><input data-i="${idx}" data-k="unit" value="${esc(it.unit)}"></div>
+          ${NUM_FIELDS.map(([k, l]) => `<div><label>${l}</label><input data-i="${idx}" data-k="${k}" type="number" inputmode="decimal" value="${it[k] ?? ''}"></div>`).join('')}
+        </div>
+        <button class="btn danger" data-del="${idx}" style="margin-top:6px;padding:8px">حذف الصنف</button>
+      </details>`).join('');
+    $('rItems').querySelectorAll('input').forEach((inp) => (inp.oninput = () => {
+      const it = items[+inp.dataset.i], k = inp.dataset.k;
+      it[k] = ['name_ar', 'unit'].includes(k) ? inp.value : inp.value === '' ? (k === 'grams' ? null : 0) : Number(inp.value);
+      updateTotals();
+    }));
+    $('rItems').querySelectorAll('[data-del]').forEach((b) => (b.onclick = () => { items.splice(+b.dataset.del, 1); renderItems(); }));
+    updateTotals();
+  }
+  function updateTotals() {
+    const p = Number($('rPortion').value);
+    const t = items.reduce((a, i) => { for (const k of ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g']) a[k] += (Number(i[k]) || 0) * p; return a; }, { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 });
+    $('rTotal').textContent = fmt(t.calories); renderMacros($('rMacros'), t);
+  }
+  $('rPortion').oninput = () => { $('rPortionLbl').textContent = `${fmt(Number($('rPortion').value) * 100)}٪`; updateTotals(); };
+  $('rAdd').onclick = () => { items.push({ name: 'Item', name_ar: 'صنف', quantity: 1, unit: 'حصة', grams: null, calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0, sodium_mg: 0 }); renderItems(); const d = $('rItems').lastElementChild; if (d) d.open = true; };
+  $('rBack').onclick = () => show('today');
+
+  $('rConfirm').onclick = async () => {
+    if (!items.length) return toast('أضيفي صنفاً واحداً على الأقل');
+    $('rConfirm').disabled = true;
+    try {
+      const f = current.final, p = Number($('rPortion').value);
+      const patch = {
+        items: items.map((i) => ({ ...i, name: i.name || i.name_ar })),
+        meal_name_ar: $('rName').value.trim() || f.meal_name_ar,
+        restaurant: $('rRest').value.trim() || null,
+        ...(p !== 1 ? { portionFactor: p } : {}),
+      };
+      if (!f.meal_name) patch.meal_name = patch.meal_name_ar;
+      await api(`meals/${current.id}`, { method: 'PATCH', json: patch });
+      if (current.status !== 'confirmed') await api(`meals/${current.id}/confirm`, { method: 'POST' });
+      toast('تمت الإضافة ✓'); show('today');
+    } catch (e) { toast(e.message); }
+    finally { $('rConfirm').disabled = false; }
+  };
+  $('rDelete').onclick = async () => {
+    if (!confirmDelete()) return;
+    try { await api(`meals/${current.id}`, { method: 'DELETE' }); toast('تم الحذف'); show('today'); } catch (e) { toast(e.message); }
+  };
+  let delArmed = 0;
+  function confirmDelete() { // tap twice within 3s instead of a blocking dialog
+    if (Date.now() - delArmed < 3000) return true;
+    delArmed = Date.now(); toast('اضغطي "حذف" مرة أخرى للتأكيد'); return false;
+  }
+
+  // ---------- settings ----------
+  async function loadSettings() {
+    try {
+      const p = await api('profile');
+      $('pSex').value = p.sex || ''; $('pYear').value = p.birthYear || ''; $('pHeight').value = p.heightCm || ''; $('pWeight').value = p.weightKg || '';
+      $('pAct').value = p.activityLevel; $('pGoal').value = p.goal; $('pDelta').value = p.goalDeltaKcal; $('pSrc').value = p.preferredEnergySource || '';
+    } catch (e) { toast(e.message); }
+    try {
+      const w = await api('integrations/whoop/status');
+      $('wStatus').textContent = w.connected ? 'مربوط ✓' : 'غير مربوط';
+      $('wConnect').textContent = w.connected ? 'إعادة الربط' : 'ربط WHOOP';
+      $('wSync').classList.toggle('hidden', !w.connected);
+    } catch { $('wStatus').textContent = '—'; }
+  }
+  const numOrNull = (v) => (v === '' ? null : Number(v));
+  $('pSave').onclick = async () => {
+    try {
+      await api('profile', { method: 'PUT', json: {
+        sex: $('pSex').value || null, birthYear: numOrNull($('pYear').value), heightCm: numOrNull($('pHeight').value), weightKg: numOrNull($('pWeight').value),
+        activityLevel: $('pAct').value, goal: $('pGoal').value, goalDeltaKcal: Number($('pDelta').value) || 0, preferredEnergySource: $('pSrc').value || null,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dubai',
+      } });
+      toast('تم الحفظ ✓');
+    } catch (e) { toast(e.message); }
+  };
+  $('pGoal').onchange = () => { $('pDelta').value = { lose: -500, maintain: 0, gain: 300 }[$('pGoal').value]; };
+  $('eSave').onclick = async () => {
+    const a = numOrNull($('eActive').value), b = numOrNull($('eBasal').value);
+    if (a == null && b == null) return toast('أدخلي رقماً واحداً على الأقل');
+    try { await api('energy/samples', { method: 'POST', json: { samples: [{ date: isoDay(new Date()), source: 'manual', activeKcal: a, basalKcal: b }] } }); toast('تم حفظ الحرق ✓'); }
+    catch (e) { toast(e.message); }
+  };
+  $('wConnect').onclick = async () => {
+    try { const r = await api('integrations/whoop/connect?target=web'); location.href = r.url; }
+    catch (e) { toast(e.message.includes('WHOOP_CLIENT_ID') ? 'WHOOP غير مُعدّ بعد على الخادم' : e.message, 3500); }
+  };
+  $('wSync').onclick = async () => {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    try { await api(`integrations/whoop/sync?from=${isoDay(y)}&to=${isoDay(new Date())}`, { method: 'POST' }); toast('تمت المزامنة ✓'); } catch (e) { toast(e.message); }
+  };
+
+  // ---------- boot ----------
+  if (location.hash.startsWith('#whoop')) {
+    const ok = location.hash.includes('status=connected');
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => toast(ok ? 'تم ربط WHOOP ✓' : 'لم يكتمل ربط WHOOP', 3000), 300);
+  }
+  show(store.key ? 'today' : 'setup');
+})();
+</script>
+</body>
+</html>

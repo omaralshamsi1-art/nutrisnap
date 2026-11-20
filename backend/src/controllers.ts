@@ -118,14 +118,16 @@ export class WhoopController {
 
   /** App calls this, then opens the returned URL in ASWebAuthenticationSession. */
   @Get('connect')
-  connect(@UserId() userId: string) {
-    return { url: this.whoop.authorizeUrl(userId) };
+  connect(@UserId() userId: string, @Query('target') target?: string) {
+    return { url: this.whoop.authorizeUrl(userId, target === 'web' ? 'web' : 'app') };
   }
 
   @Public()
   @Get('callback')
   async callback(@Query('code') code: string, @Query('state') state: string, @Query('error') error: string, @Res() res: Response) {
-    const app = this.config.get<string>('APP_CALLBACK_URL') ?? 'nutrisnap://whoop';
+    const web = `${(this.config.get<string>('PUBLIC_BASE_URL') ?? '').replace(/\/$/, '')}/app/`;
+    const app =
+      this.whoop.callbackTarget(state) === 'web' ? `${web}#whoop` : (this.config.get<string>('APP_CALLBACK_URL') ?? 'nutrisnap://whoop');
     if (error || !code) return res.redirect(`${app}?status=error&reason=${encodeURIComponent(error ?? 'no_code')}`);
     try {
       await this.whoop.handleCallback(code, state);
