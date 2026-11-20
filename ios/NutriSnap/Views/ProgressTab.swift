@@ -110,8 +110,8 @@ struct GoalProgressCard: View {
                 HStack {
                     if let ch = plan.changeSinceStartKg {
                         let good = plan.goal == "gain" ? ch >= 0 : ch <= 0
-                        Text("التغيّر: ").foregroundColor(Theme.muted) +
-                        Text(signedKg(ch)).bold().foregroundColor(Theme.status(good))
+                        Text("التغيّر:").foregroundStyle(Theme.muted)
+                        Text(signedKg(ch)).bold().foregroundStyle(Theme.status(good))
                     }
                     Spacer()
                     Text("\(fmt(pct))٪").font(.caption.bold()).foregroundStyle(Theme.good)
