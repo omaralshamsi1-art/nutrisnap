@@ -26,6 +26,8 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: ae.sheen.nutrisnap
             CFBundleURLSchemes: [nutrisnap]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UIBackgroundModes: [fetch, processing]
         NutriSnapAPIBaseURL: "https://api-production-eacf8540.up.railway.app"
     entitlements:

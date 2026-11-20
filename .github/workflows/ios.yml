@@ -20,3 +20,37 @@ jobs:
           echo "::error title=build::${ERRS:-no error lines}"
           tail -5 build.log
           grep -q "BUILD SUCCEEDED" build.log
+
+  screenshots:
+    needs: build
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Start local backend with sample data
+        run: |
+          cd backend && npm ci --no-audit --no-fund && npm run build
+          (AUTH_MODE=dev PORT=3999 node dist/main.js > /tmp/api.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf localhost:3999/health && break; sleep 1; done
+          bash ../ios/ci/seed.sh
+      - name: Build for simulator
+        run: |
+          brew install xcodegen && cd ios && xcodegen
+          SIM=$(xcrun simctl list devices available | grep -m1 -oE "iPhone 1[5-7]( Pro)? \(" | sed 's/ ($//')
+          echo "SIM=$SIM" >> $GITHUB_ENV
+          xcodebuild -project NutriSnap.xcodeproj -scheme NutriSnap -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=$SIM" -derivedDataPath dd CODE_SIGNING_ALLOWED=NO build -quiet
+      - name: Screenshots
+        run: |
+          xcrun simctl boot "$SIM" && xcrun simctl bootstatus "$SIM" -b
+          xcrun simctl install booted "$(find ios/dd -name NutriSnap.app -path '*iphonesimulator*' | head -1)"
+          cd ios && bash ci/screens.sh
+      - name: Publish screenshots to the ci-screens branch
+        run: |
+          mkdir /tmp/pub && cp ios/shots/*.png /tmp/pub/
+          cd /tmp/pub && git init -q && git checkout -q -b ci-screens
+          git add . && git -c user.name=ci -c user.email=ci@nutrisnap.local commit -qm "screens ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-screens

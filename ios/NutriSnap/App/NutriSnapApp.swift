@@ -24,7 +24,7 @@ struct NutriSnapApp: App {
 
 struct RootView: View {
     @Environment(AppStore.self) private var store
-    @State private var tab = 0
+    @State private var tab = UserDefaults.standard.integer(forKey: "initialTab")
 
     var body: some View {
         @Bindable var store = store
@@ -43,8 +43,10 @@ struct RootView: View {
                         .tag(3).tabItem { Label("الخطة", systemImage: "target") }
                 }
                 .task {
-                    try? await HealthKitManager.shared.requestAuthorization()
-                    HealthKitManager.shared.enableBackgroundSync()
+                    if !UserDefaults.standard.bool(forKey: "screenshotMode") {
+                        try? await HealthKitManager.shared.requestAuthorization()
+                        HealthKitManager.shared.enableBackgroundSync()
+                    }
                     await store.refresh()
                 }
                 .fullScreenCover(isPresented: $store.needsOnboarding) {
