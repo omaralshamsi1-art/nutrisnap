@@ -1,0 +1,40 @@
+# Generate the Xcode project with:  brew install xcodegen && xcodegen
+name: NutriSnap
+options:
+  bundleIdPrefix: ae.sheen
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: ar
+targets:
+  NutriSnap:
+    type: application
+    platform: iOS
+    sources: [NutriSnap]
+    info:
+      path: NutriSnap/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: NutriSnap
+        CFBundleDevelopmentRegion: ar
+        CFBundleLocalizations: [ar, en]
+        UILaunchScreen: {}
+        NSCameraUsageDescription: "لتصوير وجبتك وحساب قيمتها الغذائية"
+        NSPhotoLibraryUsageDescription: "لاختيار صورة وجبة من ألبومك"
+        NSHealthShareUsageDescription: "لقراءة السعرات المحروقة (النشطة والأساسية) ومقارنتها بما تأكله"
+        NSHealthUpdateUsageDescription: "لحفظ وجباتك وقيمها الغذائية في تطبيق صحتي"
+        CFBundleURLTypes:
+          - CFBundleURLName: ae.sheen.nutrisnap
+            CFBundleURLSchemes: [nutrisnap]
+        UIBackgroundModes: [fetch, processing]
+        NutriSnapAPIBaseURL: "http://localhost:3000"
+    entitlements:
+      path: NutriSnap/Resources/NutriSnap.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        com.apple.developer.healthkit.background-delivery: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ae.sheen.nutrisnap
+        SWIFT_VERSION: "5.10"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait

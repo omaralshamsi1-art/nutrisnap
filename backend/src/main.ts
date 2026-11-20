@@ -1,0 +1,14 @@
+import 'reflect-metadata';
+import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.enableCors();
+  app.enableShutdownHooks();
+  const port = Number(process.env.PORT ?? 3000);
+  await app.listen(port);
+  Logger.log(`NutriSnap API on :${port} (auth=${process.env.AUTH_MODE ?? 'dev'}, db=${process.env.DATABASE_URL ? 'postgres' : 'memory'})`);
+}
+bootstrap();
