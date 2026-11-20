@@ -3,6 +3,7 @@ import { isIsoDate, localDate } from '../common/dates';
 import { sumNutrients } from '../common/nutrition-math';
 import { EnergyDay, EnergySource } from '../common/types';
 import { estimatedTdee, ProfileService } from '../profile/profile.service';
+import { pickEnergy, PlanService } from '../plan/plan.service';
 import { REPOSITORY, Repository } from '../storage/repository';
 
 export interface EnergySampleInput {
@@ -13,15 +14,14 @@ export interface EnergySampleInput {
   totalKcal?: number | null;
 }
 
-/** When several devices report the same day, use one — never add them (that would double count). */
-const SOURCE_PRIORITY: EnergySource[] = ['whoop', 'apple_health', 'health_connect', 'garmin', 'fitbit', 'manual'];
-const VALID_SOURCES = new Set<EnergySource>([...SOURCE_PRIORITY, 'estimate']);
+const VALID_SOURCES = new Set<EnergySource>(['whoop', 'apple_health', 'health_connect', 'garmin', 'fitbit', 'manual', 'estimate']);
 
 @Injectable()
 export class EnergyService {
   constructor(
     @Inject(REPOSITORY) private readonly repo: Repository,
     private readonly profiles: ProfileService,
+    private readonly plans: PlanService,
   ) {}
 
   async ingest(userId: string, samples: EnergySampleInput[]) {
@@ -51,45 +51,45 @@ export class EnergyService {
 
   async balance(userId: string, date?: string) {
     const profile = await this.profiles.get(userId);
-    const d = date ?? localDate(new Date(), profile.timezone);
+    const now = new Date();
+    const today = localDate(now, profile.timezone);
+    const d = date ?? today;
     if (!isIsoDate(d)) throw new BadRequestException('date must be YYYY-MM-DD');
 
-    const meals = await this.repo.listMeals(userId, d);
+    const [meals, days, plan] = await Promise.all([
+      this.repo.listMeals(userId, d),
+      this.repo.listEnergy(userId, d),
+      this.plans.plan(userId),
+    ]);
     const confirmed = meals.filter((m) => m.status === 'confirmed');
     const intake = sumNutrients(confirmed.map((m) => m.final.totals));
     const pending = sumNutrients(meals.filter((m) => m.status === 'draft').map((m) => m.final.totals));
+    const chosen = pickEnergy(days, profile.preferredEnergySource);
+    const isToday = d === today;
 
-    const days = await this.repo.listEnergy(userId, d);
-    const order = profile.preferredEnergySource
-      ? [profile.preferredEnergySource, ...SOURCE_PRIORITY.filter((s) => s !== profile.preferredEnergySource)]
-      : SOURCE_PRIORITY;
-    const chosen = order.map((s) => days.find((x) => x.source === s)).find(Boolean) ?? null;
-    const tdee = estimatedTdee(profile);
-    const isToday = d === localDate(new Date(), profile.timezone);
-
-    const burn = chosen
-      ? { source: chosen.source, totalKcal: chosen.totalKcal, activeKcal: chosen.activeKcal, basalKcal: chosen.basalKcal }
-      : tdee != null
-        ? { source: 'estimate' as EnergySource, totalKcal: tdee, activeKcal: null, basalKcal: null }
-        : null;
-
-    // For today, device totals only cover the day so far; use the larger of that and the TDEE estimate as the target base.
-    const targetBase = burn ? (isToday && chosen && tdee != null ? Math.max(burn.totalKcal, tdee) : burn.totalKcal) : null;
-    const target = targetBase != null ? Math.round(targetBase + profile.goalDeltaKcal) : null;
+    // The daily target comes from the plan (stable, safe); today's device burn is shown alongside.
+    const target = plan.targetKcal;
+    const macroTargets = { protein_g: plan.proteinG, carbs_g: plan.carbsG, fat_g: plan.fatG, fiber_g: plan.fiberG };
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: profile.timezone, hour: '2-digit', hourCycle: 'h23' }).format(now));
 
     return {
       date: d,
       intake,
       pendingDrafts: pending,
-      burn,
+      burn: chosen
+        ? { source: chosen.source, totalKcal: chosen.totalKcal, activeKcal: chosen.activeKcal, basalKcal: chosen.basalKcal }
+        : null,
       burnIsPartialDay: isToday && !!chosen,
-      estimatedTdee: tdee,
-      goal: profile.goal,
-      goalDeltaKcal: profile.goalDeltaKcal,
+      estimatedTdee: estimatedTdee(profile),
+      goal: plan.effectiveGoal,
+      goalDeltaKcal: plan.dailyDeltaKcal,
       targetIntakeKcal: target,
-      remainingKcal: target != null ? target - intake.calories : null,
-      netKcal: burn ? intake.calories - burn.totalKcal : null,
+      remainingKcal: target - intake.calories,
+      netKcal: chosen ? intake.calories - chosen.totalKcal : null,
+      macroTargets,
       macroSplitPct: macroSplit(intake),
+      tips: dailyTips({ intake, target, macroTargets, goal: plan.effectiveGoal, isToday, hour, mealsCount: confirmed.length }),
+      onboarded: profile.onboarded,
       meals: meals.map((m) => ({
         id: m.id,
         eatenAt: m.eatenAt,
@@ -99,10 +99,46 @@ export class EnergyService {
         restaurant: m.final.restaurant,
         source: m.final.source,
         calories: m.final.totals.calories,
+        protein_g: m.final.totals.protein_g,
       })),
       availableSources: days.map((x) => x.source),
     };
   }
+}
+
+/** Short, rule-based nudges (the AI coach arrives in phase 2b). Max two, kind tone, no shaming. */
+export function dailyTips(i: {
+  intake: { calories: number; protein_g: number; fiber_g: number };
+  target: number;
+  macroTargets: { protein_g: number; fiber_g: number };
+  goal: string;
+  isToday: boolean;
+  hour: number;
+  mealsCount: number;
+}): { kind: string; text_ar: string }[] {
+  const tips: { kind: string; text_ar: string }[] = [];
+  if (!i.isToday) return tips;
+  const proteinLeft = Math.round(i.macroTargets.protein_g - i.intake.protein_g);
+  const kcalLeft = Math.round(i.target - i.intake.calories);
+  if (i.mealsCount === 0 && i.hour >= 11) {
+    tips.push({ kind: 'log', text_ar: 'لم تسجّل أي وجبة اليوم بعد — صوّر وجبتك القادمة ليبقى الحساب دقيقاً.' });
+  }
+  if (proteinLeft >= 25 && i.hour >= 14) {
+    const extra = i.goal === 'lose' ? 'البروتين يحافظ على عضلاتك ويقلل الجوع' : 'البروتين أساس بناء العضل';
+    tips.push({ kind: 'protein', text_ar: `يتبقى ${proteinLeft} غ بروتين لهدف اليوم — ${extra}. خيارات سهلة: لبن يوناني، بيض، دجاج مشوي، تونة.` });
+  }
+  if (i.goal === 'gain' && kcalLeft > 600 && i.hour >= 17) {
+    tips.push({ kind: 'gain', text_ar: `يتبقى ${kcalLeft} سعرة لهدف الزيادة — أضف وجبة خفيفة غنية: مكسرات، تمر مع لبن، أو ساندويتش زبدة فول سوداني.` });
+  }
+  if (kcalLeft < -150) {
+    tips.push({ kind: 'over', text_ar: 'تجاوزت هدف اليوم قليلاً — لا مشكلة، يوم واحد لا يغيّر الاتجاه. ركّز على الماء والمشي، ونكمل غداً.' });
+  } else if (i.goal === 'lose' && kcalLeft > 0 && kcalLeft < 350 && i.hour < 17) {
+    tips.push({ kind: 'budget', text_ar: `تبقى ${kcalLeft} سعرة — اختر عشاءً خفيفاً غنياً بالخضار والبروتين.` });
+  }
+  if (i.intake.calories > 1000 && i.intake.fiber_g < i.macroTargets.fiber_g * 0.4 && i.hour >= 15) {
+    tips.push({ kind: 'fiber', text_ar: 'الألياف قليلة اليوم — أضف خضاراً أو فاكهة أو حمّص للشبع وصحة الهضم.' });
+  }
+  return tips.slice(0, 2);
 }
 
 function num(v: unknown): number | null {

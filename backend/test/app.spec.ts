@@ -10,6 +10,7 @@ import { EnergyService } from '../src/energy/energy.service';
 import { WhoopService } from '../src/integrations/whoop/whoop.service';
 import { MealsService } from '../src/meals/meals.service';
 import { ProfileService } from '../src/profile/profile.service';
+import { PlanService } from '../src/plan/plan.service';
 import { MemoryRepository } from '../src/storage/memory.repository';
 
 const config = (extra: Record<string, string> = {}) =>
@@ -83,8 +84,9 @@ function setup(claude = fakeClaude()) {
   const profiles = new ProfileService(repo);
   const agent = new NutritionAgentService(claude, cfg);
   const meals = new MealsService(repo, agent, profiles);
-  const energy = new EnergyService(repo, profiles);
-  return { repo, cfg, profiles, agent, meals, energy, claude };
+  const plans = new PlanService(repo, profiles);
+  const energy = new EnergyService(repo, profiles, plans);
+  return { repo, cfg, profiles, agent, meals, energy, plans, claude };
 }
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
@@ -219,7 +221,7 @@ describe('meals flow + learning', () => {
 describe('energy balance', () => {
   it('uses one source per day (no double counting) and computes remaining', async () => {
     const s = setup();
-    await s.profiles.update('u1', { goal: 'lose' }); // → -500
+    await s.profiles.update('u1', { goal: 'lose' });
     const date = '2026-11-15';
     await s.energy.ingest('u1', [
       { date, source: 'apple_health', activeKcal: 600, basalKcal: 1600 },
@@ -231,20 +233,22 @@ describe('energy balance', () => {
     expect(b.burn?.source).toBe('whoop');
     expect(b.burn?.totalKcal).toBe(2400);
     expect(b.intake.calories).toBe(520);
-    expect(b.targetIntakeKcal).toBe(1900);
-    expect(b.remainingKcal).toBe(1380);
+    // plan: no weight yet → conservative −400 from formula fallback (2000)
+    expect(b.targetIntakeKcal).toBe(1600);
+    expect(b.remainingKcal).toBe(1080);
+    expect(b.macroTargets.protein_g).toBeGreaterThan(0);
 
     await s.profiles.update('u1', { preferredEnergySource: 'apple_health' });
     expect((await s.energy.balance('u1', date)).burn?.totalKcal).toBe(2200);
   });
 
-  it('falls back to Mifflin-St Jeor TDEE without devices', async () => {
+  it('targets maintenance from Mifflin-St Jeor when there is no device data', async () => {
     const s = setup();
     await s.profiles.update('u1', { sex: 'female', birthYear: 2000, heightCm: 165, weightKg: 60, activityLevel: 'light' });
     const b = await s.energy.balance('u1', '2026-11-01');
-    // BMR = 600 + 1031.25 - 130 - 161 = 1340 → ×1.375 = 1843
-    expect(b.burn?.source).toBe('estimate');
-    expect(b.burn?.totalKcal).toBe(1843);
+    // BMR = 600 + 1031.25 - 130 - 161 = 1340 → ×1.375 = 1843 → maintain → 1840
+    expect(b.burn).toBeNull();
+    expect(b.targetIntakeKcal).toBe(1840);
   });
 });
 

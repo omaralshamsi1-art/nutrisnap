@@ -1,4 +1,4 @@
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile } from '../common/types';
+import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 
 export const REPOSITORY = Symbol('REPOSITORY');
@@ -7,6 +7,8 @@ export interface Repository {
   saveMeal(meal: Meal): Promise<void>;
   getMeal(userId: string, id: string): Promise<Meal | null>;
   listMeals(userId: string, date: string): Promise<Meal[]>;
+  /** inclusive date range */
+  listMealsRange(userId: string, from: string, to: string): Promise<Meal[]>;
   deleteMeal(userId: string, id: string): Promise<void>;
 
   /** Candidates for the agent's "experience": user's own + global published meals. */
@@ -15,6 +17,11 @@ export interface Repository {
 
   upsertEnergy(day: EnergyDay): Promise<void>;
   listEnergy(userId: string, date: string): Promise<EnergyDay[]>;
+  listEnergyRange(userId: string, from: string, to: string): Promise<EnergyDay[]>;
+
+  upsertWeight(w: WeightEntry): Promise<void>;
+  listWeights(userId: string, from: string, to: string): Promise<WeightEntry[]>;
+  deleteWeight(userId: string, date: string, source: WeightEntry['source']): Promise<void>;
 
   getProfile(userId: string): Promise<Profile | null>;
   saveProfile(p: Profile): Promise<void>;

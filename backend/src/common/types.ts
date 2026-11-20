@@ -100,6 +100,21 @@ export interface Profile {
   timezone: string; // IANA, e.g. Asia/Dubai
   city: string | null;
   country: string | null;
+  // ---- goal engine (phase 2a) ----
+  targetWeightKg: number | null;
+  pace: 'relaxed' | 'moderate' | 'fast';
+  startWeightKg: number | null;
+  startDate: string | null;
+  screening: { pregnant?: boolean; breastfeeding?: boolean; medicalSupervision?: boolean; edHistory?: boolean };
+  onboarded: boolean;
+}
+
+export interface WeightEntry {
+  userId: string;
+  date: string; // YYYY-MM-DD local
+  kg: number;
+  source: 'manual' | 'apple_health' | 'whoop';
+  updatedAt: string;
 }
 
 export interface OAuthTokens {

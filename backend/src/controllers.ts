@@ -24,6 +24,8 @@ import { EnergySampleInput, EnergyService } from './energy/energy.service';
 import { WhoopService } from './integrations/whoop/whoop.service';
 import { AnalyzeHints, MealPatch, MealsService } from './meals/meals.service';
 import { ProfileService } from './profile/profile.service';
+import { PlanService } from './plan/plan.service';
+import { validateProfilePatch } from './profile/profile.service';
 
 @Controller('health')
 export class HealthController {
@@ -151,5 +153,41 @@ export class WhoopController {
   @Delete()
   disconnect(@UserId() userId: string) {
     return this.whoop.disconnect(userId);
+  }
+}
+
+@Controller()
+export class PlanController {
+  constructor(private readonly plans: PlanService) {}
+
+  @Get('plan')
+  plan(@UserId() userId: string) {
+    return this.plans.plan(userId);
+  }
+
+  /** Live preview for onboarding — nothing is saved. */
+  @Post('plan/preview')
+  preview(@UserId() userId: string, @Body() body: Partial<Profile>) {
+    return this.plans.plan(userId, validateProfilePatch(body));
+  }
+
+  @Get('weights')
+  weights(@UserId() userId: string, @Query('days') days?: string) {
+    return this.plans.weights(userId, Number(days) || 90);
+  }
+
+  @Post('weights')
+  addWeight(@UserId() userId: string, @Body() body: { kg: number; date?: string }) {
+    return this.plans.addWeight(userId, { kg: body?.kg, date: body?.date, source: 'manual' });
+  }
+
+  @Delete('weights/:date')
+  deleteWeight(@UserId() userId: string, @Param('date') date: string) {
+    return this.plans.deleteWeight(userId, date);
+  }
+
+  @Get('history')
+  history(@UserId() userId: string, @Query('days') days?: string) {
+    return this.plans.history(userId, Number(days) || 7);
   }
 }

@@ -1,4 +1,4 @@
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile } from '../common/types';
+import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry } from '../common/types';
 import { rankKnown, Repository } from './repository';
 
 /** In-memory store for local development and tests. */
@@ -8,6 +8,7 @@ export class MemoryRepository implements Repository {
   private energy = new Map<string, EnergyDay>();
   private profiles = new Map<string, Profile>();
   private tokens = new Map<string, OAuthTokens>();
+  private weights = new Map<string, WeightEntry>();
 
   async saveMeal(m: Meal) {
     this.meals.set(m.id, structuredClone(m));
@@ -19,6 +20,12 @@ export class MemoryRepository implements Repository {
   async listMeals(userId: string, date: string) {
     return [...this.meals.values()]
       .filter((m) => m.userId === userId && m.date === date)
+      .sort((a, b) => a.eatenAt.localeCompare(b.eatenAt))
+      .map((m) => structuredClone(m));
+  }
+  async listMealsRange(userId: string, from: string, to: string) {
+    return [...this.meals.values()]
+      .filter((m) => m.userId === userId && m.date >= from && m.date <= to)
       .sort((a, b) => a.eatenAt.localeCompare(b.eatenAt))
       .map((m) => structuredClone(m));
   }
@@ -43,6 +50,22 @@ export class MemoryRepository implements Repository {
   }
   async listEnergy(userId: string, date: string) {
     return [...this.energy.values()].filter((d) => d.userId === userId && d.date === date);
+  }
+
+  async listEnergyRange(userId: string, from: string, to: string) {
+    return [...this.energy.values()].filter((d) => d.userId === userId && d.date >= from && d.date <= to);
+  }
+
+  async upsertWeight(w: WeightEntry) {
+    this.weights.set(`${w.userId}|${w.date}|${w.source}`, { ...w });
+  }
+  async listWeights(userId: string, from: string, to: string) {
+    return [...this.weights.values()]
+      .filter((w) => w.userId === userId && w.date >= from && w.date <= to)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+  async deleteWeight(userId: string, date: string, source: WeightEntry['source']) {
+    this.weights.delete(`${userId}|${date}|${source}`);
   }
 
   async getProfile(userId: string) {

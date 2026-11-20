@@ -98,13 +98,30 @@ export class WhoopService {
       if (date < from || date > to) continue;
       byDate.set(date, Math.max(byDate.get(date) ?? 0, c.score.kilojoule / KJ_PER_KCAL));
     }
+    // Body weight from WHOOP's body measurements (kept as its own source; manual entries win).
+    let weightKg: number | null = null;
+    try {
+      const body = await this.api(userId, '/v2/user/measurement/body');
+      if (body?.weight_kilogram > 20) {
+        weightKg = Math.round(body.weight_kilogram * 10) / 10;
+        await this.repo.upsertWeight({
+          userId,
+          date: localDate(new Date(), profile.timezone),
+          kg: weightKg,
+          source: 'whoop',
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (e: any) {
+      this.log.warn(`WHOOP body measurement skipped: ${e?.message ?? e}`);
+    }
     if (byDate.size) {
       await this.energy.ingest(
         userId,
         [...byDate].map(([date, kcal]) => ({ date, source: 'whoop' as const, totalKcal: Math.round(kcal) })),
       );
     }
-    return { cycles: cycles.length, days: Object.fromEntries([...byDate].map(([d, k]) => [d, Math.round(k)])) };
+    return { cycles: cycles.length, weightKg, days: Object.fromEntries([...byDate].map(([d, k]) => [d, Math.round(k)])) };
   }
 
   private async fetchCycles(userId: string, start: Date, end: Date): Promise<WhoopCycle[]> {

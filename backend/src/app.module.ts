@@ -7,6 +7,7 @@ import {
   EnergyController,
   HealthController,
   MealsController,
+  PlanController,
   ProfileController,
   WhoopController,
 } from './controllers';
@@ -14,13 +15,14 @@ import { EnergyService } from './energy/energy.service';
 import { WhoopService } from './integrations/whoop/whoop.service';
 import { MealsService } from './meals/meals.service';
 import { ProfileService } from './profile/profile.service';
+import { PlanService } from './plan/plan.service';
 import { MemoryRepository } from './storage/memory.repository';
 import { PostgresRepository } from './storage/postgres.repository';
 import { REPOSITORY } from './storage/repository';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [HealthController, MealsController, EnergyController, ProfileController, WhoopController],
+  controllers: [HealthController, MealsController, PlanController, EnergyController, ProfileController, WhoopController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: ANTHROPIC_CLIENT, useFactory: anthropicFactory, inject: [ConfigService] },
@@ -34,6 +36,7 @@ import { REPOSITORY } from './storage/repository';
     },
     NutritionAgentService,
     ProfileService,
+    PlanService,
     MealsService,
     EnergyService,
     WhoopService,

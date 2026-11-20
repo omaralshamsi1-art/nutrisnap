@@ -4,7 +4,7 @@ import { Pool, types } from 'pg';
 
 // Return DATE columns as 'YYYY-MM-DD' strings (no timezone shifting).
 types.setTypeParser(1082, (v) => v);
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile } from '../common/types';
+import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 import { rankKnown, Repository } from './repository';
 
@@ -43,6 +43,10 @@ export class PostgresRepository implements Repository {
   }
   async listMeals(userId: string, date: string) {
     const r = await this.pool.query(`select * from meals where user_id=$1 and date=$2 order by eaten_at`, [userId, date]);
+    return r.rows.map(rowToMeal);
+  }
+  async listMealsRange(userId: string, from: string, to: string) {
+    const r = await this.pool.query(`select * from meals where user_id=$1 and date between $2 and $3 order by eaten_at`, [userId, from, to]);
     return r.rows.map(rowToMeal);
   }
   async deleteMeal(userId: string, id: string) {
@@ -85,7 +89,10 @@ export class PostgresRepository implements Repository {
     );
   }
   async listEnergy(userId: string, date: string) {
-    const r = await this.pool.query(`select * from energy_days where user_id=$1 and date=$2`, [userId, date]);
+    return this.listEnergyRange(userId, date, date);
+  }
+  async listEnergyRange(userId: string, from: string, to: string) {
+    const r = await this.pool.query(`select * from energy_days where user_id=$1 and date between $2 and $3`, [userId, from, to]);
     return r.rows.map((x) => ({
       userId: x.user_id,
       date: fmtDate(x.date),
@@ -95,6 +102,27 @@ export class PostgresRepository implements Repository {
       totalKcal: Number(x.total_kcal),
       updatedAt: new Date(x.updated_at).toISOString(),
     }));
+  }
+
+  async upsertWeight(w: WeightEntry) {
+    await this.pool.query(
+      `insert into weights (user_id, date, source, kg, updated_at) values ($1,$2,$3,$4,$5)
+       on conflict (user_id, date, source) do update set kg=$4, updated_at=$5`,
+      [w.userId, w.date, w.source, w.kg, w.updatedAt],
+    );
+  }
+  async listWeights(userId: string, from: string, to: string) {
+    const r = await this.pool.query(`select * from weights where user_id=$1 and date between $2 and $3 order by date`, [userId, from, to]);
+    return r.rows.map((x) => ({
+      userId: x.user_id,
+      date: fmtDate(x.date),
+      kg: Number(x.kg),
+      source: x.source,
+      updatedAt: new Date(x.updated_at).toISOString(),
+    }));
+  }
+  async deleteWeight(userId: string, date: string, source: WeightEntry['source']) {
+    await this.pool.query(`delete from weights where user_id=$1 and date=$2 and source=$3`, [userId, date, source]);
   }
 
   async getProfile(userId: string) {
