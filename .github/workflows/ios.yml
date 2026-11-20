@@ -15,9 +15,8 @@ jobs:
           cd ios
           set -o pipefail
           xcodebuild -project NutriSnap.xcodeproj -scheme NutriSnap -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|warning: .*deprecated|BUILD" || true
-          grep -E "^/.*error:" build.log | sort -u | head -60 | while IFS= read -r l; do
-            f=$(echo "$l" | cut -d: -f1 | sed "s|$PWD/||"); n=$(echo "$l" | cut -d: -f2); m=$(echo "$l" | cut -d: -f5-)
-            echo "::error file=ios/$f,line=$n::$m"
-          done
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || true
+          ERRS=$(grep -E "error:|\*\* BUILD|xcodebuild: error" build.log | sed "s|$PWD/||" | sort -u | head -80 | awk '{printf "%s%%0A", $0}')
+          echo "::error title=build::${ERRS:-no error lines}"
+          tail -5 build.log
           grep -q "BUILD SUCCEEDED" build.log
