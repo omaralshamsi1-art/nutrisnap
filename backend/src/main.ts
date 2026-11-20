@@ -9,6 +9,13 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // Mobile web app (no build step) served at /app
   app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/app', index: 'index.html' });
+  // Root conveniences: open the app, and serve icons browsers/iOS request at the domain root.
+  const http = app.getHttpAdapter();
+  http.get('/', (_req: any, res: any) => res.redirect(302, '/app/'));
+  for (const f of ['apple-touch-icon.png', 'apple-touch-icon-precomposed.png']) {
+    http.get(`/${f}`, (_req: any, res: any) => res.sendFile(join(__dirname, '..', 'public', 'apple-touch-icon.png')));
+  }
+  http.get('/favicon.ico', (_req: any, res: any) => res.redirect(301, '/app/icon.svg'));
   app.enableCors();
   app.enableShutdownHooks();
   const port = Number(process.env.PORT ?? 3000);

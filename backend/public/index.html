@@ -308,9 +308,26 @@
     database: ['db', 'قاعدة بيانات غذائية'], estimate: ['est', 'تقدير تقريبي من الصورة'],
   };
 
+  async function autoSyncWhoop(force = false) {
+    let last = 0, connected = null;
+    try { last = Number(localStorage.getItem('ns_whoop_sync') || 0); connected = localStorage.getItem('ns_whoop'); } catch {}
+    if (!force && Date.now() - last < 10 * 60 * 1000) return;
+    try {
+      if (connected !== '1') {
+        const w = await api('integrations/whoop/status');
+        try { localStorage.setItem('ns_whoop', w.connected ? '1' : '0'); } catch {}
+        if (!w.connected) { try { localStorage.setItem('ns_whoop_sync', String(Date.now())); } catch {} return; }
+      }
+      const from = new Date(day); from.setDate(from.getDate() - 1);
+      await api(`integrations/whoop/sync?from=${isoDay(from)}&to=${isoDay(new Date())}`, { method: 'POST' });
+      try { localStorage.setItem('ns_whoop_sync', String(Date.now())); } catch {}
+    } catch (e) { console.warn('whoop sync', e); }
+  }
+
   async function loadToday() {
     $('dayLabel').textContent = dayLabel();
     $('mealList').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    await autoSyncWhoop();
     try {
       const b = await api(`balance?date=${isoDay(day)}`);
       const eaten = b.intake.calories, target = b.targetIntakeKcal;
@@ -467,6 +484,7 @@
     try {
       const w = await api('integrations/whoop/status');
       $('wStatus').textContent = w.connected ? 'مربوط ✓' : 'غير مربوط';
+      try { localStorage.setItem('ns_whoop', w.connected ? '1' : '0'); } catch {}
       $('wConnect').textContent = w.connected ? 'إعادة الربط' : 'ربط WHOOP';
       $('wSync').classList.toggle('hidden', !w.connected);
     } catch { $('wStatus').textContent = '—'; }
@@ -495,13 +513,19 @@
   };
   $('wSync').onclick = async () => {
     const y = new Date(); y.setDate(y.getDate() - 1);
-    try { await api(`integrations/whoop/sync?from=${isoDay(y)}&to=${isoDay(new Date())}`, { method: 'POST' }); toast('تمت المزامنة ✓'); } catch (e) { toast(e.message); }
+    try {
+      const r = await api(`integrations/whoop/sync?from=${isoDay(y)}&to=${isoDay(new Date())}`, { method: 'POST' });
+      try { localStorage.setItem('ns_whoop_sync', String(Date.now())); } catch {}
+      const today = r.days && r.days[isoDay(new Date())];
+      toast(today ? `تمت المزامنة ✓ — حرق اليوم ${fmt(today)} سعرة` : 'تمت المزامنة ✓ (لا توجد بيانات محسوبة لليوم بعد)', 3500);
+    } catch (e) { toast(e.message); }
   };
 
   // ---------- boot ----------
   if (location.hash.startsWith('#whoop')) {
     const ok = location.hash.includes('status=connected');
     history.replaceState(null, '', location.pathname);
+    if (ok) { try { localStorage.setItem('ns_whoop', '1'); localStorage.removeItem('ns_whoop_sync'); } catch {} }
     setTimeout(() => toast(ok ? 'تم ربط WHOOP ✓' : 'لم يكتمل ربط WHOOP', 3000), 300);
   }
   show(store.key ? 'today' : 'setup');
