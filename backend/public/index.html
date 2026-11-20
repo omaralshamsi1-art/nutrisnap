@@ -103,6 +103,28 @@ button { font: inherit; color: inherit; }
 .actsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; margin-bottom: 4px; }
 .actsum b { display: block; font-size: 20px; font-weight: 700; }
 .actsum span { font-size: 12px; color: var(--muted); }
+.score { display: flex; align-items: center; gap: 14px; }
+.score .big { width: 74px; height: 74px; border-radius: 22px; display: grid; place-items: center; font-size: 30px; font-weight: 800; flex: none; }
+.score .big small { font-size: 13px; font-weight: 600; opacity: .7; }
+.g-excellent, .g-good { background: var(--good-soft); color: var(--good); }
+.g-ok { background: var(--accent-soft); color: var(--warn); }
+.g-poor { background: var(--bad-soft); color: var(--bad); }
+.chip.good { background: var(--good-soft); border-color: transparent; color: var(--good); }
+.chip.bad { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+.swap { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; background: var(--card-2); }
+.swap .arrow { display: flex; align-items: center; gap: 8px; font-weight: 600; flex-wrap: wrap; }
+.swap .from { color: var(--muted); text-decoration: line-through; font-weight: 500; }
+.opt { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; background: var(--card-2); }
+.opt .row b { font-size: 15px; }
+.ram { background: linear-gradient(135deg, #0f3d2e, #1f6b4f); color: #fff; }
+@media (prefers-color-scheme: dark) { .ram { background: linear-gradient(135deg, #16342a, #1d4a39); } }
+.ram .muted { color: rgba(255,255,255,.75); }
+.ram .split { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; text-align: center; }
+.ram .split div { background: rgba(255,255,255,.12); border-radius: 14px; padding: 10px 4px; }
+.ram .split b { display: block; font-size: 18px; }
+.ram .split span { font-size: 12px; opacity: .85; }
+.wk-head { font-size: 18px; font-weight: 700; line-height: 1.5; margin: 6px 0 10px; }
+.blist { margin: 6px 0 0; padding-inline-start: 20px; line-height: 1.8; font-size: 14px; }
 .empty { text-align: center; padding: 20px 10px; color: var(--muted); }
 /* forms */
 label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
@@ -328,7 +350,22 @@ a { color: var(--brand-2); }
       <div class="macro" id="macros"></div>
     </div>
 
+    <div class="card ram hidden" id="ramCard">
+      <div class="row"><b style="font-size:17px">🌙 وضع رمضان</b><span class="small muted" id="ramTimes"></span></div>
+      <div class="small muted" id="ramState" style="margin-top:4px"></div>
+      <div class="split" id="ramSplit"></div>
+      <div id="ramChoice" class="hidden" style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn ghost" style="min-height:42px;padding:8px" id="ramKeep">إبقاء الوضع</button>
+        <button class="btn ghost" style="min-height:42px;padding:8px" id="ramOff">إيقاف</button>
+      </div>
+    </div>
+
     <div id="tips"></div>
+
+    <div class="card">
+      <h3>ماذا آكل الآن؟ <button class="chip src" id="sugRefresh" style="cursor:pointer" aria-label="اقتراحات جديدة">تحديث</button></h3>
+      <div id="sugBody"><button class="btn ghost" id="sugBtn"><svg width="20" height="20"><use href="#i-bulb"/></svg>اقترح لي وجبة تناسب ما تبقى</button></div>
+    </div>
 
     <div class="card">
       <h3>نشاطك <span class="small" id="actSub"></span></h3>
@@ -364,6 +401,11 @@ a { color: var(--brand-2); }
         <button class="btn" id="wSave">تسجيل</button>
       </div>
       <p class="small muted" style="margin:8px 0 0">نصيحة: الوزن يتذبذب يومياً بسبب الماء والملح — تابعي خط الاتجاه، لا الرقم اليومي. أفضل وقت للقياس صباحاً بعد الاستيقاظ.</p>
+    </div>
+
+    <div class="card">
+      <h3>تقرير الأسبوع <button class="chip src" id="wkRefresh" style="cursor:pointer">تحديث</button></h3>
+      <div id="wkBody"><button class="btn ghost" id="wkBtn"><svg width="20" height="20"><use href="#i-chart"/></svg>اعرض تقرير آخر 7 أيام</button></div>
     </div>
 
     <div class="card">
@@ -409,6 +451,11 @@ a { color: var(--brand-2); }
       <input id="rName" aria-label="اسم الوجبة" style="font-size:22px;font-weight:700;border:0;padding:2px 0;background:none">
       <input id="rRest" aria-label="المطعم" placeholder="المطعم" style="border:0;padding:2px 0;color:var(--muted);background:none">
       <div class="row" style="margin-top:8px"><span id="rBadge" class="pill"></span><span class="small muted" id="rServing"></span></div>
+    </div>
+    <div class="card" id="rScoreCard">
+      <div class="score"><div class="big num" id="rScore">–</div><div><b id="rScoreLbl" style="font-size:17px"></b><div class="chips" id="rReasons"></div></div></div>
+      <p id="rNote" class="small" style="margin:12px 0 0;line-height:1.7"></p>
+      <div id="rSwaps"></div>
     </div>
     <div class="card">
       <div class="row"><div><span style="font-size:42px;font-weight:700" class="num" id="rTotal">0</span> <span class="muted">سعرة</span></div><span class="small muted" id="rShare"></span></div>
@@ -470,6 +517,19 @@ a { color: var(--brand-2); }
     </div>
 
     <div class="card">
+      <h3>وضع رمضان والصيام</h3>
+      <p class="small muted" style="margin-top:-4px">يتفعّل تلقائياً في رمضان (حسب تقويم أم القرى). يمكنك تفعيله يدوياً لأيام الصيام الأخرى.</p>
+      <label for="rmMode">الحالة</label>
+      <select id="rmMode"><option value="auto">تلقائي في رمضان</option><option value="on">مفعّل الآن</option><option value="off">متوقف</option></select>
+      <div class="grid2">
+        <div><label for="rmSuhoor">وقت السحور (الإمساك)</label><input id="rmSuhoor" type="time"></div>
+        <div><label for="rmIftar">وقت الإفطار</label><input id="rmIftar" type="time"></div>
+      </div>
+      <div style="height:12px"></div>
+      <button class="btn ghost" id="rmSave">حفظ</button>
+    </div>
+
+    <div class="card">
       <h3>WHOOP <span id="wStatus" class="small">—</span></h3>
       <button class="btn ghost" id="wConnect">ربط WHOOP</button>
       <button class="btn ghost hidden" id="wSync">مزامنة الآن</button>
@@ -512,7 +572,7 @@ a { color: var(--brand-2); }
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const arDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' });
   let day = new Date();
-  let current = null, items = [], photo = null, planCache = null, planGoal = 'lose';
+  let current = null, items = [], photo = null, planCache = null, planGoal = 'lose', ramCtx = null;
 
   function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = 'none'), ms); }
 
@@ -641,6 +701,8 @@ a { color: var(--brand-2); }
     return day.toLocaleDateString('ar', { weekday: 'short', day: 'numeric' });
   }
   $('prevDay').onclick = () => { day.setDate(day.getDate() - 1); loadToday(); };
+  // suggestions only make sense for today
+  const _loadToday = () => { const isT = isoDay(day) === isoDay(new Date()); $('sugBody').closest('.card').classList.toggle('hidden', !isT); };
   $('nextDay').onclick = () => { if (isoDay(day) === isoDay(new Date())) return; day.setDate(day.getDate() + 1); loadToday(); };
 
   const SRC = { apple_health: 'Apple Health', whoop: 'WHOOP', health_connect: 'Health Connect', garmin: 'Garmin', fitbit: 'Fitbit', manual: 'يدوي' };
@@ -648,6 +710,13 @@ a { color: var(--brand-2); }
   const GOAL_AR = { lose: 'إنقاص الوزن', maintain: 'المحافظة', gain: 'زيادة الوزن' };
   function mealSlot(iso) {
     const h = new Date(iso).getHours();
+    if (ramCtx && ramCtx.active) {
+      const toH = (t) => Number(t.split(':')[0]) + Number(t.split(':')[1]) / 60;
+      const x = h + new Date(iso).getMinutes() / 60, ift = toH(ramCtx.iftarTime), suh = toH(ramCtx.suhoorTime);
+      if (x >= ift && x < ift + 2) return ['إفطار', 'i-moon'];
+      if (x >= suh - 3 && x < suh + 0.5) return ['سحور', 'i-moon'];
+      if (x >= ift + 2 || x < suh - 3) return ['وجبة مسائية', 'i-bowl'];
+    }
     if (h >= 4 && h < 11) return ['فطور', 'i-sun']; if (h >= 11 && h < 16) return ['غداء', 'i-bowl'];
     if (h >= 16 && h < 22) return ['عشاء', 'i-moon']; return ['وجبة خفيفة', 'i-apple'];
   }
@@ -722,7 +791,11 @@ a { color: var(--brand-2); }
       $('kPendRow').classList.toggle('hidden', !(b.pendingDrafts.calories > 0)); $('kPend').textContent = fmt(b.pendingDrafts.calories);
       $('macros').innerHTML = macroRows(b.intake, b.macroTargets);
       $('tips').innerHTML = (b.tips || []).map((t) => `<div class="tip fade"><svg width="20" height="20"><use href="#i-bulb"/></svg><div>${esc(t.text_ar)}</div></div>`).join('');
+      planGoal = b.goal;
       renderActivity(b.activity);
+      renderRamadan(b.ramadan);
+      _loadToday();
+      ramCtx = b.ramadan;
       $('mealCount').textContent = b.meals.length ? `${b.meals.length} وجبات` : '';
       $('mealList').innerHTML = b.meals.length ? b.meals.map((m) => {
         const [slot, icon] = mealSlot(m.eatenAt);
@@ -734,6 +807,71 @@ a { color: var(--brand-2); }
       document.querySelectorAll('.meal').forEach((el) => (el.onclick = async () => openReview(await api(`meals/${el.dataset.id}`))));
     } catch (e) { $('mealList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
   }
+
+  // ---------------- Ramadan ----------------
+  function renderRamadan(r) {
+    $('ramCard').classList.toggle('hidden', !(r && r.active));
+    if (!r || !r.active) return;
+    $('ramTimes').textContent = `السحور ${r.suhoorTime} · الإفطار ${r.iftarTime}`;
+    const m = r.minutesToIftar;
+    $('ramState').textContent = r.fasting ? `صائم — باقي على الإفطار ${Math.floor(m / 60) ? `${Math.floor(m / 60)} ساعة و` : ''}${m % 60} دقيقة` : 'وقت الإفطار والسحور — هدفك موزّع كالتالي:';
+    $('ramSplit').innerHTML = r.split ? `<div><b class="num">${fmt(r.split.suhoor)}</b><span>السحور</span></div><div><b class="num">${fmt(r.split.iftar)}</b><span>الإفطار</span></div><div><b class="num">${fmt(r.split.evening)}</b><span>بينهما</span></div>` : '';
+    $('ramChoice').classList.toggle('hidden', !r.needsChoice);
+  }
+  async function setRamadan(enabled, extra = {}) {
+    const prof = await api('profile');
+    await api('profile', { method: 'PUT', json: { ramadan: { ...(prof.ramadan || {}), enabled, ...extra } } });
+  }
+  $('ramKeep').onclick = async () => { try { await setRamadan(true); toast('تم ✓'); loadToday(); } catch (e) { toast(e.message); } };
+  $('ramOff').onclick = async () => { try { await setRamadan(false); toast('أوقفنا وضع رمضان'); loadToday(); } catch (e) { toast(e.message); } };
+  $('rmSave').onclick = async () => {
+    const mode = $('rmMode').value;
+    try {
+      await setRamadan(mode === 'auto' ? null : mode === 'on', { suhoorTime: $('rmSuhoor').value || '04:45', iftarTime: $('rmIftar').value || '18:00' });
+      toast('تم الحفظ ✓');
+    } catch (e) { toast(e.message); }
+  };
+
+  // ---------------- coach: suggestions ----------------
+  async function loadSuggestions(force) {
+    $('sugBody').innerHTML = '<div class="loading"><div class="spinner"></div>يفكّر المدرب في خيارات تناسبك…</div>';
+    try {
+      const r = await api(`coach/suggest${force ? '?force=1' : ''}`, { method: 'POST' });
+      const head = `<p class="small muted" style="margin:0">${esc(r.intro_ar)}</p><p class="small" style="margin:6px 0 0">متبقي لك: <b class="num">${fmt(Math.max(0, r.remainingKcal))}</b> سعرة · <b class="num">${fmt(r.proteinLeftG)}</b> غ بروتين</p>`;
+      $('sugBody').innerHTML = head + (r.options.length ? r.options.map((o) => `<div class="opt"><div class="row"><b>${esc(o.title_ar)}</b><span class="small num" style="white-space:nowrap">${fmt(o.kcal)} سعرة · ${fmt(o.protein_g)} غ</span></div><div class="small muted" style="margin-top:4px">${esc(o.where_ar)}</div>${o.why_ar ? `<div class="small" style="margin-top:6px;line-height:1.6">${esc(o.why_ar)}</div>` : ''}</div>`).join('') : '<div class="empty small">لم أجد خيارات مناسبة الآن، جرّب "تحديث".</div>');
+    } catch (e) { $('sugBody').innerHTML = `<div class="empty small">${esc(e.message)}</div><button class="btn ghost" id="sugRetry">إعادة المحاولة</button>`; $('sugRetry').onclick = () => loadSuggestions(true); }
+  }
+  $('sugBtn').onclick = () => loadSuggestions(false);
+  $('sugRefresh').onclick = () => loadSuggestions(true);
+
+  // ---------------- coach: weekly ----------------
+  async function loadWeekly(force) {
+    $('wkBody').innerHTML = '<div class="loading"><div class="spinner"></div>يجهّز المدرب تقرير أسبوعك…</div>';
+    try {
+      const r = await api(`coach/weekly${force ? '?force=1' : ''}`);
+      const s = r.stats, nv = r.narrative;
+      const rng = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('ar', { day: 'numeric', month: 'short' });
+      const pct = (a, b) => (a != null && b ? `${fmt((a / b) * 100)}%` : '—');
+      const wc = s.weightChangeKg;
+      $('wkBody').innerHTML = `<div class="small muted">${rng(s.from)} – ${rng(s.to)}</div>
+        <div class="wk-head">${esc(nv.headline_ar)}</div>
+        <div class="stats">
+          <div><b class="num">${s.loggedDays}/7</b><span>أيام مسجّلة</span></div>
+          <div><b class="num" style="color:${s.daysOnTarget >= Math.max(1, s.loggedDays * 0.7) ? 'var(--good)' : 'var(--warn)'}">${s.daysOnTarget}/${s.loggedDays || 0}</b><span>ضمن الهدف</span></div>
+          <div><b class="num" style="color:${wc == null ? '' : (s.goal === 'gain' ? wc > 0 : wc < 0) ? 'var(--good)' : 'var(--warn)'}">${wc == null ? '—' : `${wc > 0 ? '+' : ''}${fmt1(wc)}`}</b><span>تغيّر الوزن (كغ)</span></div>
+        </div>
+        <div class="stats" style="margin-top:10px">
+          <div><b class="num">${s.avgKcal != null ? fmt(s.avgKcal) : '—'}</b><span>متوسط السعرات / ${fmt(s.targetKcal)}</span></div>
+          <div><b class="num">${pct(s.avgProtein, s.proteinTarget)}</b><span>من هدف البروتين</span></div>
+          <div><b class="num">${s.avgDeficit != null ? fmt(s.avgDeficit) : '—'}</b><span>متوسط ${s.avgDeficit != null && s.avgDeficit < 0 ? 'الفائض' : 'العجز'} الفعلي</span></div>
+        </div>
+        ${nv.wins_ar.length ? `<h3 style="margin:16px 0 0;color:var(--good)">ما نجح ✓</h3><ul class="blist">${nv.wins_ar.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${nv.improve_ar.length ? `<h3 style="margin:14px 0 0;color:var(--warn)">ما يمكن تحسينه</h3><ul class="blist">${nv.improve_ar.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        <div class="notice" style="margin-top:14px"><b>هدف الأسبوع القادم:</b> ${esc(nv.next_week_goal_ar)}</div>`;
+    } catch (e) { $('wkBody').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
+  }
+  $('wkBtn').onclick = () => loadWeekly(false);
+  $('wkRefresh').onclick = () => loadWeekly(true);
 
   // ---------------- activity ----------------
   const KIND_ICON = { run: 'i-walk', walk: 'i-walk', bike: 'i-bike', strength: 'i-dumbbell', swim: 'i-swim', hiit: 'i-bolt', mind: 'i-leaf', racket: 'i-ball', team: 'i-ball', combat: 'i-bolt', other: 'i-heart' };
@@ -847,6 +985,10 @@ a { color: var(--brand-2); }
       $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = `${fmt(p.fiberG)} غ`;
       $('plNotices').innerHTML = renderNotices(p.notices);
       $('pSrc').value = prof.preferredEnergySource || '';
+      const rm = prof.ramadan || { enabled: null, suhoorTime: '04:45', iftarTime: '18:00' };
+      $('rmMode').value = rm.enabled === null ? 'auto' : rm.enabled ? 'on' : 'off';
+      $('rmSuhoor').value = rm.suhoorTime; $('rmIftar').value = rm.iftarTime;
+      planGoal = p.effectiveGoal;
     } catch (e) { toast(e.message); }
     try {
       const w = await api('integrations/whoop/status');
@@ -923,8 +1065,27 @@ a { color: var(--brand-2); }
     list($('rWarn'), $('rWarnCard'), f.warnings.map((w) => esc(w.replace(/^\[check\]\s*/, ''))));
     list($('rSrc'), $('rSrcCard'), f.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`));
     $('rConfirm').textContent = meal.status === 'confirmed' ? 'حفظ التعديلات' : 'تأكيد وإضافة لليوم';
+    renderScore(meal);
     if (!planCache) { try { planCache = await api('plan'); } catch {} }
     renderItems(); show('review');
+  }
+  function renderScore(meal) {
+    const sc = meal.score, f = meal.final;
+    $('rScoreCard').classList.toggle('hidden', !sc);
+    if (!sc) return;
+    $('rScore').className = `big num g-${sc.grade}`;
+    $('rScore').innerHTML = `${sc.score}<small>/10</small>`;
+    $('rScoreLbl').textContent = sc.label_ar;
+    $('rReasons').innerHTML = sc.reasons.map((r) => `<span class="chip ${r.good ? 'good' : 'bad'}">${esc(r.text_ar)}</span>`).join('');
+    $('rNote').textContent = f.coach_note_ar || '';
+    const sw = f.swaps || [];
+    $('rSwaps').innerHTML = sw.length ? `<h3 style="margin:14px 0 0">بدائل أذكى</h3>` + sw.map((x) => {
+      const dk = Math.round(x.delta_kcal), dp = Math.round(x.delta_protein_g);
+      const good = planGoal === 'gain' ? dk > 0 : dk <= 0;
+      return `<div class="swap"><div class="arrow"><span class="from">${esc(x.instead_of_ar)}</span><svg width="16" height="16"><use href="#i-chev-l"/></svg><span>${esc(x.choose_ar)}</span></div>
+        <div class="chips">${dk ? `<span class="chip ${good ? 'good' : 'bad'}"><span dir="ltr">${dk > 0 ? '+' : '−'}${fmt(Math.abs(dk))}</span> سعرة</span>` : ''}${dp ? `<span class="chip ${dp > 0 ? 'good' : 'bad'}"><span dir="ltr">${dp > 0 ? '+' : '−'}${fmt(Math.abs(dp))}</span> غ بروتين</span>` : ''}</div>
+        ${x.why_ar ? `<div class="small muted" style="margin-top:6px">${esc(x.why_ar)}</div>` : ''}</div>`;
+    }).join('') : '';
   }
   function list(ul, card, arr) { ul.innerHTML = arr.map((x) => `<li>${x}</li>`).join(''); card.classList.toggle('hidden', !arr.length); }
   function renderItems() {

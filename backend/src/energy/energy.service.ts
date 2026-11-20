@@ -5,6 +5,7 @@ import { EnergyDay, EnergySource } from '../common/types';
 import { estimatedTdee, ProfileService } from '../profile/profile.service';
 import { pickEnergy, PlanService } from '../plan/plan.service';
 import { WorkoutsService } from '../workouts/workouts.service';
+import { ramadanTips, ramadanView } from '../coach/coach-math';
 import { REPOSITORY, Repository } from '../storage/repository';
 
 export interface EnergySampleInput {
@@ -91,7 +92,12 @@ export class EnergyService {
       netKcal: chosen ? intake.calories - chosen.totalKcal : null,
       macroTargets,
       macroSplitPct: macroSplit(intake),
-      tips: dailyTips({ intake, target, macroTargets, goal: plan.effectiveGoal, isToday, hour, mealsCount: confirmed.length }),
+      ramadan: isToday ? ramadanView(profile.ramadan, now, profile.timezone, target) : null,
+      tips: (() => {
+        const ram = isToday ? ramadanView(profile.ramadan, now, profile.timezone, target) : null;
+        if (ram?.active) return [...ramadanTips(ram, intake.calories), ...dailyTips({ intake, target, macroTargets, goal: plan.effectiveGoal, isToday, hour, mealsCount: confirmed.length }).filter((t) => t.kind === 'protein' || t.kind === 'over')].slice(0, 2);
+        return dailyTips({ intake, target, macroTargets, goal: plan.effectiveGoal, isToday, hour, mealsCount: confirmed.length });
+      })(),
       onboarded: profile.onboarded,
       activity,
       meals: meals.map((m) => ({

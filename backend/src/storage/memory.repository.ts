@@ -1,4 +1,4 @@
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
+import { CacheEntry, EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
 import { rankKnown, Repository } from './repository';
 
 /** In-memory store for local development and tests. */
@@ -10,6 +10,7 @@ export class MemoryRepository implements Repository {
   private tokens = new Map<string, OAuthTokens>();
   private weights = new Map<string, WeightEntry>();
   private workouts = new Map<string, Workout>();
+  private cache = new Map<string, CacheEntry>();
 
   async saveMeal(m: Meal) {
     this.meals.set(m.id, structuredClone(m));
@@ -79,6 +80,13 @@ export class MemoryRepository implements Repository {
   }
   async deleteWorkout(userId: string, id: string) {
     this.workouts.delete(`${userId}|${id}`);
+  }
+
+  async getCache(userId: string, key: string) {
+    return this.cache.get(`${userId}|${key}`) ?? null;
+  }
+  async setCache(e: CacheEntry) {
+    this.cache.set(`${e.userId}|${e.key}`, structuredClone(e));
   }
 
   async getProfile(userId: string) {

@@ -84,8 +84,8 @@ function setup(claude = fakeClaude()) {
   const cfg = config();
   const profiles = new ProfileService(repo);
   const agent = new NutritionAgentService(claude, cfg);
-  const meals = new MealsService(repo, agent, profiles);
   const plans = new PlanService(repo, profiles);
+  const meals = new MealsService(repo, agent, profiles, plans);
   const workouts = new WorkoutsService(repo, profiles);
   const energy = new EnergyService(repo, profiles, plans, workouts);
   return { repo, cfg, profiles, agent, meals, energy, plans, workouts, claude };

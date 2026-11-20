@@ -21,6 +21,7 @@ export const DEFAULT_PROFILE = (userId: string): Profile => ({
   startDate: null,
   screening: {},
   onboarded: false,
+  ramadan: { enabled: null, suhoorTime: '04:45', iftarTime: '18:00' },
   activityCalibration: null,
 });
 
@@ -109,6 +110,18 @@ export function validateProfilePatch(patch: Partial<Profile>): Partial<Profile> 
       out.screening = Object.fromEntries(
         ['pregnant', 'breastfeeding', 'medicalSupervision', 'edHistory'].filter((x) => x in sc).map((x) => [x, !!sc[x]]),
       );
+    } else if (k === 'ramadan') {
+      const r = (v ?? {}) as Record<string, unknown>;
+      const time = (t: unknown, d: string) => {
+        if (t === undefined) return d;
+        if (typeof t !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) throw new BadRequestException('ramadan times must be HH:MM');
+        return t;
+      };
+      out.ramadan = {
+        enabled: r.enabled === null || r.enabled === undefined ? null : !!r.enabled,
+        suhoorTime: time(r.suhoorTime, '04:45'),
+        iftarTime: time(r.iftarTime, '18:00'),
+      };
     } else if (k === 'onboarded') {
       out.onboarded = !!v;
     } else if (['timezone', 'city', 'country', 'startDate'].includes(k)) {

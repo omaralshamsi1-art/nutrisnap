@@ -4,7 +4,7 @@ import { Pool, types } from 'pg';
 
 // Return DATE columns as 'YYYY-MM-DD' strings (no timezone shifting).
 types.setTypeParser(1082, (v) => v);
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
+import { CacheEntry, EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 import { rankKnown, Repository } from './repository';
 
@@ -147,6 +147,19 @@ export class PostgresRepository implements Repository {
   }
   async deleteWorkout(userId: string, id: string) {
     await this.pool.query(`delete from workouts where user_id=$1 and id=$2`, [userId, id]);
+  }
+
+  async getCache(userId: string, key: string): Promise<CacheEntry | null> {
+    const r = await this.pool.query(`select * from coach_cache where user_id=$1 and key=$2`, [userId, key]);
+    const x = r.rows[0];
+    return x ? { userId, key, payload: x.payload, createdAt: new Date(x.created_at).toISOString() } : null;
+  }
+  async setCache(e: CacheEntry) {
+    await this.pool.query(
+      `insert into coach_cache (user_id, key, payload, created_at) values ($1,$2,$3,$4)
+       on conflict (user_id, key) do update set payload=$3, created_at=$4`,
+      [e.userId, e.key, JSON.stringify(e.payload), e.createdAt],
+    );
   }
 
   async getProfile(userId: string) {

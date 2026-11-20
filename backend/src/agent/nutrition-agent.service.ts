@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { normalizeEstimate } from '../common/nutrition-math';
 import { FETCH, FetchFn } from '../common/fetch';
 import { EMPTY_NUTRIENTS, KnownMeal, NutritionEstimate, SourceRef } from '../common/types';
-import { buildSystemPrompt, buildUserText, SUBMIT_TOOL_NAME, SUBMIT_TOOL_SCHEMA } from './prompts';
+import { buildSystemPrompt, buildUserText, CoachContext, SUBMIT_TOOL_NAME, SUBMIT_TOOL_SCHEMA } from './prompts';
 
 export const ANTHROPIC_CLIENT = Symbol('ANTHROPIC_CLIENT');
 
@@ -23,6 +23,7 @@ export interface AnalyzeInput {
   city?: string | null;
   country?: string | null;
   known: KnownMeal[];
+  coach?: CoachContext | null;
 }
 
 export interface AnalyzeResult {
@@ -169,6 +170,48 @@ export class NutritionAgentService {
       this.log.debug(`turn ${turn} stop_reason=${resp.stop_reason}`);
     }
     throw new Error('Agent did not produce a result within the turn limit.');
+  }
+
+  /** Text-only structured call used by the coach (both providers). */
+  async completeJson<T>(system: string, user: string, schema: object, maxTokens = 2500): Promise<T> {
+    if (this.provider === 'gemini') {
+      if (!this.geminiKey) throw new ServiceUnavailableException('GEMINI_API_KEY is not set');
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`;
+      const res = await this.fetchFn(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts: [{ text: user }] }],
+          generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, temperature: 0.5, maxOutputTokens: maxTokens * 4 },
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        this.log.warn(`Gemini ${res.status}: ${t.slice(0, 300)}`);
+        if (res.status === 429) throw new ServiceUnavailableException('Gemini free-tier limit reached — try again shortly');
+        throw new BadGatewayException(`Gemini error ${res.status}`);
+      }
+      const data: any = await res.json();
+      const text = (data.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? '').join('');
+      try {
+        return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as T;
+      } catch {
+        throw new BadGatewayException('Coach returned no usable result');
+      }
+    }
+    if (!this.client) throw new ServiceUnavailableException('No AI provider configured');
+    const resp = await this.client.messages.create({
+      model: this.model,
+      max_tokens: maxTokens,
+      system,
+      tools: [{ name: 'respond', description: 'Return the answer.', input_schema: schema }],
+      tool_choice: { type: 'tool', name: 'respond' },
+      messages: [{ role: 'user', content: user }],
+    });
+    const block = (resp.content ?? []).find((b: any) => b.type === 'tool_use');
+    if (!block) throw new BadGatewayException('Coach returned no usable result');
+    return block.input as T;
   }
 
   /** Gemini (free tier friendly): single call, image + JSON schema output; optional Google Search grounding. */

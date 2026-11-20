@@ -9,6 +9,7 @@ import {
   MealsController,
   PlanController,
   WorkoutsController,
+  CoachController,
   ProfileController,
   WhoopController,
 } from './controllers';
@@ -18,13 +19,14 @@ import { MealsService } from './meals/meals.service';
 import { ProfileService } from './profile/profile.service';
 import { PlanService } from './plan/plan.service';
 import { WorkoutsService } from './workouts/workouts.service';
+import { CoachService } from './coach/coach.service';
 import { MemoryRepository } from './storage/memory.repository';
 import { PostgresRepository } from './storage/postgres.repository';
 import { REPOSITORY } from './storage/repository';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [HealthController, MealsController, PlanController, WorkoutsController, EnergyController, ProfileController, WhoopController],
+  controllers: [HealthController, MealsController, PlanController, WorkoutsController, CoachController, EnergyController, ProfileController, WhoopController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: ANTHROPIC_CLIENT, useFactory: anthropicFactory, inject: [ConfigService] },
@@ -40,6 +42,7 @@ import { REPOSITORY } from './storage/repository';
     ProfileService,
     PlanService,
     WorkoutsService,
+    CoachService,
     MealsService,
     EnergyService,
     WhoopService,

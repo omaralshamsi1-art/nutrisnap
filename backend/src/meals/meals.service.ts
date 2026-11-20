@@ -5,6 +5,9 @@ import { localDate } from '../common/dates';
 import { normalizeEstimate, normalizeKey, scaleEstimate } from '../common/nutrition-math';
 import { EMPTY_NUTRIENTS, KnownMeal, Meal, MealItem, NutritionEstimate } from '../common/types';
 import { ProfileService } from '../profile/profile.service';
+import { PlanService } from '../plan/plan.service';
+import { MealScore, scoreMeal } from '../coach/coach-math';
+import { sumNutrients } from '../common/nutrition-math';
 import { REPOSITORY, Repository } from '../storage/repository';
 
 export interface AnalyzeHints {
@@ -32,7 +35,33 @@ export class MealsService {
     @Inject(REPOSITORY) private readonly repo: Repository,
     private readonly agent: NutritionAgentService,
     private readonly profiles: ProfileService,
+    private readonly plans: PlanService,
   ) {}
+
+  /** Meal + its score against the day's budget at the time it was eaten (excluding itself). */
+  async withScore(meal: Meal): Promise<Meal & { score: MealScore }> {
+    const [plan, dayMeals] = await Promise.all([this.plans.plan(meal.userId), this.repo.listMeals(meal.userId, meal.date)]);
+    const before = sumNutrients(dayMeals.filter((m) => m.id !== meal.id && m.status === 'confirmed').map((m) => m.final.totals));
+    return {
+      ...meal,
+      score: scoreMeal(meal.final.totals, {
+        goal: plan.effectiveGoal,
+        remainingBeforeKcal: plan.targetKcal - before.calories,
+        dailyTargetKcal: plan.targetKcal,
+      }),
+    };
+  }
+
+  private async coachContext(userId: string, date: string) {
+    const [plan, dayMeals, profile] = await Promise.all([this.plans.plan(userId), this.repo.listMeals(userId, date), this.profiles.get(userId)]);
+    const eaten = sumNutrients(dayMeals.filter((m) => m.status === 'confirmed').map((m) => m.final.totals));
+    return {
+      goal: plan.effectiveGoal,
+      remainingKcal: plan.targetKcal - eaten.calories,
+      proteinLeftG: Math.max(0, plan.proteinG - eaten.protein_g),
+      avoidRestriction: !!profile.screening?.edHistory,
+    };
+  }
 
   async analyzePhoto(userId: string, image: Buffer, mediaType: string, hints: AnalyzeHints) {
     if (!ALLOWED_TYPES.includes(mediaType as any)) throw new BadRequestException(`Unsupported image type ${mediaType}`);
@@ -40,7 +69,10 @@ export class MealsService {
 
     const profile = await this.profiles.get(userId);
     const known = await this.repo.findKnownCandidates(userId, hints.restaurant ?? null, hints.mealName ?? null);
+    const at = hints.eatenAt ? new Date(hints.eatenAt) : new Date();
+    const coach = await this.coachContext(userId, localDate(Number.isNaN(at.getTime()) ? new Date() : at, profile.timezone)).catch(() => null);
     const result = await this.agent.analyze({
+      coach,
       image,
       mediaType: mediaType as (typeof ALLOWED_TYPES)[number],
       mealName: hints.mealName,
@@ -51,7 +83,7 @@ export class MealsService {
       country: profile.country,
       known,
     });
-    const meal = await this.createMeal(userId, result.estimate, hints.eatenAt, profile.timezone);
+    const meal = await this.withScore(await this.createMeal(userId, result.estimate, hints.eatenAt, profile.timezone));
     return { meal, agent: { model: result.model, searchesUsed: result.searchesUsed, usage: result.usage } };
   }
 
@@ -101,6 +133,10 @@ export class MealsService {
     const m = await this.repo.getMeal(userId, id);
     if (!m) throw new NotFoundException();
     return m;
+  }
+
+  async getScored(userId: string, id: string) {
+    return this.withScore(await this.get(userId, id));
   }
 
   list(userId: string, date: string) {

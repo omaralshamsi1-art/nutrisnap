@@ -26,6 +26,7 @@ import { AnalyzeHints, MealPatch, MealsService } from './meals/meals.service';
 import { ProfileService } from './profile/profile.service';
 import { PlanService } from './plan/plan.service';
 import { WorkoutInput, WorkoutsService } from './workouts/workouts.service';
+import { CoachService } from './coach/coach.service';
 import { Workout } from './common/types';
 import { validateProfilePatch } from './profile/profile.service';
 
@@ -63,12 +64,12 @@ export class MealsController {
 
   @Get(':id')
   get(@UserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
-    return this.meals.get(userId, id);
+    return this.meals.getScored(userId, id);
   }
 
   @Patch(':id')
-  update(@UserId() userId: string, @Param('id', ParseUUIDPipe) id: string, @Body() patch: MealPatch) {
-    return this.meals.update(userId, id, patch);
+  async update(@UserId() userId: string, @Param('id', ParseUUIDPipe) id: string, @Body() patch: MealPatch) {
+    return this.meals.withScore(await this.meals.update(userId, id, patch));
   }
 
   @Post(':id/confirm')
@@ -212,5 +213,21 @@ export class WorkoutsController {
   @Delete(':id')
   remove(@UserId() userId: string, @Param('id') id: string) {
     return this.workouts.remove(userId, id);
+  }
+}
+
+@Controller('coach')
+export class CoachController {
+  constructor(private readonly coach: CoachService) {}
+
+  /** "What should I eat now?" (cached ~45 min per budget bucket; force=1 refreshes) */
+  @Post('suggest')
+  suggest(@UserId() userId: string, @Query('force') force?: string) {
+    return this.coach.suggest(userId, { force: force === '1' });
+  }
+
+  @Get('weekly')
+  weekly(@UserId() userId: string, @Query('force') force?: string) {
+    return this.coach.weekly(userId, { force: force === '1' });
   }
 }

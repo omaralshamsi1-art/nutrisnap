@@ -39,6 +39,9 @@ export interface NutritionEstimate {
   sources: SourceRef[];
   assumptions: string[];
   warnings: string[];
+  /** coach (phase 2b): healthier alternatives and a short note, written by the agent */
+  swaps?: { instead_of_ar: string; choose_ar: string; delta_kcal: number; delta_protein_g: number; why_ar: string }[];
+  coach_note_ar?: string;
 }
 
 export interface Meal {
@@ -108,6 +111,7 @@ export interface Profile {
   screening: { pregnant?: boolean; breastfeeding?: boolean; medicalSupervision?: boolean; edHistory?: boolean };
   onboarded: boolean;
   /** Set by the system when measured burn shows the declared activity level was off. */
+  ramadan: { enabled: boolean | null; suhoorTime: string; iftarTime: string };
   activityCalibration: {
     from: Profile['activityLevel'];
     to: Profile['activityLevel'];
@@ -163,4 +167,11 @@ export interface Workout {
   distanceM: number | null;
   zonesMin: number[] | null; // minutes in HR zones 0..5 (WHOOP)
   updatedAt: string;
+}
+
+export interface CacheEntry {
+  userId: string;
+  key: string;
+  payload: unknown;
+  createdAt: string;
 }
