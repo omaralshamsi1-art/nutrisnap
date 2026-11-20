@@ -166,7 +166,7 @@ func signed(_ v: Double) -> String {
 /// Signed kg value ("+0.4 كغ" / "−1.2 كغ"), sign kept in front in Arabic text.
 func signedKg(_ v: Double) -> String { ltr((v > 0 ? "+" : v < 0 ? "−" : "") + fmt1(abs(v))) + " كغ" }
 /// Left-to-right isolate so signs and ranges are not reordered inside Arabic text.
-func ltr(_ s: String) -> String { "\u{2066}" + s + "\u{2069}" }
+func ltr(_ s: String) -> String { "\u{202A}" + s + "\u{202C}" }
 
 let arabic = Locale(identifier: "ar")
 extension Date {
