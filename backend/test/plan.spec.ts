@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { adaptiveMaintenance, calorieFloor, computePlan, PlanInput, weightTrend } from '../src/plan/plan-math';
+import { adaptiveMaintenance, calibrateActivity, calorieFloor, computePlan, PlanInput, weightTrend } from '../src/plan/plan-math';
+import { addDays } from '../src/plan/plan.service';
+import { localDate } from '../src/common/dates';
 import { PlanService } from '../src/plan/plan.service';
 import { ProfileService, validateProfilePatch } from '../src/profile/profile.service';
 import { MemoryRepository } from '../src/storage/memory.repository';
@@ -100,5 +102,73 @@ describe('PlanService', () => {
     expect(prev.targetKcal).toBeGreaterThan(prev.maintenanceKcal);
     expect((await profiles.get('u')).goal).toBe('lose');
     await expect(plans.addWeight('u', { kg: 5 })).rejects.toThrow();
+  });
+});
+
+describe('burn calibration (7–14 days)', () => {
+
+  it('maps measured burn ÷ BMR to the nearest activity level', () => {
+    expect(calibrateActivity('moderate', 1950, 1750)?.to).toBe('sedentary'); // 1.11
+    expect(calibrateActivity('moderate', 2400, 1750)?.to).toBe('light'); // 1.37
+    expect(calibrateActivity('moderate', 2700, 1750)).toBeNull(); // 1.54 fits
+    expect(calibrateActivity('light', 3000, 1750)?.to).toBe('active'); // 1.71
+  });
+
+  async function seed(days: number, kcal: number) {
+    const repo = new MemoryRepository();
+    const profiles = new ProfileService(repo);
+    const plans = new PlanService(repo, profiles);
+    // male, 47, 176 cm, 88 kg → BMR 1750; declared "moderate" → formula 2713
+    await profiles.update('u', { sex: 'male', birthYear: new Date().getFullYear() - 47, heightCm: 176, activityLevel: 'moderate', goal: 'lose', pace: 'fast', targetWeightKg: 81, onboarded: true });
+    await plans.addWeight('u', { kg: 88 });
+    const today = localDate(new Date(), 'Asia/Dubai');
+    for (let i = 1; i <= days; i++) {
+      await repo.upsertEnergy({ userId: 'u', date: addDays(today, -i), source: 'whoop', activeKcal: null, basalKcal: null, totalKcal: kcal, updatedAt: '' });
+    }
+    // today's partial cycle must be ignored
+    await repo.upsertEnergy({ userId: 'u', date: today, source: 'whoop', activeKcal: null, basalKcal: null, totalKcal: 400, updatedAt: '' });
+    return { repo, profiles, plans };
+  }
+
+  it('keeps the formula and reports progress before 7 days', async () => {
+    const { plans, profiles } = await seed(6, 1950);
+    const p = await plans.plan('u');
+    expect(p.maintenanceSource).toBe('formula');
+    expect(p.maintenanceKcal).toBe(2710);
+    expect(p.burnData).toMatchObject({ days: 6, needed: 7 });
+    expect(p.notices.some((n) => n.code === 'collecting_burn')).toBe(true);
+    expect((await profiles.get('u')).activityLevel).toBe('moderate');
+  });
+
+  it('after 7 days uses measured burn and auto-corrects the activity level once, with a notice', async () => {
+    const { plans, profiles } = await seed(9, 1950);
+    const p = await plans.plan('u');
+    expect(p.maintenanceSource).toBe('device');
+    expect(p.maintenanceKcal).toBe(1950);
+    expect(p.activityLevel).toBe('sedentary');
+    const prof = await profiles.get('u');
+    expect(prof.activityLevel).toBe('sedentary');
+    expect(prof.activityCalibration).toMatchObject({ from: 'moderate', to: 'sedentary', days: 9, avgBurnKcal: 1950 });
+    expect(p.notices[0].code).toBe('activity_calibrated');
+    expect(p.targetKcal).toBe(1750); // floor = BMR; deficit limited
+    expect(p.limitedByFloor).toBe(true);
+    // second read the same day: no duplicate change
+    const again = await plans.plan('u');
+    expect(again.activityCalibration?.from).toBe('moderate');
+  });
+
+  it('averages only the last 14 complete days and ignores barely-worn days', async () => {
+    const { repo, plans } = await seed(20, 2000);
+    const today = localDate(new Date(), 'Asia/Dubai');
+    await repo.upsertEnergy({ userId: 'u', date: addDays(today, -2), source: 'whoop', activeKcal: null, basalKcal: null, totalKcal: 600, updatedAt: '' });
+    const p = await plans.plan('u');
+    expect(p.burnData.days).toBe(13); // 14-day window minus the 600-kcal day
+    expect(p.burnData.avgKcal).toBe(2000);
+  });
+
+  it('onboarding previews never change the saved activity level', async () => {
+    const { plans, profiles } = await seed(9, 1950);
+    await plans.plan('u', { goal: 'gain' });
+    expect((await profiles.get('u')).activityLevel).toBe('moderate');
   });
 });

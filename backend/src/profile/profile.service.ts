@@ -21,9 +21,10 @@ export const DEFAULT_PROFILE = (userId: string): Profile => ({
   startDate: null,
   screening: {},
   onboarded: false,
+  activityCalibration: null,
 });
 
-const ACTIVITY_FACTOR: Record<Profile['activityLevel'], number> = {
+export const ACTIVITY_FACTOR: Record<Profile['activityLevel'], number> = {
   sedentary: 1.2,
   light: 1.375,
   moderate: 1.55,
@@ -41,8 +42,9 @@ export class ProfileService {
     return { ...DEFAULT_PROFILE(userId), ...(stored ?? {}), userId };
   }
 
-  async update(userId: string, patch: Partial<Profile>): Promise<Profile> {
-    patch = validateProfilePatch(patch);
+  async update(userId: string, patch: Partial<Profile>, opts: { system?: boolean } = {}): Promise<Profile> {
+    const systemFields = opts.system && 'activityCalibration' in patch ? { activityCalibration: patch.activityCalibration } : {};
+    patch = { ...validateProfilePatch(patch), ...systemFields };
     const current = await this.get(userId);
     const next: Profile = { ...current, ...stripUndefined(patch), userId };
     if (patch.goal && patch.goalDeltaKcal === undefined) {

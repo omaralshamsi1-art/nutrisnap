@@ -107,6 +107,15 @@ export interface Profile {
   startDate: string | null;
   screening: { pregnant?: boolean; breastfeeding?: boolean; medicalSupervision?: boolean; edHistory?: boolean };
   onboarded: boolean;
+  /** Set by the system when measured burn shows the declared activity level was off. */
+  activityCalibration: {
+    from: Profile['activityLevel'];
+    to: Profile['activityLevel'];
+    avgBurnKcal: number;
+    days: number;
+    factor: number;
+    at: string; // YYYY-MM-DD
+  } | null;
 }
 
 export interface WeightEntry {

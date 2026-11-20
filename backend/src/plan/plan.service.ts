@@ -3,7 +3,16 @@ import { isIsoDate, localDate } from '../common/dates';
 import { EnergyDay, EnergySource, Profile, WeightEntry } from '../common/types';
 import { bmrKcal, estimatedTdee, ProfileService } from '../profile/profile.service';
 import { REPOSITORY, Repository } from '../storage/repository';
-import { adaptiveMaintenance, computePlan, Plan, weightTrend } from './plan-math';
+import {
+  ActivityLevel,
+  adaptiveMaintenance,
+  calibrateActivity,
+  CALIBRATION_MIN_DAYS,
+  CALIBRATION_WINDOW_DAYS,
+  computePlan,
+  Plan,
+  weightTrend,
+} from './plan-math';
 
 export const SOURCE_PRIORITY: EnergySource[] = ['whoop', 'apple_health', 'health_connect', 'garmin', 'fitbit', 'manual'];
 
@@ -28,7 +37,19 @@ export interface PlanView extends Plan {
   progressPct: number | null;
   changeSinceStartKg: number | null;
   adaptiveObservedKcal: number | null;
+  /** measured-burn calibration status */
+  burnData: { days: number; needed: number; window: number; avgKcal: number | null };
+  activityLevel: string;
+  activityCalibration: Profile['activityCalibration'];
 }
+
+const LEVEL_AR: Record<string, string> = {
+  sedentary: 'قليل الحركة',
+  light: 'نشاط خفيف',
+  moderate: 'متوسط',
+  active: 'نشيط',
+  very_active: 'نشيط جداً',
+};
 
 @Injectable()
 export class PlanService {
@@ -87,18 +108,35 @@ export class PlanService {
     const withWeight: Profile = { ...profile, weightKg: currentWeight };
     const bmr = bmrKcal(withWeight);
 
-    // Baseline maintenance: average of complete device days in the last week, else formula.
-    const energy = await this.repo.listEnergyRange(userId, addDays(today, -7), addDays(today, -1));
+    // Baseline maintenance: once ≥7 complete device days exist, use the average of the last 14
+    // complete days (today is partial and excluded); before that, the formula.
+    const energy = await this.repo.listEnergyRange(userId, addDays(today, -CALIBRATION_WINDOW_DAYS), addDays(today, -1));
     const perDay = new Map<string, EnergyDay[]>();
     for (const e of energy) perDay.set(e.date, [...(perDay.get(e.date) ?? []), e]);
+    const minPlausible = Math.max(800, (bmr ?? 1000) * 0.8); // drop days the device was barely worn
     const deviceDays = [...perDay.values()]
       .map((d) => pickEnergy(d, profile.preferredEnergySource))
-      .filter((d): d is EnergyDay => !!d && d.totalKcal > 800);
+      .filter((d): d is EnergyDay => !!d && d.totalKcal >= minPlausible);
+    const avgDevice = deviceDays.length ? deviceDays.reduce((a, d) => a + d.totalKcal, 0) / deviceDays.length : null;
+
+    // Auto-correct the declared activity level from measured burn (at most once a day, saved only
+    // for real reads — never for onboarding previews).
+    if (!override && avgDevice && deviceDays.length >= CALIBRATION_MIN_DAYS && profile.activityCalibration?.at !== today) {
+      const c = calibrateActivity(profile.activityLevel as ActivityLevel, avgDevice, bmr);
+      if (c) {
+        const record = { from: profile.activityLevel, to: c.to, avgBurnKcal: Math.round(avgDevice), days: deviceDays.length, factor: c.factor, at: today };
+        await this.profiles.update(userId, { activityLevel: c.to, activityCalibration: record }, { system: true });
+        profile.activityLevel = c.to;
+        profile.activityCalibration = record;
+        withWeight.activityLevel = c.to;
+      }
+    }
+
     const formula = estimatedTdee(withWeight);
     let baseline: number;
     let source: 'adaptive' | 'device' | 'formula';
-    if (deviceDays.length >= 3) {
-      baseline = deviceDays.reduce((a, d) => a + d.totalKcal, 0) / deviceDays.length;
+    if (avgDevice && deviceDays.length >= CALIBRATION_MIN_DAYS) {
+      baseline = avgDevice;
       source = 'device';
     } else {
       baseline = formula ?? 2000;
@@ -131,6 +169,23 @@ export class PlanService {
       screening: profile.screening ?? {},
     });
 
+    // Tell the user when the system recently corrected their activity level.
+    const cal = profile.activityCalibration;
+    if (cal && Date.parse(today) - Date.parse(cal.at) <= 7 * 86400000) {
+      plan.notices.unshift({
+        level: 'info',
+        code: 'activity_calibrated',
+        text_ar: `عدّلنا مستوى نشاطك تلقائياً من «${LEVEL_AR[cal.from] ?? cal.from}» إلى «${LEVEL_AR[cal.to] ?? cal.to}» بناءً على ${cal.days} أيام من قياس الحرق (متوسط ${cal.avgBurnKcal.toLocaleString('en-US')} سعرة يومياً).`,
+      });
+    }
+    if (source === 'formula' && deviceDays.length > 0) {
+      plan.notices.push({
+        level: 'info',
+        code: 'collecting_burn',
+        text_ar: `نجمع قياسات حرقك من ساعتك: ${deviceDays.length} من ${CALIBRATION_MIN_DAYS} أيام. بعدها نعتمد حرقك الحقيقي ونصحح مستوى النشاط تلقائياً.`,
+      });
+    }
+
     const start = profile.startWeightKg;
     const target = profile.targetWeightKg;
     let progressPct: number | null = null;
@@ -145,6 +200,9 @@ export class PlanService {
       progressPct,
       changeSinceStartKg: start && currentWeight ? Math.round((currentWeight - start) * 10) / 10 : null,
       adaptiveObservedKcal: adaptive.observed,
+      burnData: { days: deviceDays.length, needed: CALIBRATION_MIN_DAYS, window: CALIBRATION_WINDOW_DAYS, avgKcal: avgDevice ? Math.round(avgDevice) : null },
+      activityLevel: profile.activityLevel,
+      activityCalibration: profile.activityCalibration ?? null,
     };
   }
 

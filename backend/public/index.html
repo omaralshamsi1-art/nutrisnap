@@ -420,6 +420,8 @@ a { color: var(--brand-2); }
       <div class="kv" style="margin-top:14px">
         <div><span class="muted">حرقك اليومي المقدّر</span><b class="num" id="plMaint">—</b></div>
         <div><span class="muted">طريقة الحساب</span><b id="plSrc">—</b></div>
+        <div><span class="muted">مستوى النشاط</span><b id="plAct">—</b></div>
+        <div id="plBurnRow"><span class="muted">قياس الحرق من ساعتك</span><b class="num" id="plBurn">—</b></div>
         <div><span class="muted">الفرق عن حرقك</span><b class="num" id="plDelta">—</b></div>
         <div><span class="muted">التغيّر المتوقع</span><b class="num" id="plWeekly">—</b></div>
         <div><span class="muted">مؤشر كتلة الجسم</span><b class="num" id="plBmi">—</b></div>
@@ -777,7 +779,11 @@ a { color: var(--brand-2); }
       $('plKcal').textContent = `${fmt(p.targetKcal)} سعرة`;
       $('plP').textContent = `${fmt(p.proteinG)} غ`; $('plC').textContent = `${fmt(p.carbsG)} غ`; $('plF').textContent = `${fmt(p.fatG)} غ`;
       $('plMaint').textContent = `${fmt(p.maintenanceKcal)} سعرة`;
-      $('plSrc').textContent = { adaptive: 'يتعلّم من وزنك وأكلك ✓', device: 'من أجهزتك (آخر 7 أيام)', formula: 'معادلة (تتحسن مع البيانات)' }[p.maintenanceSource];
+      const bd = p.burnData || { days: 0, needed: 7, window: 14, avgKcal: null };
+      $('plSrc').textContent = { adaptive: 'يتعلّم من وزنك وأكلك ✓', device: `حرقك الحقيقي (متوسط ${Math.min(bd.days, bd.window)} يوماً) ✓`, formula: 'معادلة مؤقتة' }[p.maintenanceSource];
+      $('plAct').textContent = ({ sedentary: 'قليل الحركة', light: 'نشاط خفيف', moderate: 'متوسط', active: 'نشيط', very_active: 'نشيط جداً' }[p.activityLevel] || '—') + (p.activityCalibration ? ' (معدّل تلقائياً)' : '');
+      $('plBurn').textContent = bd.days >= bd.needed ? `مكتمل — متوسط ${fmt(bd.avgKcal)} سعرة` : `${bd.days} من ${bd.needed} أيام${bd.avgKcal ? ` (متوسط حتى الآن ${fmt(bd.avgKcal)})` : ''}`;
+      $('plBurn').style.color = bd.days >= bd.needed ? 'var(--good)' : 'var(--warn)';
       $('plDelta').textContent = p.dailyDeltaKcal < 0 ? `عجز ${fmt(-p.dailyDeltaKcal)} سعرة` : p.dailyDeltaKcal > 0 ? `فائض ${fmt(p.dailyDeltaKcal)} سعرة` : 'لا يوجد (محافظة)';
       $('plWeekly').textContent = p.weeklyChangeKg ? `${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ/أسبوع` : '—';
       $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = `${fmt(p.fiberG)} غ`;

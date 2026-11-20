@@ -236,3 +236,33 @@ export function adaptiveMaintenance(opts: {
   const w = Math.min(1, days.length / 21) * 0.7;
   return { kcal: Math.round(opts.baseline * (1 - w) + clamped * w), adaptive: true, observed: Math.round(observed) };
 }
+
+export const ACTIVITY_LEVELS = [
+  ['sedentary', 1.2],
+  ['light', 1.375],
+  ['moderate', 1.55],
+  ['active', 1.725],
+  ['very_active', 1.9],
+] as const;
+export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number][0];
+
+/** Minimum complete device days before measured burn replaces the formula; window averaged. */
+export const CALIBRATION_MIN_DAYS = 7;
+export const CALIBRATION_WINDOW_DAYS = 14;
+
+/**
+ * Given the measured average daily burn and BMR, return the activity level whose multiplier is
+ * closest to burn / BMR. Returns null when the current level already fits (within half a step).
+ */
+export function calibrateActivity(current: ActivityLevel, avgBurn: number, bmr: number | null):
+  { to: ActivityLevel; factor: number } | null {
+  if (!bmr || bmr <= 0 || !avgBurn) return null;
+  const factor = Math.round((avgBurn / bmr) * 1000) / 1000;
+  let best: ActivityLevel = 'sedentary';
+  let bestDiff = Infinity;
+  for (const [lvl, f] of ACTIVITY_LEVELS) {
+    const d = Math.abs(factor - f);
+    if (d < bestDiff) { bestDiff = d; best = lvl; }
+  }
+  return best === current ? null : { to: best, factor };
+}
