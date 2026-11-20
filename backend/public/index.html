@@ -89,6 +89,20 @@ button { font: inherit; color: inherit; }
 .status svg { flex: none; }
 .legend2 { display: flex; justify-content: center; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 10px; }
 .legend2 i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-end: 5px; vertical-align: middle; }
+.wk { display: flex; gap: 12px; padding: 12px 0; }
+.wk + .wk { border-top: 1px solid var(--line); }
+.wk .ic { width: 46px; height: 46px; border-radius: 14px; background: #e8eefc; color: var(--p); display: grid; place-items: center; flex: none; }
+@media (prefers-color-scheme: dark) { .wk .ic { background: #1b2640; } }
+.wk .t { flex: 1; min-width: 0; }
+.wk .t b { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--card-2); border: 1px solid var(--line); display: inline-flex; align-items: center; gap: 4px; }
+.chip.src { background: transparent; color: var(--muted); }
+.zones { display: flex; height: 7px; border-radius: 99px; overflow: hidden; margin-top: 8px; gap: 2px; }
+.zones i { display: block; height: 100%; }
+.actsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; margin-bottom: 4px; }
+.actsum b { display: block; font-size: 20px; font-weight: 700; }
+.actsum span { font-size: 12px; color: var(--muted); }
 .empty { text-align: center; padding: 20px 10px; color: var(--muted); }
 /* forms */
 label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
@@ -171,6 +185,13 @@ a { color: var(--brand-2); }
     <symbol id="i-up" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20V4M6 10l6-6 6 6"/></symbol>
     <symbol id="i-eq" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M5 9h14M5 15h14"/></symbol>
     <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10 21l2-6-3-3 1-5 4 3 3 1M12 15l3 6"/></symbol>
+    <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="6" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 16l4-8h5l3 8M10 8l2 8M14 5h3"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M7 8v8M17 8v8M4 10v4M20 10v4M7 12h10"/></symbol>
+    <symbol id="i-swim" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2 17c2 0 2-1.5 4-1.5S8 17 10 17s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5M8 13l3-5 4 3 3-2"/><circle cx="17" cy="6" r="1.8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M13 2L5 14h6l-1 8 8-12h-6z"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15zM5 19l7-7"/></symbol>
+    <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M3.5 9h17M3.5 15h17M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7 12.5l3.2 3.2L17 9"/></symbol>
     <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 7v6M12 16.5v.5"/></symbol>
     <symbol id="i-chev-r" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/></symbol>
@@ -308,6 +329,11 @@ a { color: var(--brand-2); }
     </div>
 
     <div id="tips"></div>
+
+    <div class="card">
+      <h3>نشاطك <span class="small" id="actSub"></span></h3>
+      <div id="actList"></div>
+    </div>
 
     <div class="card">
       <h3>وجبات اليوم <span class="small" id="mealCount"></span></h3>
@@ -696,6 +722,7 @@ a { color: var(--brand-2); }
       $('kPendRow').classList.toggle('hidden', !(b.pendingDrafts.calories > 0)); $('kPend').textContent = fmt(b.pendingDrafts.calories);
       $('macros').innerHTML = macroRows(b.intake, b.macroTargets);
       $('tips').innerHTML = (b.tips || []).map((t) => `<div class="tip fade"><svg width="20" height="20"><use href="#i-bulb"/></svg><div>${esc(t.text_ar)}</div></div>`).join('');
+      renderActivity(b.activity);
       $('mealCount').textContent = b.meals.length ? `${b.meals.length} وجبات` : '';
       $('mealList').innerHTML = b.meals.length ? b.meals.map((m) => {
         const [slot, icon] = mealSlot(m.eatenAt);
@@ -706,6 +733,37 @@ a { color: var(--brand-2); }
       }).join('') : '<div class="empty">لا توجد وجبات بعد.<br>اضغطي زر الكاميرا لتسجيل وجبتك الأولى.</div>';
       document.querySelectorAll('.meal').forEach((el) => (el.onclick = async () => openReview(await api(`meals/${el.dataset.id}`))));
     } catch (e) { $('mealList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  }
+
+  // ---------------- activity ----------------
+  const KIND_ICON = { run: 'i-walk', walk: 'i-walk', bike: 'i-bike', strength: 'i-dumbbell', swim: 'i-swim', hiit: 'i-bolt', mind: 'i-leaf', racket: 'i-ball', team: 'i-ball', combat: 'i-bolt', other: 'i-heart' };
+  const ZONE_COLORS = ['#c9d3cd', '#7cc4e8', '#4fb37a', '#e8c23d', '#ef8f3a', '#d9473a'];
+  const SRC_AR = { whoop: 'WHOOP', apple_health: 'Apple Health', health_connect: 'Health Connect', manual: 'يدوي' };
+  function strainLabel(x) { return x >= 18 ? 'قصوى' : x >= 14 ? 'عالية' : x >= 10 ? 'متوسطة' : 'خفيفة'; }
+  function renderActivity(a) {
+    const list = (a && a.workouts) || [];
+    $('actSub').textContent = list.length ? `${list.length} ${list.length === 1 ? 'تمرين' : 'تمارين'}` : '';
+    if (!list.length) {
+      $('actList').innerHTML = '<div class="empty small">لا يوجد تمرين مسجّل لهذا اليوم.<br>تُسحب التمارين تلقائياً من WHOOP، ومن Apple Health عبر تطبيق iOS.</div>';
+      return;
+    }
+    const sum = `<div class="actsum"><div><b class="num">${fmt(a.totalMin)}</b><span>دقيقة</span></div><div><b class="num">${a.totalKcal ? fmt(a.totalKcal) : '—'}</b><span>سعرة في التمارين</span></div>${a.maxStrain != null
+      ? `<div><b class="num">${fmt1(a.maxStrain)}</b><span>أعلى إجهاد (من 21)</span></div>`
+      : `<div><b class="num">${(() => { const h = list.filter((w) => w.avgHr); return h.length ? fmt(h.reduce((x, w) => x + w.avgHr, 0) / h.length) : '—'; })()}</b><span>متوسط النبض</span></div>`}</div>`;
+    $('actList').innerHTML = sum + list.map((w) => {
+      const t0 = new Date(w.start).toLocaleTimeString('ar', { hour: 'numeric', minute: '2-digit' });
+      const chips = [
+        w.kcal != null ? `<span class="chip"><svg width="13" height="13"><use href="#i-flame"/></svg>${fmt(w.kcal)} سعرة</span>` : '',
+        w.strain != null ? `<span class="chip">إجهاد ${fmt1(w.strain)} · ${strainLabel(w.strain)}</span>` : '',
+        w.avgHr != null ? `<span class="chip"><svg width="13" height="13"><use href="#i-heart"/></svg><span dir="ltr">${fmt(w.avgHr)}${w.maxHr ? `–${fmt(w.maxHr)}` : ''}</span> نبضة</span>` : '',
+        w.distanceM ? `<span class="chip">${fmt1(w.distanceM / 1000)} كم</span>` : '',
+        `<span class="chip src">${SRC_AR[w.source] || w.source}</span>`,
+      ].join('');
+      const zt = (w.zonesMin || []).reduce((x, y) => x + y, 0);
+      const zones = zt ? `<div class="zones" title="مناطق نبض القلب" style="direction:ltr">${w.zonesMin.map((m, i) => (m ? `<i style="flex:${m};background:${ZONE_COLORS[i]}"></i>` : '')).join('')}</div>` : '';
+      return `<div class="wk"><span class="ic"><svg width="22" height="22"><use href="#${KIND_ICON[w.kind] || 'i-heart'}"/></svg></span>
+        <div class="t"><div class="row"><b>${esc(w.sportAr)}</b><span class="small muted num">${fmt(w.durationMin)} د · ${t0}</span></div><div class="chips">${chips}</div>${zones}</div></div>`;
+    }).join('') + (list.some((w) => w.zonesMin) ? '<div class="legend" style="direction:ltr;justify-content:flex-end">' + ['راحة', '1', '2', '3', '4', '5'].map((z, i) => `<span><i style="background:${ZONE_COLORS[i]}"></i>${z}</span>`).join('') + '</div>' : '');
   }
 
   // ---------------- progress ----------------

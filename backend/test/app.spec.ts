@@ -11,6 +11,7 @@ import { WhoopService } from '../src/integrations/whoop/whoop.service';
 import { MealsService } from '../src/meals/meals.service';
 import { ProfileService } from '../src/profile/profile.service';
 import { PlanService } from '../src/plan/plan.service';
+import { dedupeWorkouts, sportInfo, WorkoutsService } from '../src/workouts/workouts.service';
 import { MemoryRepository } from '../src/storage/memory.repository';
 
 const config = (extra: Record<string, string> = {}) =>
@@ -85,8 +86,9 @@ function setup(claude = fakeClaude()) {
   const agent = new NutritionAgentService(claude, cfg);
   const meals = new MealsService(repo, agent, profiles);
   const plans = new PlanService(repo, profiles);
-  const energy = new EnergyService(repo, profiles, plans);
-  return { repo, cfg, profiles, agent, meals, energy, plans, claude };
+  const workouts = new WorkoutsService(repo, profiles);
+  const energy = new EnergyService(repo, profiles, plans, workouts);
+  return { repo, cfg, profiles, agent, meals, energy, plans, workouts, claude };
 }
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
@@ -266,6 +268,17 @@ describe('WHOOP', () => {
         const body = new URLSearchParams(init.body);
         return json({ access_token: body.get('grant_type') === 'refresh_token' ? 'A2' : 'A1', refresh_token: 'R1', expires_in: 3600 });
       }
+      if (url.includes('/v2/activity/workout')) {
+        return json({
+          records: [
+            {
+              id: 'w-1', start: '2026-11-15T14:00:00Z', end: '2026-11-15T14:45:00Z', sport_name: 'running', score_state: 'SCORED',
+              score: { strain: 11.234, average_heart_rate: 152, max_heart_rate: 178, kilojoule: 2092, distance_meter: 7012.4,
+                zone_durations: { zone_zero_milli: 0, zone_one_milli: 300000, zone_two_milli: 600000, zone_three_milli: 1200000, zone_four_milli: 540000, zone_five_milli: 60000 } },
+            },
+          ],
+        });
+      }
       if (url.includes('/v2/cycle')) {
         cycleCalls++;
         if (init.headers.Authorization === 'Bearer A1') return { ok: false, status: 401, text: async () => 'expired' };
@@ -290,6 +303,10 @@ describe('WHOOP', () => {
     expect(r.days).toEqual({ '2026-11-15': 2500 });
     const b = await s.energy.balance('u1', '2026-11-15');
     expect(b.burn).toMatchObject({ source: 'whoop', totalKcal: 2500 });
+    expect(r.workouts).toBe(1);
+    expect(b.activity.workouts[0]).toMatchObject({ sport: 'running', sportAr: 'جري', kind: 'run', durationMin: 45, kcal: 500, strain: 11.2, avgHr: 152, distanceM: 7012 });
+    expect(b.activity.workouts[0].zonesMin).toEqual([0, 5, 10, 20, 9, 1]);
+    expect(b.activity).toMatchObject({ totalMin: 45, totalKcal: 500, maxStrain: 11.2 });
   });
 });
 
@@ -368,5 +385,36 @@ describe('Gemini provider (free tier)', () => {
   it('fails clearly when no provider key is configured', async () => {
     const agent = new NutritionAgentService(null, new ConfigService({}));
     await expect(agent.analyze({ image: JPEG, mediaType: 'image/jpeg', known: [] })).rejects.toThrow(/No AI provider/);
+  });
+});
+
+describe('workouts', () => {
+  it('maps WHOOP and HealthKit sport names to Arabic', () => {
+    expect(sportInfo('functional-fitness')).toEqual({ ar: 'لياقة وظيفية', kind: 'strength' });
+    expect(sportInfo('traditionalStrengthTraining').kind).toBe('strength');
+    expect(sportInfo('Padel').ar).toBe('بادل');
+    expect(sportInfo('underwater-hockey').ar).toBe('underwater hockey');
+  });
+
+  it('Apple Health ingest + dedupe of the same session recorded by WHOOP', async () => {
+    const s = setup();
+    await s.workouts.ingest('u1', 'apple_health', [
+      { externalId: 'hk-1', sport: 'running', start: '2026-11-15T14:02:00Z', end: '2026-11-15T14:44:00Z', kcal: 480, avgHr: 150 },
+      { externalId: 'hk-2', sport: 'yoga', start: '2026-11-15T17:00:00Z', end: '2026-11-15T17:30:00Z', kcal: 90 },
+    ]);
+    await s.repo.upsertWorkout({ userId: 'u1', id: 'whoop:w-1', source: 'whoop', sport: 'running', start: '2026-11-15T14:00:00Z', end: '2026-11-15T14:45:00Z', date: '2026-11-15', durationMin: 45, kcal: 500, strain: 11, avgHr: 152, maxHr: 178, distanceM: 7000, zonesMin: null, updatedAt: '' });
+    const d = await s.workouts.forDay('u1', '2026-11-15');
+    expect(d.workouts.map((w: any) => w.id)).toEqual(['whoop:w-1', 'apple_health:hk-2']);
+    await s.profiles.update('u1', { preferredEnergySource: 'apple_health' });
+    const d2 = await s.workouts.forDay('u1', '2026-11-15');
+    expect(d2.workouts.map((w: any) => w.id)).toEqual(['apple_health:hk-1', 'apple_health:hk-2']);
+    await expect(s.workouts.ingest('u1', 'apple_health', [{ externalId: 'x', sport: 'run', start: '2026-11-15T15:00:00Z', end: '2026-11-15T14:00:00Z' }])).rejects.toThrow();
+    await expect(s.workouts.ingest('u1', 'whoop' as any, [])).rejects.toThrow();
+  });
+
+  it('dedupe keeps both when they do not overlap enough', () => {
+    const w = (id: string, source: any, s: string, e: string) => ({ userId: 'u', id, source, sport: 'x', start: s, end: e, date: '2026-11-15', durationMin: 0, kcal: null, strain: null, avgHr: null, maxHr: null, distanceM: null, zonesMin: null, updatedAt: '' });
+    const out = dedupeWorkouts([w('a', 'whoop', '2026-11-15T10:00:00Z', '2026-11-15T11:00:00Z'), w('b', 'apple_health', '2026-11-15T10:50:00Z', '2026-11-15T11:50:00Z')], null);
+    expect(out).toHaveLength(2);
   });
 });

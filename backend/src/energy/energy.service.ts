@@ -4,6 +4,7 @@ import { sumNutrients } from '../common/nutrition-math';
 import { EnergyDay, EnergySource } from '../common/types';
 import { estimatedTdee, ProfileService } from '../profile/profile.service';
 import { pickEnergy, PlanService } from '../plan/plan.service';
+import { WorkoutsService } from '../workouts/workouts.service';
 import { REPOSITORY, Repository } from '../storage/repository';
 
 export interface EnergySampleInput {
@@ -22,6 +23,7 @@ export class EnergyService {
     @Inject(REPOSITORY) private readonly repo: Repository,
     private readonly profiles: ProfileService,
     private readonly plans: PlanService,
+    private readonly workouts: WorkoutsService,
   ) {}
 
   async ingest(userId: string, samples: EnergySampleInput[]) {
@@ -56,10 +58,11 @@ export class EnergyService {
     const d = date ?? today;
     if (!isIsoDate(d)) throw new BadRequestException('date must be YYYY-MM-DD');
 
-    const [meals, days, plan] = await Promise.all([
+    const [meals, days, plan, activity] = await Promise.all([
       this.repo.listMeals(userId, d),
       this.repo.listEnergy(userId, d),
       this.plans.plan(userId),
+      this.workouts.forDay(userId, d),
     ]);
     const confirmed = meals.filter((m) => m.status === 'confirmed');
     const intake = sumNutrients(confirmed.map((m) => m.final.totals));
@@ -90,6 +93,7 @@ export class EnergyService {
       macroSplitPct: macroSplit(intake),
       tips: dailyTips({ intake, target, macroTargets, goal: plan.effectiveGoal, isToday, hour, mealsCount: confirmed.length }),
       onboarded: profile.onboarded,
+      activity,
       meals: meals.map((m) => ({
         id: m.id,
         eatenAt: m.eatenAt,

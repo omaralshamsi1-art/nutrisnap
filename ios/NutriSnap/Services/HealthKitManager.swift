@@ -14,6 +14,8 @@ final class HealthKitManager {
         HKQuantityType(.basalEnergyBurned),
         HKQuantityType(.bodyMass),
         HKQuantityType(.height),
+        HKQuantityType(.heartRate),
+        HKObjectType.workoutType(),
     ]
 
     private let dietary: [(KeyPath<Nutrients, Double>, HKQuantityTypeIdentifier, HKUnit)] = [
@@ -65,6 +67,77 @@ final class HealthKitManager {
         if !samples.isEmpty { try? await APIClient.shared.pushEnergy(samples) }
     }
 
+    // MARK: Workouts → server (activity type, duration, kcal, heart rate, distance)
+
+    func syncWorkoutsToServer(days: Int = 3) async {
+        guard isAvailable else { return }
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: Calendar.current.startOfDay(for: Date()))!
+        let query = HKSampleQueryDescriptor(
+            predicates: [.workout(HKQuery.predicateForSamples(withStart: start, end: Date()))],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)],
+            limit: 100)
+        guard let workouts = try? await query.result(for: store), !workouts.isEmpty else { return }
+        let items: [WorkoutUpload] = workouts.map { w in
+            let kcal = w.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie())
+            let hr = w.statistics(for: HKQuantityType(.heartRate))
+            let bpm = HKUnit.count().unitDivided(by: .minute())
+            let distance = [HKQuantityType(.distanceWalkingRunning), HKQuantityType(.distanceCycling), HKQuantityType(.distanceSwimming)]
+                .compactMap { w.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .meter()) }.first
+            return WorkoutUpload(externalId: w.uuid.uuidString, sport: Self.sportName(w.workoutActivityType),
+                                 start: w.startDate, end: w.endDate, kcal: kcal,
+                                 avgHr: hr?.averageQuantity()?.doubleValue(for: bpm),
+                                 maxHr: hr?.maximumQuantity()?.doubleValue(for: bpm), distanceM: distance)
+        }
+        try? await APIClient.shared.pushWorkouts(items)
+    }
+
+    /// Names match the server's sport table (same spelling as HKWorkoutActivityType cases).
+    static func sportName(_ t: HKWorkoutActivityType) -> String {
+        switch t {
+        case .running: return "running"
+        case .walking: return "walking"
+        case .hiking: return "hiking"
+        case .cycling: return "cycling"
+        case .traditionalStrengthTraining: return "traditionalStrengthTraining"
+        case .functionalStrengthTraining: return "functionalStrengthTraining"
+        case .crossTraining: return "crossfit"
+        case .coreTraining: return "coreTraining"
+        case .swimming: return "swimming"
+        case .rowing: return "rowing"
+        case .highIntensityIntervalTraining: return "highIntensityIntervalTraining"
+        case .mixedCardio: return "mixedCardio"
+        case .elliptical: return "elliptical"
+        case .stairClimbing, .stairs: return "stairClimbing"
+        case .jumpRope: return "jumpRope"
+        case .cardioDance, .socialDance: return "cardioDance"
+        case .yoga: return "yoga"
+        case .pilates: return "pilates"
+        case .flexibility: return "flexibility"
+        case .cooldown: return "cooldown"
+        case .mindAndBody: return "mindAndBody"
+        case .taiChi: return "taiChi"
+        case .tennis: return "tennis"
+        case .squash: return "squash"
+        case .badminton: return "badminton"
+        case .tableTennis: return "tableTennis"
+        case .pickleball: return "pickleball"
+        case .paddleSports: return "paddleboarding"
+        case .golf: return "golf"
+        case .soccer: return "soccer"
+        case .basketball: return "basketball"
+        case .volleyball: return "volleyball"
+        case .handball: return "handball"
+        case .cricket: return "cricket"
+        case .boxing: return "boxing"
+        case .kickboxing: return "kickboxing"
+        case .martialArts: return "martialArts"
+        case .wrestling: return "wrestling"
+        case .climbing: return "climbing"
+        case .equestrianSports: return "equestrianSports"
+        default: return "other"
+        }
+    }
+
     /// Wakes the app when new active energy is written (watch workouts etc.) and re-syncs.
     func enableBackgroundSync() {
         guard isAvailable else { return }
@@ -78,6 +151,16 @@ final class HealthKitManager {
         }
         store.execute(query)
         store.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in }
+        // new workouts (Apple Watch, Fitness+, Strava… anything that writes to Health)
+        let wq = HKObserverQuery(sampleType: HKObjectType.workoutType(), predicate: nil) { _, completion, error in
+            guard error == nil else { completion(); return }
+            Task { @MainActor in
+                await HealthKitManager.shared.syncWorkoutsToServer(days: 2)
+                completion()
+            }
+        }
+        store.execute(wq)
+        store.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .immediate) { _, _ in }
     }
 
     // MARK: Meals → Health

@@ -151,3 +151,14 @@ extension DateFormatter {
         return f
     }()
 }
+
+struct WorkoutUpload: Encodable {
+    let externalId: String
+    let sport: String
+    let start: Date
+    let end: Date
+    let kcal: Double?
+    let avgHr: Double?
+    let maxHr: Double?
+    let distanceM: Double?
+}

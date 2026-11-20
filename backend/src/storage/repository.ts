@@ -1,4 +1,4 @@
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry } from '../common/types';
+import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 
 export const REPOSITORY = Symbol('REPOSITORY');
@@ -22,6 +22,10 @@ export interface Repository {
   upsertWeight(w: WeightEntry): Promise<void>;
   listWeights(userId: string, from: string, to: string): Promise<WeightEntry[]>;
   deleteWeight(userId: string, date: string, source: WeightEntry['source']): Promise<void>;
+
+  upsertWorkout(w: Workout): Promise<void>;
+  listWorkouts(userId: string, from: string, to: string): Promise<Workout[]>;
+  deleteWorkout(userId: string, id: string): Promise<void>;
 
   getProfile(userId: string): Promise<Profile | null>;
   saveProfile(p: Profile): Promise<void>;

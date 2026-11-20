@@ -41,6 +41,7 @@ final class AppStore {
         isLoading = true
         defer { isLoading = false }
         await HealthKitManager.shared.syncBurnToServer()
+        await HealthKitManager.shared.syncWorkoutsToServer()
         if whoopConnected {
             let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: date)!
             try? await APIClient.shared.whoopSync(from: yesterday, to: date)

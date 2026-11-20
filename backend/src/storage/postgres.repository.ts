@@ -4,7 +4,7 @@ import { Pool, types } from 'pg';
 
 // Return DATE columns as 'YYYY-MM-DD' strings (no timezone shifting).
 types.setTypeParser(1082, (v) => v);
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry } from '../common/types';
+import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
 import { normalizeKey } from '../common/nutrition-math';
 import { rankKnown, Repository } from './repository';
 
@@ -123,6 +123,30 @@ export class PostgresRepository implements Repository {
   }
   async deleteWeight(userId: string, date: string, source: WeightEntry['source']) {
     await this.pool.query(`delete from weights where user_id=$1 and date=$2 and source=$3`, [userId, date, source]);
+  }
+
+  async upsertWorkout(w: Workout) {
+    await this.pool.query(
+      `insert into workouts (user_id, id, source, sport, start_at, end_at, date, duration_min, kcal, strain, avg_hr, max_hr, distance_m, zones_min, updated_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       on conflict (user_id, id) do update set sport=$4, start_at=$5, end_at=$6, date=$7, duration_min=$8, kcal=$9, strain=$10,
+         avg_hr=$11, max_hr=$12, distance_m=$13, zones_min=$14, updated_at=$15`,
+      [w.userId, w.id, w.source, w.sport, w.start, w.end, w.date, w.durationMin, w.kcal, w.strain, w.avgHr, w.maxHr, w.distanceM,
+        w.zonesMin ? JSON.stringify(w.zonesMin) : null, w.updatedAt],
+    );
+  }
+  async listWorkouts(userId: string, from: string, to: string) {
+    const r = await this.pool.query(`select * from workouts where user_id=$1 and date between $2 and $3 order by start_at`, [userId, from, to]);
+    const n = (v: any) => (v == null ? null : Number(v));
+    return r.rows.map((x): Workout => ({
+      userId: x.user_id, id: x.id, source: x.source, sport: x.sport,
+      start: new Date(x.start_at).toISOString(), end: new Date(x.end_at).toISOString(), date: fmtDate(x.date),
+      durationMin: Number(x.duration_min), kcal: n(x.kcal), strain: n(x.strain), avgHr: n(x.avg_hr), maxHr: n(x.max_hr),
+      distanceM: n(x.distance_m), zonesMin: x.zones_min ?? null, updatedAt: new Date(x.updated_at).toISOString(),
+    }));
+  }
+  async deleteWorkout(userId: string, id: string) {
+    await this.pool.query(`delete from workouts where user_id=$1 and id=$2`, [userId, id]);
   }
 
   async getProfile(userId: string) {

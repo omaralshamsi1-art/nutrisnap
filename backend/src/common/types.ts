@@ -146,3 +146,21 @@ export const EMPTY_NUTRIENTS: Nutrients = {
 };
 
 export const NUTRIENT_KEYS = Object.keys(EMPTY_NUTRIENTS) as (keyof Nutrients)[];
+
+export interface Workout {
+  userId: string;
+  id: string; // `${source}:${externalId}`
+  source: 'whoop' | 'apple_health' | 'health_connect' | 'manual';
+  sport: string; // raw provider name, e.g. "running", "functional-fitness", "traditionalStrengthTraining"
+  start: string; // ISO
+  end: string; // ISO
+  date: string; // local YYYY-MM-DD of start
+  durationMin: number;
+  kcal: number | null;
+  strain: number | null; // WHOOP 0–21
+  avgHr: number | null;
+  maxHr: number | null;
+  distanceM: number | null;
+  zonesMin: number[] | null; // minutes in HR zones 0..5 (WHOOP)
+  updatedAt: string;
+}

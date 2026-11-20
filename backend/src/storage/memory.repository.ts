@@ -1,4 +1,4 @@
-import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry } from '../common/types';
+import { EnergyDay, KnownMeal, Meal, OAuthTokens, Profile, WeightEntry, Workout } from '../common/types';
 import { rankKnown, Repository } from './repository';
 
 /** In-memory store for local development and tests. */
@@ -9,6 +9,7 @@ export class MemoryRepository implements Repository {
   private profiles = new Map<string, Profile>();
   private tokens = new Map<string, OAuthTokens>();
   private weights = new Map<string, WeightEntry>();
+  private workouts = new Map<string, Workout>();
 
   async saveMeal(m: Meal) {
     this.meals.set(m.id, structuredClone(m));
@@ -66,6 +67,18 @@ export class MemoryRepository implements Repository {
   }
   async deleteWeight(userId: string, date: string, source: WeightEntry['source']) {
     this.weights.delete(`${userId}|${date}|${source}`);
+  }
+
+  async upsertWorkout(w: Workout) {
+    this.workouts.set(`${w.userId}|${w.id}`, { ...w });
+  }
+  async listWorkouts(userId: string, from: string, to: string) {
+    return [...this.workouts.values()]
+      .filter((w) => w.userId === userId && w.date >= from && w.date <= to)
+      .sort((a, b) => a.start.localeCompare(b.start));
+  }
+  async deleteWorkout(userId: string, id: string) {
+    this.workouts.delete(`${userId}|${id}`);
   }
 
   async getProfile(userId: string) {

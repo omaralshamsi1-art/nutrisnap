@@ -98,6 +98,14 @@ export class WhoopService {
       if (date < from || date > to) continue;
       byDate.set(date, Math.max(byDate.get(date) ?? 0, c.score.kilojoule / KJ_PER_KCAL));
     }
+    // Workouts (activity type, strain, HR, zones)
+    let workouts = 0;
+    try {
+      workouts = await this.syncWorkouts(userId, start, end, profile.timezone);
+    } catch (e: any) {
+      this.log.warn(`WHOOP workouts skipped: ${e?.message ?? e}`);
+    }
+
     // Body weight from WHOOP's body measurements (kept as its own source; manual entries win).
     let weightKg: number | null = null;
     try {
@@ -121,7 +129,49 @@ export class WhoopService {
         [...byDate].map(([date, kcal]) => ({ date, source: 'whoop' as const, totalKcal: Math.round(kcal) })),
       );
     }
-    return { cycles: cycles.length, weightKg, days: Object.fromEntries([...byDate].map(([d, k]) => [d, Math.round(k)])) };
+    return { cycles: cycles.length, workouts, weightKg, days: Object.fromEntries([...byDate].map(([d, k]) => [d, Math.round(k)])) };
+  }
+
+  private async syncWorkouts(userId: string, start: Date, end: Date, tz: string): Promise<number> {
+    let nextToken: string | undefined;
+    let n = 0;
+    for (let page = 0; page < 10; page++) {
+      const q = new URLSearchParams({ start: start.toISOString(), end: end.toISOString(), limit: '25' });
+      if (nextToken) q.set('nextToken', nextToken);
+      const body = await this.api(userId, `/v2/activity/workout?${q}`);
+      for (const w of body.records ?? []) {
+        if (!w?.id || !w.start || !w.end) continue;
+        const sc = w.score_state === 'SCORED' ? w.score ?? {} : {};
+        const z = sc.zone_durations ?? null;
+        const zones = z
+          ? ['zone_zero_milli', 'zone_one_milli', 'zone_two_milli', 'zone_three_milli', 'zone_four_milli', 'zone_five_milli'].map(
+              (k) => Math.round(((z[k] ?? 0) / 60000) * 10) / 10,
+            )
+          : null;
+        const s0 = new Date(w.start), e0 = new Date(w.end);
+        await this.repo.upsertWorkout({
+          userId,
+          id: `whoop:${w.id}`,
+          source: 'whoop',
+          sport: w.sport_name ?? 'activity',
+          start: s0.toISOString(),
+          end: e0.toISOString(),
+          date: localDate(s0, tz),
+          durationMin: Math.round((e0.getTime() - s0.getTime()) / 6000) / 10,
+          kcal: sc.kilojoule != null ? Math.round(sc.kilojoule / KJ_PER_KCAL) : null,
+          strain: sc.strain != null ? Math.round(sc.strain * 10) / 10 : null,
+          avgHr: sc.average_heart_rate ?? null,
+          maxHr: sc.max_heart_rate ?? null,
+          distanceM: sc.distance_meter != null ? Math.round(sc.distance_meter) : null,
+          zonesMin: zones,
+          updatedAt: new Date().toISOString(),
+        });
+        n++;
+      }
+      nextToken = body.next_token ?? undefined;
+      if (!nextToken) break;
+    }
+    return n;
   }
 
   private async fetchCycles(userId: string, start: Date, end: Date): Promise<WhoopCycle[]> {

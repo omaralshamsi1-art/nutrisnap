@@ -85,6 +85,14 @@ final class APIClient {
         let _: [String: Int] = try await send(req)
     }
 
+    func pushWorkouts(_ items: [WorkoutUpload]) async throws {
+        struct Body: Encodable { let source = "apple_health"; let workouts: [WorkoutUpload] }
+        var req = request("workouts", method: "POST")
+        let enc = JSONEncoder(); enc.dateEncodingStrategy = .iso8601
+        req.httpBody = try enc.encode(Body(workouts: items))
+        let _: [String: Int] = try await send(req)
+    }
+
     // MARK: Profile
 
     func profile() async throws -> Profile { try await send(request("profile")) }

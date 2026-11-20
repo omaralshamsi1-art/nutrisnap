@@ -25,6 +25,8 @@ import { WhoopService } from './integrations/whoop/whoop.service';
 import { AnalyzeHints, MealPatch, MealsService } from './meals/meals.service';
 import { ProfileService } from './profile/profile.service';
 import { PlanService } from './plan/plan.service';
+import { WorkoutInput, WorkoutsService } from './workouts/workouts.service';
+import { Workout } from './common/types';
 import { validateProfilePatch } from './profile/profile.service';
 
 @Controller('health')
@@ -189,5 +191,26 @@ export class PlanController {
   @Get('history')
   history(@UserId() userId: string, @Query('days') days?: string) {
     return this.plans.history(userId, Number(days) || 7);
+  }
+}
+
+@Controller('workouts')
+export class WorkoutsController {
+  constructor(private readonly workouts: WorkoutsService) {}
+
+  @Get()
+  day(@UserId() userId: string, @Query('date') date: string) {
+    return this.workouts.forDay(userId, date);
+  }
+
+  /** Apple Health workouts from the iOS app (HKWorkout), Health Connect, or manual entries. */
+  @Post()
+  ingest(@UserId() userId: string, @Body() body: { source: Workout['source']; workouts: WorkoutInput[] }) {
+    return this.workouts.ingest(userId, body?.source, body?.workouts);
+  }
+
+  @Delete(':id')
+  remove(@UserId() userId: string, @Param('id') id: string) {
+    return this.workouts.remove(userId, id);
   }
 }
