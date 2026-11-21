@@ -7,6 +7,8 @@ struct StrainEatApp: App {
     @AppStorage(appLanguageKey) private var lang = "en"
     @AppStorage(appThemeKey) private var theme = "system"
 
+    init() { styleTabBar() }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -39,7 +41,7 @@ struct RootView: View {
                 AuthView()
             } else {
                 TabView(selection: $tab) {
-                    TodayView(onLog: { tab = 2 })
+                    TodayView(onLog: { tab = 2 }, onFavourites: { UserDefaults.standard.set("favorites", forKey: "logMode"); tab = 2 })
                         .tag(0).tabItem { Label(t("Today", "اليوم"), systemImage: "sun.max.fill") }
                     ProgressTab()
                         .tag(1).tabItem { Label(t("Progress", "التقدم"), systemImage: "chart.line.uptrend.xyaxis") }
@@ -60,6 +62,8 @@ struct RootView: View {
                         .padding(.trailing, 16)
                         .padding(.bottom, 64)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .openAssistant)) { _ in showAssistant = true }
+                .onReceive(NotificationCenter.default.publisher(for: .openProgress)) { _ in tab = 1 }
                 .sheet(isPresented: $showAssistant) {
                     AssistantView(screen: screenName, onChanged: { Task { await store.refresh() } })
                         .environment(\.layoutDirection, appLayoutDirection)

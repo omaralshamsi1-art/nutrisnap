@@ -3,12 +3,21 @@ import SwiftUI
 struct TodayView: View {
     @Environment(AppStore.self) private var store
     var onLog: () -> Void = {}
+    var onFavourites: () -> Void = {}
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
                     header
+                    if store.isToday {
+                        HStack(spacing: 10) {
+                            QuickTile(title: t("Log meal", "سجّل وجبة"), icon: "camera.fill", color: Theme.yellow, action: onLog)
+                            QuickTile(title: t("Favourites", "المفضلة"), icon: "heart.fill", color: Theme.lavender, action: onFavourites)
+                            QuickTile(title: t("Progress", "التقدّم"), icon: "chart.line.uptrend.xyaxis", color: Theme.sky) { NotificationCenter.default.post(name: .openProgress, object: nil) }
+                            QuickTile(title: t("Ask AI", "المساعد"), icon: "sparkles", color: Theme.pink) { NotificationCenter.default.post(name: .openAssistant, object: nil) }
+                        }
+                    }
                     if let b = store.balance {
                         EnergyCard(balance: b)
                         if b.pendingDrafts.calories > 0 {
@@ -48,13 +57,13 @@ struct TodayView: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(store.isToday ? t("Today", "اليوم") : store.day.arWeekday)
-                    .font(.title.bold()).foregroundStyle(Theme.ink)
+                    .font(.largeTitle.weight(.heavy)).tracking(-0.8).foregroundStyle(Theme.ink)
                 Text(store.day.arDayMonth)
                     .font(.subheadline).foregroundStyle(Theme.muted)
             }
             Spacer()
             if let s = store.motivation?.streak, s.current > 0 {
-                Chip(text: "\(s.current) \(s.current == 1 ? t("day", "يوم") : t("days", "أيام"))", icon: "flame.fill", fg: Theme.warn, bg: Theme.accentSoft)
+                Chip(text: "\(s.current) \(s.current == 1 ? t("day", "يوم") : t("days", "أيام"))", icon: "flame.fill", fg: Theme.onPastel, bg: Theme.yellow)
             }
             HStack(spacing: 0) {
                 Button { store.shiftDay(-1) } label: { Image(systemName: "chevron.backward").frame(width: 36, height: 36) }

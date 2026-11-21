@@ -3,27 +3,36 @@ import UIKit
 
 /// Same palette as the web app (light + dark).
 enum Theme {
-    static let bg = dyn(0xF4F2EC, 0x0D1411)
-    static let card = dyn(0xFFFFFF, 0x151E19)
-    static let card2 = dyn(0xF8F7F3, 0x1B2620)
-    static let ink = dyn(0x17201B, 0xEEF3EF)
-    static let muted = dyn(0x66706A, 0x9AA69F)
-    static let line = dyn(0xE7E3DA, 0x26332C)
-    static let brand = dyn(0x0F3D2E, 0x8FD3A8)
-    static let brand2 = dyn(0x1F6B4F, 0x8FD3A8)
-    static let brandSoft = dyn(0xE4EFE8, 0x1D3127)
-    static let accent = dyn(0xE8A33D, 0xF0B04F)
-    static let accentSoft = dyn(0xFBF0DC, 0x2E2516)
+    static let bg = dyn(0xFFFFFF, 0x0B0B0C)
+    static let card = dyn(0xF1F1F2, 0x1C1C1E)
+    static let card2 = dyn(0xFFFFFF, 0x2A2A2D)
+    static let ink = dyn(0x111113, 0xF5F5F7)
+    static let muted = dyn(0x6E6E73, 0xA1A1A6)
+    static let line = dyn(0xE3E3E6, 0x2F2F33)
+    static let brand = dyn(0x111113, 0xF3EF9E)
+    static let brand2 = dyn(0x3B2A78, 0xC9BDE8)
+    static let brandSoft = dyn(0xECE8F8, 0x2B2540)
+    static let accent = dyn(0xF3EF9E, 0xE9E48A)
+    static let accentSoft = dyn(0xFAF7CF, 0x3A3820)
+    // pastel tiles (light text never sits on these: always dark ink)
+    static let yellow = dyn(0xF3EF9E, 0xE9E48A)
+    static let lavender = dyn(0xC9BDE8, 0xB8A9E0)
+    static let sky = dyn(0xBDE4F6, 0xA6D6EC)
+    static let pink = dyn(0xF4CCC3, 0xE8B8AD)
+    static let mint = dyn(0xB2E2B2, 0x9FD59F)
+    static let mintSoft = dyn(0xE7F5E7, 0x1D2D1D)
+    static let plum = dyn(0x3B2A78, 0x2B2540)
+    static let onPastel = Color(UIColor(hex: 0x111113))
     static let protein = dyn(0x3B6FD8, 0x7AA2F5)
     static let carbs = dyn(0xE09A2C, 0xF0B04F)
     static let fat = dyn(0xD0567A, 0xEC7FA0)
     static let fiber = dyn(0x2F8F5B, 0x6CC995)
-    static let good = dyn(0x1F8A4C, 0x5FD08E)
-    static let goodSoft = dyn(0xDEF2E5, 0x163524)
+    static let good = dyn(0x1D7A3E, 0x7FD69A)
+    static let goodSoft = dyn(0xDFF2DF, 0x1A2E1F)
     static let bad = dyn(0xD23B2A, 0xFF7B6B)
     static let badSoft = dyn(0xFDE4E0, 0x3D1B16)
-    static let warn = dyn(0xB8741A, 0xF0B04F)
-    static let ringTrack = dyn(0xECE8DF, 0x24302A)
+    static let warn = dyn(0x8A6D00, 0xF0D36A)
+    static let ringTrack = dyn(0xE6E6E9, 0x2C2C30)
 
     /// Green when within / on the good side of the target, red when over / negative.
     static func status(_ ok: Bool) -> Color { ok ? good : bad }
@@ -53,19 +62,17 @@ struct Card<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             if title != nil || trailing != nil {
                 HStack(spacing: 6) {
-                    if let icon { Image(systemName: icon).foregroundStyle(Theme.brand2) }
-                    if let title { Text(title).font(.headline).foregroundStyle(Theme.ink) }
+                    if let icon { Image(systemName: icon).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.muted) }
+                    if let title { Text(title).font(.title3.weight(.heavy)).tracking(-0.3).foregroundStyle(Theme.ink) }
                     Spacer()
                     if let trailing { trailing }
                 }
             }
             content
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Theme.line.opacity(0.6), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.04), radius: 10, y: 4)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 }
 
@@ -93,8 +100,8 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(.body.weight(.semibold))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .foregroundStyle(.white)
-            .background(color.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .foregroundStyle(Theme.bg)
+            .background(color.opacity(configuration.isPressed ? 0.8 : 1), in: Capsule())
     }
 }
 
@@ -104,8 +111,9 @@ struct SoftButtonStyle: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 11)
-            .foregroundStyle(Theme.brand2)
-            .background(Theme.brandSoft.opacity(configuration.isPressed ? 0.7 : 1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .foregroundStyle(Theme.ink)
+            .background(Theme.card2.opacity(configuration.isPressed ? 0.7 : 1), in: Capsule())
+            .overlay(Capsule().stroke(Theme.line))
     }
 }
 
@@ -199,4 +207,47 @@ func sportIcon(_ kind: String?) -> String {
 
 extension View {
     func screenBackground() -> some View { background(Theme.bg.ignoresSafeArea()) }
+}
+
+// MARK: Quick links (pastel tiles, like the web app)
+
+struct QuickTile: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 0) {
+                Image(systemName: icon).font(.title3.weight(.semibold)).foregroundStyle(Theme.onPastel)
+                    .frame(maxWidth: .infinity).frame(height: 58).background(color)
+                Text(title).font(.caption.weight(.bold)).foregroundStyle(Theme.ink).lineLimit(1).minimumScaleFactor(0.8)
+                    .padding(.vertical, 9).padding(.horizontal, 2)
+            }
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Dark floating-style tab bar with a yellow selected item.
+@MainActor func styleTabBar() {
+    let a = UITabBarAppearance()
+    a.configureWithOpaqueBackground()
+    a.backgroundColor = UIColor(hex: 0x3A3A3C)
+    a.shadowColor = .clear
+    for layout in [a.stackedLayoutAppearance, a.inlineLayoutAppearance, a.compactInlineLayoutAppearance] {
+        layout.normal.iconColor = UIColor.white.withAlphaComponent(0.55)
+        layout.normal.titleTextAttributes = [.foregroundColor: UIColor.white.withAlphaComponent(0.55)]
+        layout.selected.iconColor = UIColor(hex: 0xF3EF9E)
+        layout.selected.titleTextAttributes = [.foregroundColor: UIColor(hex: 0xF3EF9E)]
+    }
+    UITabBar.appearance().standardAppearance = a
+    UITabBar.appearance().scrollEdgeAppearance = a
+}
+
+extension Notification.Name {
+    static let openAssistant = Notification.Name("openAssistant")
+    static let openProgress = Notification.Name("openProgress")
 }

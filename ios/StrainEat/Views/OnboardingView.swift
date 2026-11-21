@@ -506,7 +506,7 @@ struct PillButtonStyle: ButtonStyle {
         configuration.label
             .font(.title3.weight(.bold))
             .frame(maxWidth: .infinity).padding(.vertical, 17)
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.bg)
             .background(Theme.brand.opacity(configuration.isPressed ? 0.8 : 1), in: Capsule())
     }
 }

@@ -28,8 +28,8 @@ struct LogView: View {
                                     Text(m.title).font(.caption.weight(.semibold))
                                 }
                                 .frame(maxWidth: .infinity).padding(.vertical, 11)
-                                .foregroundStyle(mode == m ? .white : Theme.brand2)
-                                .background(mode == m ? Theme.brand : Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .foregroundStyle(mode == m ? Theme.onPastel : Theme.ink)
+                                .background(mode == m ? Theme.yellow : Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                             }
                             .buttonStyle(.plain)
                         }
@@ -46,6 +46,9 @@ struct LogView: View {
             .scrollDismissesKeyboard(.interactively)
             .screenBackground()
             .navigationTitle(t("Log meal", "سجّل وجبة"))
+            .onAppear {
+                if let m = UserDefaults.standard.string(forKey: "logMode"), let v = Mode(rawValue: m) { mode = v; UserDefaults.standard.removeObject(forKey: "logMode") }
+            }
             .navigationDestination(item: $result) { MealReviewView(meal: $0, onDone: { result = nil; onLogged() }) }
         }
     }

@@ -149,7 +149,7 @@ struct AssistantView: View {
         if m.role == "user" {
             HStack { Spacer(minLength: 40)
                 Text(m.text).foregroundStyle(.white).padding(12)
-                    .background(Theme.brand, in: RoundedRectangle(cornerRadius: 18))
+                    .background(Theme.plum, in: RoundedRectangle(cornerRadius: 18))
             }
         } else {
             VStack(alignment: .leading, spacing: 8) {
@@ -196,7 +196,7 @@ struct AssistantView: View {
                     Button { Task { await act(a, confirm: true) } } label: {
                         Text(working.contains(a.id) ? t("Working…", "جارٍ التنفيذ…") : t("Confirm", "تأكيد")).frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent).tint(Theme.brand)
+                    .buttonStyle(.borderedProminent).tint(Theme.ink).foregroundStyle(Theme.bg)
                     Button { Task { await act(a, confirm: false) } } label: { Text(t("Cancel", "إلغاء")).frame(maxWidth: .infinity) }
                         .buttonStyle(.bordered).tint(Theme.ink)
                 }
@@ -244,8 +244,8 @@ struct AssistantView: View {
                 .onSubmit { Task { await send(input) } }
             Button { Task { await send(input) } } label: {
                 Image(systemName: "paperplane.fill")
-                    .frame(width: 44, height: 44).foregroundStyle(.white)
-                    .background(Theme.brand, in: RoundedRectangle(cornerRadius: 14))
+                    .frame(width: 44, height: 44).foregroundStyle(Theme.bg)
+                    .background(Theme.ink, in: Circle())
             }
             .disabled(busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityLabel(t("Send", "إرسال"))
