@@ -191,3 +191,17 @@ describe('assistant tap-to-send options', () => {
     expect(r.message).toMatchObject({ text: 'Pick one:', options: ['Show my week', 'Protein ideas'] });
   });
 });
+
+describe('Gemini fallback for coach / meal analysis', () => {
+  it('completeJson moves to the lighter model when the daily free quota is used up', async () => {
+    const urls: string[] = [];
+    const fetchFn: any = vi.fn(async (url: string) => {
+      urls.push(url);
+      if (!url.includes('flash-lite')) return { ok: false, status: 429, text: async () => 'generate_content_free_tier_requests, limit: 20' };
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"a":1}' }] } }] }) };
+    });
+    const agent = new NutritionAgentService(null, new ConfigService({ GEMINI_API_KEY: 'g' }), fetchFn);
+    expect(await agent.completeJson('s', 'u', { type: 'object' })).toEqual({ a: 1 });
+    expect(urls[1]).toContain('gemini-3.5-flash-lite');
+  });
+});

@@ -178,19 +178,36 @@ export class NutritionAgentService {
     throw new Error('Agent did not produce a result within the turn limit.');
   }
 
+  /** One-shot Gemini call; if the main model is out of daily free quota or overloaded, retry on the lighter model. */
+  private async geminiPost(body: unknown): Promise<Response> {
+    const post = (model: string) =>
+      this.fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey! },
+        body: JSON.stringify(body),
+      });
+    const res = await post(this.model);
+    if (res.ok || !this.fallbackModel || this.fallbackModel === this.model) return res;
+    if (res.status === 429 || res.status === 503 || res.status === 500) {
+      const t = await res.text();
+      const daily = /per_day|PerDay|free_tier_requests/i.test(t);
+      if (res.status !== 429 || daily) {
+        this.log.warn(`Gemini ${res.status} on ${this.model} → ${this.fallbackModel}`);
+        return post(this.fallbackModel);
+      }
+      return new Response(t, { status: res.status });
+    }
+    return res;
+  }
+
   /** Text-only structured call used by the coach (both providers). */
   async completeJson<T>(system: string, user: string, schema: object, maxTokens = 2500): Promise<T> {
     if (this.provider === 'gemini') {
       if (!this.geminiKey) throw new ServiceUnavailableException('GEMINI_API_KEY is not set');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`;
-      const res = await this.fetchFn(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: user }] }],
-          generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, temperature: 0.5, maxOutputTokens: maxTokens * 4 },
-        }),
+      const res = await this.geminiPost({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: user }] }],
+        generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, temperature: 0.5, maxOutputTokens: maxTokens * 4 },
       });
       if (!res.ok) {
         const t = await res.text();
@@ -354,12 +371,7 @@ export class NutritionAgentService {
       },
       ...(this.geminiSearch ? { tools: [{ google_search: {} }] } : {}),
     };
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`;
-    const res = await this.fetchFn(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey },
-      body: JSON.stringify(body),
-    });
+    const res = await this.geminiPost(body);
     if (!res.ok) {
       const text = await res.text();
       this.log.warn(`Gemini ${res.status}: ${text.slice(0, 500)}`);
