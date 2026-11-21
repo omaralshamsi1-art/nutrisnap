@@ -259,8 +259,14 @@ export class NutritionAgentService {
           const body = await res.text();
           this.log.warn(`Gemini chat 429: ${body.replace(/\s+/g, ' ').slice(0, 400)}`);
           const secs = Math.min(Number(/"retryDelay":\s*"(\d+)/.exec(body)?.[1] ?? 8), 20);
-          await new Promise((r) => setTimeout(r, secs * 1000));
-          res = await call();
+          if (/per_day|PerDay|free_tier_requests/i.test(body) && round === 0 && fallback && fallback !== model) {
+            // daily free quota is per model: switch to the lighter model instead of waiting
+            model = fallback;
+            res = await call();
+          } else {
+            await new Promise((r) => setTimeout(r, secs * 1000));
+            res = await call();
+          }
         }
         if (res.status === 503 || res.status === 500) {
           // Google-side overload ("high demand"): retry once, then fall back to a lighter model on the first round

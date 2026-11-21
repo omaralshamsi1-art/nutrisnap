@@ -152,6 +152,20 @@ describe('assistant Gemini overload', () => {
   });
 });
 
+describe('assistant daily free quota', () => {
+  it('switches to the fallback model when the daily free quota is used up', async () => {
+    const urls: string[] = [];
+    const fetchFn: any = vi.fn(async (url: string) => {
+      urls.push(url);
+      if (!url.includes('flash-lite')) return { ok: false, status: 429, text: async () => '{"error":{"message":"Quota exceeded for metric: generate_content_free_tier_requests, limit: 20"}}' };
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { role: 'model', parts: [{ text: 'ok' }] } }] }) };
+    });
+    const s = setup(new NutritionAgentService(null, new ConfigService({ GEMINI_API_KEY: 'g' }), fetchFn));
+    expect((await s.assistant.chat('u', { message: 'hi' })).message.text).toBe('ok');
+    expect(urls).toHaveLength(2);
+  });
+});
+
 describe('assistant quota', () => {
   it('has a daily chat limit with an English translation', async () => {
     expect(DAILY_LIMITS.chat).toBe(30);
