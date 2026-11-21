@@ -197,6 +197,8 @@ struct DevicesCard: View {
     @State private var busy = false
     @State private var source = ""
     @State private var loaded = false
+    @State private var active = ""
+    @State private var basal = ""
     private let sources = [("", t("Automatic", "تلقائي")), ("whoop", "WHOOP"), ("apple_health", "Apple Health"), ("manual", t("Manual", "يدوي"))]
 
     private var showWhoop: Bool { source.isEmpty || source == "whoop" }
@@ -254,8 +256,24 @@ struct DevicesCard: View {
             }
 
             if source == "manual" {
-                Text(t("Enter today's active and basal burn in \"Today's burn (manual)\" below.", "أدخل حرق اليوم (النشط والأساسي) في بطاقة «الحرق اليوم (إدخال يدوي)» بالأسفل."))
-                    .font(.caption).foregroundStyle(Theme.muted)
+                Text(t("Today's burn (from the Health app or your watch)", "حرق اليوم (من تطبيق الصحة أو ساعتك)")).font(.subheadline.weight(.semibold))
+                HStack(spacing: 8) {
+                    TextField(t("Active kcal", "النشط (سعرة)"), text: $active).keyboardType(.numberPad)
+                        .padding(10).background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
+                    TextField(t("Basal kcal", "الأساسي (سعرة)"), text: $basal).keyboardType(.numberPad)
+                        .padding(10).background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
+                }
+                Button {
+                    let a = Double(active), b = Double(basal)
+                    guard a != nil || b != nil else { message = t("Enter at least one number", "أدخل رقماً واحداً على الأقل"); return }
+                    Task {
+                        do {
+                            try await APIClient.shared.pushEnergy([EnergySample(date: DateFormatter.isoDay.string(from: Date()), source: "manual", activeKcal: a, basalKcal: b)])
+                            message = t("Burn saved ✓", "تم حفظ الحرق ✓"); await store.refresh()
+                        } catch { message = error.localizedDescription }
+                    }
+                } label: { Text(t("Save burn", "حفظ الحرق")) }
+                    .buttonStyle(SoftButtonStyle())
             }
             Text(t("When several sources cover the same day, only one is used so your burn isn't counted twice.", "عند توفر أكثر من مصدر لنفس اليوم يُستخدم مصدر واحد فقط لتجنب احتساب الحرق مرتين."))
                 .font(.caption).foregroundStyle(Theme.muted)
