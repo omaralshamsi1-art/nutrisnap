@@ -200,7 +200,7 @@ struct OverviewDetailView: View {
         case .left:
             let mt = b.macroTargets
             let lft = { (want: Double?, have: Double) in max(0, (want ?? 0) - have) }
-            tile(t("Protein", "البروتين"), fmt(lft(mt?.proteinG, b.intake.proteinG)), t("g", "غ"), chip: t("of \(fmt(mmt?.proteinG ?? 0))", "من \(fmt(mmt?.proteinG ?? 0))"), state: .low)
+            tile(t("Protein", "البروتين"), fmt(lft(mt?.proteinG, b.intake.proteinG)), t("g", "غ"), chip: t("of \(fmt(mt?.proteinG ?? 0))", "من \(fmt(mt?.proteinG ?? 0))"), state: .low)
             tile(t("Carbs", "الكربوهيدرات"), fmt(lft(mt?.carbsG, b.intake.carbsG)), t("g", "غ"), chip: t("of \(fmt(mt?.carbsG ?? 0))", "من \(fmt(mt?.carbsG ?? 0))"), state: .low)
             tile(t("Fat", "الدهون"), fmt(lft(mt?.fatG, b.intake.fatG)), t("g", "غ"), chip: t("of \(fmt(mt?.fatG ?? 0))", "من \(fmt(mt?.fatG ?? 0))"), state: .low)
             tile(t("Fibre", "الألياف"), fmt(lft(mt?.fiberG, b.intake.fiberG)), t("g", "غ"), chip: t("of \(fmt(mt?.fiberG ?? 0))", "من \(fmt(mt?.fiberG ?? 0))"), state: .low)
