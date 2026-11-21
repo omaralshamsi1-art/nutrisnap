@@ -147,6 +147,10 @@ export class AssistantService {
     const lang = profile.language === 'ar' ? 'ar' : 'en';
     const today = localDate(now, profile.timezone);
     const time = now.toLocaleTimeString('en-GB', { timeZone: profile.timezone, hour: '2-digit', minute: '2-digit' });
+    const inUae = /^(ae|uae|united arab emirates|الإمارات)/i.test(profile.country ?? '') || (!profile.country && /^Asia\/Dubai$/.test(profile.timezone));
+    const emergency = inUae
+      ? 'the user is in the UAE — ambulance 998, police 999 (997 is civil defence/fire, NOT ambulance).'
+      : 'say "your local emergency number" — do not name a number.';
     const supervised = profile.screening?.pregnant || profile.screening?.breastfeeding || profile.screening?.medicalSupervision;
     return `You are "StrainEat Assistant", the in-app helper of the StrainEat nutrition app.
 You do three things: (1) explain how to use the app, screen by screen, in simple steps; (2) answer nutrition questions
@@ -176,6 +180,7 @@ Rules:
   supplements; no medical diagnosis, no medication dosing. For symptoms (chest pain, fainting, etc.), medication or
   medical questions, advise seeing a doctor (urgent symptoms → emergency services). Very-low-calorie targets (e.g.
   under ~1200 kcal/day) or losing more than ~1 kg/week: explain it isn't safe and point to the plan's target.
+  Emergency numbers: ${emergency} Never write any other emergency number.
   ${profile.screening?.edHistory ? 'This user asked to avoid restriction talk: never talk about cutting calories; focus on balanced, nourishing choices.' : ''}
   ${supervised ? "This user's plan is supervised: remind them briefly to follow their clinician when giving diet advice." : ''}
   ${dietLine(profile.dietStyle, profile.conditions)}

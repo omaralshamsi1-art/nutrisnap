@@ -43,6 +43,8 @@ describe('assistant (Anthropic tool loop)', () => {
     expect(calls[0].system).toContain('StrainEat');
     expect(calls[0].system).toContain('"plan" screen');
     expect(calls[0].system).toMatch(/Water: plain water/);
+    expect(calls[0].system).toContain('Scope (strict)');
+    expect(calls[0].system).toContain('ambulance 998');
     expect(calls[0].tools.map((t: any) => t.name)).toContain('get_history');
     // tool results are echoed back to the model
     const res = calls[1].messages.at(-1).content[0];
