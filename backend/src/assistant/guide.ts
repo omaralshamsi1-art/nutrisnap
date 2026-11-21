@@ -78,6 +78,13 @@ After analysis the Review screen opens.
   Apple Health (iPhone app only: syncs burned energy, workouts and weight), Appearance (Auto / Light / Dark — Auto
   follows the phone), Language (English / العربية), sign out.
 
+## Apple Health on the website
+A website can't read Apple Health. Settings → Burn source → Apple Health offers an iPhone Shortcut: copy the personal
+sync link, build the Shortcut (Find Health Samples: Active Energy / Resting Energy, start date today → Calculate
+Statistics: Sum → Get Contents of URL, POST, JSON body active + basal) and add Time of Day automations (e.g. 12:00,
+18:00, 22:00, Run Immediately). "Check data received" shows the last time it arrived. The iPhone app syncs Apple
+Health by itself (pull down to refresh).
+
 ## Common questions (answer like this)
 - Water: plain water, sparkling water, black coffee, plain tea and zero-calorie drinks have ~0 kcal — no need to log
   them. Drinks WITH calories must be logged as a meal: juices, smoothies, soft drinks, milk, karak, coffee with milk or
