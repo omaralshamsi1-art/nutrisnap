@@ -4,7 +4,7 @@ options:
   bundleIdPrefix: ae.sheen
   deploymentTarget:
     iOS: "17.0"
-  developmentLanguage: ar
+  developmentLanguage: en
 targets:
   NutriSnap:
     type: application
@@ -14,21 +14,22 @@ targets:
       path: NutriSnap/Resources/Info.plist
       properties:
         CFBundleDisplayName: NutriSnap
-        CFBundleDevelopmentRegion: ar
-        CFBundleLocalizations: [ar, en]
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, ar]
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UILaunchScreen: {}
-        NSCameraUsageDescription: "لتصوير وجبتك وحساب قيمتها الغذائية"
-        NSPhotoLibraryUsageDescription: "لاختيار صورة وجبة من ألبومك"
-        NSHealthShareUsageDescription: "لقراءة السعرات المحروقة (النشطة والأساسية) ومقارنتها بما تأكله"
-        NSSpeechRecognitionUsageDescription: "لتحويل وصفك الصوتي للوجبة إلى نص"
-        NSMicrophoneUsageDescription: "لتسجيل وصف الوجبة بصوتك"
-        NSHealthUpdateUsageDescription: "لحفظ وجباتك وقيمها الغذائية في تطبيق صحتي"
+        NSCameraUsageDescription: "To photograph your meal and calculate its nutrition"
+        NSPhotoLibraryUsageDescription: "To pick a meal photo from your library"
+        NSHealthShareUsageDescription: "To read your active and resting calories burned and workouts, and compare them with what you eat"
+        NSSpeechRecognitionUsageDescription: "To turn your spoken meal description into text"
+        NSMicrophoneUsageDescription: "To record your meal description by voice"
+        NSHealthUpdateUsageDescription: "To save your meals and their nutrition to the Health app"
         CFBundleURLTypes:
           - CFBundleURLName: ae.sheen.nutrisnap
             CFBundleURLSchemes: [nutrisnap]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        UIBackgroundModes: [fetch, processing]
         NutriSnapAPIBaseURL: "https://api-production-eacf8540.up.railway.app"
     entitlements:
       path: NutriSnap/Resources/NutriSnap.entitlements

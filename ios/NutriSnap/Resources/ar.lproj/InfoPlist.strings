@@ -1,0 +1,7 @@
+/* Arabic permission texts */
+"NSCameraUsageDescription" = "لتصوير وجبتك وحساب قيمتها الغذائية";
+"NSPhotoLibraryUsageDescription" = "لاختيار صورة وجبة من ألبومك";
+"NSHealthShareUsageDescription" = "لقراءة السعرات المحروقة (النشطة والأساسية) والتمارين ومقارنتها بما تأكله";
+"NSHealthUpdateUsageDescription" = "لحفظ وجباتك وقيمها الغذائية في تطبيق صحتي";
+"NSSpeechRecognitionUsageDescription" = "لتحويل وصفك الصوتي للوجبة إلى نص";
+"NSMicrophoneUsageDescription" = "لتسجيل وصف الوجبة بصوتك";
