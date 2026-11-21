@@ -157,7 +157,11 @@ label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px
 input, select { width: 100%; font: inherit; font-size: 16px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card-2); color: var(--ink); }
 input:focus, select:focus { outline: 2px solid var(--brand-2); outline-offset: 1px; }
 input[type=range] { padding: 0; border: 0; background: none; accent-color: var(--brand-2); }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.grid2 > * { min-width: 0; }
+/* iOS Safari gives time/date inputs a wide intrinsic size — keep them inside their column */
+input[type=time], input[type=date] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 50px; text-align: start; }
+input[type=time]::-webkit-date-and-time-value { text-align: start; }
 .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border: 0; border-radius: 16px; padding: 14px; font-size: 16px; font-weight: 600; background: var(--brand); color: #fff; cursor: pointer; }
 @media (prefers-color-scheme: dark) { .btn { color: #0d1411; } }
 .btn.ghost { background: var(--brand-soft); color: var(--brand-2); }
