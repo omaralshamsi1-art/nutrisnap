@@ -6,6 +6,7 @@ import { EnergyService } from '../energy/energy.service';
 import { addDays, pickEnergy, PlanService } from '../plan/plan.service';
 import { ProfileService } from '../profile/profile.service';
 import { REPOSITORY, Repository } from '../storage/repository';
+import { dietLine } from '../agent/prompts';
 import { ramadanView } from './coach-math';
 
 const SAFETY = `Safety rules (always):
@@ -98,7 +99,7 @@ export class CoachService {
       ? ram.fasting ? 'iftar (the user is fasting now)' : hour < 4 || hour >= 22 ? 'suhoor' : 'evening meal after iftar'
       : hour < 5 || hour >= 22 ? 'light late snack' : hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 19 ? 'afternoon snack or early dinner' : 'dinner';
     const lang = profile.language ?? 'en';
-    const key = `suggest:${lang}:${today}:${slot}:${Math.round(remaining / 75)}:${Math.round(proteinLeft / 10)}`;
+    const key = `suggest:${lang}:${profile.dietStyle ?? 'normal'}:${today}:${slot}:${Math.round(remaining / 75)}:${Math.round(proteinLeft / 10)}`;
     return this.cached(userId, key, opts.force ? 0 : minutes(45), async () => {
       const system = `You are StrainEat's nutrition coach. Suggest 3 or 4 concrete meal options for the user's next meal.\n${SAFETY}\n${langRule(lang)}\nEach option must state realistic kcal and protein. Prefer options close to the user's habits; include at least one home option and at least one from a restaurant they already use if any.`;
       const user = [
@@ -106,6 +107,8 @@ export class CoachService {
         `Goal: ${b.goal}. Calories left today: ${remaining}. Protein left today: ${proteinLeft} g. Fibre so far: ${Math.round(b.intake.fiber_g)} of ${b.macroTargets.fiber_g} g.`,
         ram.active && ram.split ? `Ramadan mode: suhoor ≈${ram.split.suhoor}, iftar ≈${ram.split.iftar}, evening ≈${ram.split.evening} kcal.` : '',
         `avoidRestriction: ${!!profile.screening?.edHistory}. medicalSupervision: ${!!profile.screening?.medicalSupervision}.`,
+        dietLine(profile.dietStyle, profile.conditions),
+        profile.mealsPerDay ? `The user usually eats ${profile.mealsPerDay} meal(s) a day — size the options for that.` : '',
         favourites.length ? `Recent meals the user enjoyed:\n- ${favourites.join('\n- ')}` : 'No meal history yet.',
         b.goal === 'gain'
           ? 'For weight gain: options should be calorie- and protein-dense enough to close the gap.'

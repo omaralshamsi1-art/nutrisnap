@@ -1,5 +1,11 @@
 /** Supported UI / AI languages. */
 export type Lang = 'en' | 'ar';
+export const DIET_STYLES = ['normal', 'vegetarian', 'vegan', 'keto', 'low_carb', 'mediterranean', 'paleo', 'light'] as const;
+export type DietStyle = (typeof DIET_STYLES)[number];
+export const CONDITIONS = ['hypertension', 'high_cholesterol', 'obesity', 'kidney', 'heart', 'thyroid', 'diabetes'] as const;
+export type Condition = (typeof CONDITIONS)[number];
+/** Conditions where diet changes should be supervised by a clinician. */
+export const SUPERVISED_CONDITIONS: Condition[] = ['kidney', 'heart', 'diabetes', 'thyroid'];
 
 export type NutritionSource =
   | 'restaurant_published' // official menu / restaurant nutrition page
@@ -97,6 +103,8 @@ export interface Profile {
   userId: string;
   sex: 'male' | 'female' | null;
   birthYear: number | null;
+  /** YYYY-MM-DD; when set, birthYear follows it */
+  birthDate?: string | null;
   heightCm: number | null;
   weightKg: number | null;
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
@@ -118,6 +126,10 @@ export interface Profile {
   reminders: { meals: boolean; weight: boolean };
   /** UI + AI output language */
   language: Lang;
+  /** onboarding extras used by the plan and the AI coach */
+  dietStyle?: DietStyle;
+  conditions?: Condition[];
+  mealsPerDay?: number | null;
   activityCalibration: {
     from: Profile['activityLevel'];
     to: Profile['activityLevel'];

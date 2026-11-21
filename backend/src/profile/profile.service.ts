@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { Profile } from '../common/types';
+import { CONDITIONS, DIET_STYLES, Profile } from '../common/types';
 import { REPOSITORY, Repository } from '../storage/repository';
 
 export const DEFAULT_PROFILE = (userId: string): Profile => ({
@@ -60,9 +60,20 @@ export class ProfileService {
 }
 
 /** Mifflin-St Jeor BMR. Returns null when the profile is incomplete. */
+/** Age in whole years — exact when a birth date is known, else from the birth year. */
+export function ageOf(p: Pick<Profile, 'birthYear' | 'birthDate'>, today = new Date()): number | null {
+  if (p.birthDate && /^\d{4}-\d{2}-\d{2}$/.test(p.birthDate)) {
+    const [y, m, d] = p.birthDate.split('-').map(Number);
+    let age = today.getFullYear() - y;
+    if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age--;
+    return age;
+  }
+  return p.birthYear ? today.getFullYear() - p.birthYear : null;
+}
+
 export function bmrKcal(p: Profile, today = new Date()): number | null {
-  if (!p.weightKg || !p.heightCm || !p.birthYear || !p.sex) return null;
-  const age = today.getFullYear() - p.birthYear;
+  const age = ageOf(p, today);
+  if (!p.weightKg || !p.heightCm || age == null || !p.sex) return null;
   return Math.round(10 * p.weightKg + 6.25 * p.heightCm - 5 * age + (p.sex === 'male' ? 5 : -161));
 }
 
@@ -81,12 +92,14 @@ const ENUMS: Partial<Record<keyof Profile, readonly string[]>> = {
   activityLevel: ['sedentary', 'light', 'moderate', 'active', 'very_active'],
   goal: ['lose', 'maintain', 'gain'],
   pace: ['relaxed', 'moderate', 'fast'],
+  dietStyle: DIET_STYLES,
   preferredEnergySource: ['whoop', 'apple_health', 'health_connect', 'garmin', 'fitbit', 'manual'],
 };
 const RANGES: Partial<Record<keyof Profile, [number, number]>> = {
   birthYear: [1900, new Date().getFullYear()],
   heightCm: [100, 250],
   weightKg: [25, 350],
+  mealsPerDay: [1, 6],
   targetWeightKg: [25, 350],
   startWeightKg: [25, 350],
   goalDeltaKcal: [-1500, 1500],
@@ -127,6 +140,18 @@ export function validateProfilePatch(patch: Partial<Profile>): Partial<Profile> 
     } else if (k === 'reminders') {
       const r = (v ?? {}) as Record<string, unknown>;
       out.reminders = { meals: r.meals !== false, weight: r.weight !== false };
+    } else if (k === 'birthDate') {
+      if (v === null || v === '') { out.birthDate = null; continue; }
+      const s = String(v);
+      const y = Number(s.slice(0, 4));
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(Date.parse(`${s}T00:00:00Z`)) || y < 1900 || Date.parse(`${s}T00:00:00Z`) > Date.now())
+        throw new BadRequestException('birthDate must be YYYY-MM-DD in the past');
+      out.birthDate = s;
+      out.birthYear = y;
+    } else if (k === 'conditions') {
+      const list = Array.isArray(v) ? v.map(String) : [];
+      if (list.some((c) => !(CONDITIONS as readonly string[]).includes(c))) throw new BadRequestException('invalid conditions');
+      out.conditions = [...new Set(list)];
     } else if (k === 'language') {
       if (v !== 'en' && v !== 'ar') throw new BadRequestException('language must be en or ar');
       out.language = v;

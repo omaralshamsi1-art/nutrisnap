@@ -1,7 +1,8 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { isIsoDate, localDate } from '../common/dates';
 import { EnergyDay, EnergySource, Profile, WeightEntry } from '../common/types';
-import { bmrKcal, estimatedTdee, ProfileService } from '../profile/profile.service';
+import { SUPERVISED_CONDITIONS } from '../common/types';
+import { ageOf, bmrKcal, estimatedTdee, ProfileService } from '../profile/profile.service';
 import { REPOSITORY, Repository } from '../storage/repository';
 import {
   ActivityLevel,
@@ -30,7 +31,23 @@ export function addDays(date: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Low-carb styles move energy from carbs to fat; protein and calories stay as planned.
+ * keto ≈ 30 g carbs, low-carb ≈ 25% of calories from carbs.
+ */
+export function applyDietStyle(plan: Plan, style?: string): void {
+  if (style !== 'keto' && style !== 'low_carb') return;
+  const carbs = style === 'keto' ? 30 : Math.round((plan.targetKcal * 0.25) / 4);
+  const fat = Math.round((plan.targetKcal - plan.proteinG * 4 - carbs * 4) / 9);
+  if (fat <= 0) return;
+  plan.carbsG = carbs;
+  plan.fatG = fat;
+}
+
 export interface PlanView extends Plan {
+  bmr?: number | null;
+  ageYears?: number | null;
+  dietStyle?: string;
   currentWeightKg: number | null;
   startWeightKg: number | null;
   targetWeightKg: number | null;
@@ -162,15 +179,19 @@ export class PlanService {
       goal: profile.goal,
       pace: profile.pace ?? 'moderate',
       sex: profile.sex,
-      age: profile.birthYear ? new Date().getFullYear() - profile.birthYear : null,
+      age: ageOf(profile),
       heightCm: profile.heightCm,
       weightKg: currentWeight,
       targetWeightKg: profile.targetWeightKg,
       maintenanceKcal: adaptive.kcal,
       maintenanceSource: source,
       bmr,
-      screening: profile.screening ?? {},
+      screening: {
+        ...(profile.screening ?? {}),
+        medicalSupervision: !!profile.screening?.medicalSupervision || (profile.conditions ?? []).some((c) => SUPERVISED_CONDITIONS.includes(c)),
+      },
     });
+    applyDietStyle(plan, profile.dietStyle);
 
     // Tell the user when the system recently corrected their activity level.
     const cal = profile.activityCalibration;
@@ -208,6 +229,9 @@ export class PlanService {
       burnData: { days: deviceDays.length, needed: CALIBRATION_MIN_DAYS, window: CALIBRATION_WINDOW_DAYS, avgKcal: avgDevice ? Math.round(avgDevice) : null },
       activityLevel: profile.activityLevel,
       activityCalibration: profile.activityCalibration ?? null,
+      bmr,
+      ageYears: ageOf(profile),
+      dietStyle: profile.dietStyle ?? 'normal',
     };
   }
 

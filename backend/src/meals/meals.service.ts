@@ -61,6 +61,8 @@ export class MealsService {
       proteinLeftG: Math.max(0, plan.proteinG - eaten.protein_g),
       avoidRestriction: !!profile.screening?.edHistory,
       language: profile.language ?? 'en',
+      dietStyle: profile.dietStyle,
+      conditions: profile.conditions,
     };
   }
 

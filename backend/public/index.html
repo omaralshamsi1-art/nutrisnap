@@ -228,6 +228,73 @@ a { color: var(--brand-2); }
 /* direction-aware chevrons: drawn for RTL, mirrored in LTR */
 html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href="#i-chev-r"]) { transform: scaleX(-1); }
 </style>
+<style>
+/* ---------- onboarding (one question per screen) ---------- */
+#v-onb { padding-bottom: 110px; }
+.ob-top { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 14px; }
+.ob-back { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--card); box-shadow: var(--shadow); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.ob-back[hidden] { visibility: hidden; display: grid; }
+.ob-count { font-weight: 700; color: var(--muted); font-size: 15px; } .ob-count b { color: var(--ink); }
+.ob-bar { height: 7px; border-radius: 99px; background: var(--line); overflow: hidden; margin-bottom: 26px; }
+.ob-bar i { display: block; height: 100%; background: var(--brand-2); border-radius: 99px; transition: width .35s ease; }
+.ob-title { font-size: 26px; font-weight: 800; text-align: center; margin: 0 0 6px; letter-spacing: -.3px; }
+.ob-sub { text-align: center; color: var(--muted); margin: 0 0 20px; font-size: 14.5px; }
+.ob-opts { display: grid; gap: 12px; }
+.ob-opt { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; text-align: start; padding: 14px 16px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: inherit; cursor: pointer; box-shadow: var(--shadow); }
+.ob-opt .ic { flex: 0 0 auto; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; background: var(--brand-soft); }
+.ob-opt .tx { flex: 1; } .ob-opt .tx b { display: block; font-size: 17px; } .ob-opt .tx > span { display: block; color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+.ob-opt .rd { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; }
+.ob-opt[aria-pressed="true"] { border-color: var(--brand-2); background: color-mix(in srgb, var(--brand-soft) 55%, var(--card)); }
+.ob-opt[aria-pressed="true"]::before { content: ""; position: absolute; inset-inline-start: -1.5px; top: 18%; bottom: 18%; width: 4px; border-radius: 4px; background: var(--brand-2); }
+.ob-opt[aria-pressed="true"] .rd { background: var(--brand-2); border-color: var(--brand-2); }
+.ob-opt[aria-pressed="true"] .rd::after { content: "✓"; color: #fff; font-size: 13px; font-weight: 800; }
+.ob-next { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; padding: 14px 20px calc(16px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
+.ob-next .btn { max-width: 520px; margin: 0 auto; display: block; width: 100%; border-radius: 999px; padding: 17px; font-size: 18px; }
+.ob-units { display: flex; justify-content: center; margin: 0 0 18px; }
+.ob-units .seg { width: 210px; grid-template-columns: 1fr 1fr; border-radius: 999px; }
+.ob-units .seg button { border-radius: 999px; }
+.ob-big { text-align: center; font-size: 64px; font-weight: 800; letter-spacing: -1px; line-height: 1; margin: 8px 0 4px; }
+.ob-big small { font-size: 20px; color: var(--brand-2); font-weight: 700; margin-inline-start: 6px; }
+.ob-delta { text-align: center; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+/* wheel (date) */
+.wheel3 { position: relative; display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; height: 264px; margin-top: 10px; }
+.wheel3::before { content: ""; position: absolute; left: 0; right: 0; top: 110px; height: 44px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); border: 1px solid var(--line); }
+.wcol { position: relative; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+.wcol::-webkit-scrollbar { display: none; }
+.wcol div { height: 44px; line-height: 44px; text-align: center; scroll-snap-align: center; font-size: 20px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wcol div.on { color: var(--ink); font-weight: 800; font-size: 24px; }
+.wcol .pad { height: 110px; scroll-snap-align: none; }
+/* rulers */
+.ruler-h { position: relative; overflow-x: auto; scrollbar-width: none; height: 120px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+.ruler-h::-webkit-scrollbar, .ruler-v::-webkit-scrollbar { display: none; }
+.ruler-h .track { position: relative; height: 100%; background-image: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 12px); background-size: 12px 34px; background-repeat: repeat-x; background-position: 0 100%; }
+.ruler-h .lbl { position: absolute; top: 8px; transform: translateX(-50%); font-size: 22px; font-weight: 700; color: var(--muted); }
+.ruler-h .maj { position: absolute; bottom: 0; width: 2px; height: 64px; background: var(--line); transform: translateX(-1px); }
+.ruler-h-wrap { position: relative; } .ruler-h-wrap::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 3px; height: 92px; background: var(--brand-2); border-radius: 3px; transform: translateX(-50%); pointer-events: none; }
+.ruler-v-wrap { position: relative; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 12px; }
+.ruler-v { position: relative; height: 360px; overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(transparent, #000 15%, #000 85%, transparent); }
+.ruler-v .track { position: relative; width: 100%; background-image: repeating-linear-gradient(180deg, var(--line) 0 2px, transparent 2px 10px); background-size: 46px 10px; background-repeat: repeat-y; }
+.ruler-v .maj { position: absolute; left: 0; width: 80px; height: 2px; background: var(--line); transform: translateY(-1px); }
+.ruler-v .lbl { position: absolute; left: 88px; transform: translateY(-50%); font-size: 22px; font-weight: 700; color: var(--muted); }
+.ruler-v-line { position: absolute; left: 0; width: 50%; top: 50%; height: 3px; background: var(--brand-2); border-radius: 3px; pointer-events: none; }
+.ob-valbox { background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); padding: 22px 10px; text-align: center; font-size: 40px; font-weight: 800; }
+.ob-valbox small { font-size: 18px; color: var(--brand-2); margin-inline-start: 4px; }
+.ob-bmi { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; margin-top: 26px; }
+.ob-bmi .v { font-size: 40px; font-weight: 800; text-align: center; line-height: 1; } .ob-bmi .v small { display: block; font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 6px; }
+.ob-bmi p { margin: 0; padding-inline-start: 18px; border-inline-start: 1px solid var(--line); color: var(--muted); font-size: 14.5px; }
+/* report */
+.ob-card { background: var(--card); border-radius: 24px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--line); margin-bottom: 14px; }
+.ob-card .k { color: var(--muted); font-size: 14px; } .ob-card .bigk { font-size: 46px; font-weight: 800; letter-spacing: -1px; }
+.ob-card .bigk small { font-size: 18px; color: var(--muted); font-weight: 600; margin-inline-start: 6px; }
+.mbar { display: flex; height: 14px; border-radius: 99px; overflow: hidden; margin: 18px 0 8px; }
+.mrow { display: grid; grid-template-columns: 14px 1fr auto 64px; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.mrow:last-child { border-bottom: 0; } .mrow i { width: 12px; height: 12px; border-radius: 50%; } .mrow b { font-size: 20px; } .mrow span:last-child { color: var(--muted); text-align: end; }
+.ob-sum { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
+.ob-sum div + div { border-inline-start: 1px solid var(--line); } .ob-sum span { display: block; color: var(--muted); font-size: 13px; } .ob-sum b { font-size: 17px; }
+.ob-load { min-height: 70vh; display: grid; place-items: center; text-align: center; }
+.ob-spin { width: 150px; height: 150px; margin: 0 auto 26px; border-radius: 50%; background: conic-gradient(var(--brand-2) var(--p, 0%), var(--line) 0); display: grid; place-items: center; transition: --p .2s; }
+.ob-spin span { width: 112px; height: 112px; border-radius: 50%; background: var(--card); display: grid; place-items: center; font-size: 38px; box-shadow: var(--shadow); }
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -301,82 +368,8 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
   </section>
 
   <!-- ============ ONBOARDING ============ -->
-  <section id="v-onb" class="hidden fade">
-    <div class="steps" id="onbSteps"></div>
-
-    <div data-step="1">
-      <div class="greet">ما هدفك؟</div>
-      <p class="sub">نبني لك خطة يومية آمنة وواقعية بحسب هدفك.</p>
-      <div class="choices" style="margin-top:14px">
-        <button class="choice" data-goal="lose"><span class="ci"><svg width="24" height="24"><use href="#i-down"/></svg></span><span><b>إنقاص الوزن</b><span>عجز معتدل + بروتين عالٍ للحفاظ على العضل</span></span></button>
-        <button class="choice" data-goal="maintain"><span class="ci"><svg width="24" height="24"><use href="#i-eq"/></svg></span><span><b>المحافظة على وزني</b><span>أكل متوازن يطابق حرقك</span></span></button>
-        <button class="choice" data-goal="gain"><span class="ci"><svg width="24" height="24"><use href="#i-up"/></svg></span><span><b>زيادة الوزن (عضل)</b><span>فائض صغير يركّز على بناء العضل لا الدهون</span></span></button>
-      </div>
-    </div>
-
-    <div data-step="2" class="hidden">
-      <div class="greet">عرّفينا عليك</div>
-      <p class="sub">نستخدمها لحساب احتياجك فقط.</p>
-      <div class="card">
-        <label>الجنس</label>
-        <div class="seg" id="oSex" style="grid-template-columns:1fr 1fr"><button data-v="female">أنثى</button><button data-v="male">ذكر</button></div>
-        <div class="grid2">
-          <div><label for="oYear">سنة الميلاد</label><input id="oYear" type="number" inputmode="numeric" placeholder="2000"></div>
-          <div><label for="oHeight">الطول (سم)</label><input id="oHeight" type="number" inputmode="decimal" placeholder="165"></div>
-        </div>
-        <label for="oWeight">وزنك الحالي (كغ)</label><input id="oWeight" type="number" inputmode="decimal" step="0.1" placeholder="70">
-      </div>
-    </div>
-
-    <div data-step="3" class="hidden">
-      <div class="greet">مستوى نشاطك اليومي</div>
-      <p class="sub">إذا ربطتِ WHOOP أو أدخلتِ الحرق، نستخدم أرقامك الفعلية بدلاً من هذا التقدير.</p>
-      <div class="choices" style="margin-top:14px" id="oAct">
-        <button class="choice" data-v="sedentary"><span class="ci"><svg width="22" height="22"><use href="#i-moon"/></svg></span><span><b>قليل الحركة</b><span>عمل مكتبي ونادراً أتمرن</span></span></button>
-        <button class="choice" data-v="light"><span class="ci"><svg width="22" height="22"><use href="#i-walk"/></svg></span><span><b>نشاط خفيف</b><span>مشي أو تمرين 1–3 مرات أسبوعياً</span></span></button>
-        <button class="choice" data-v="moderate"><span class="ci"><svg width="22" height="22"><use href="#i-flame"/></svg></span><span><b>متوسط</b><span>تمرين 3–5 مرات أسبوعياً</span></span></button>
-        <button class="choice" data-v="active"><span class="ci"><svg width="22" height="22"><use href="#i-flame"/></svg></span><span><b>نشيط جداً</b><span>تمرين يومي أو عمل بدني</span></span></button>
-      </div>
-    </div>
-
-    <div data-step="4" class="hidden">
-      <div class="greet" id="oTargetTitle">وزنك المستهدف</div>
-      <div class="card">
-        <div id="oTargetWrap">
-          <label for="oTarget">الوزن المستهدف (كغ)</label>
-          <input id="oTarget" type="number" inputmode="decimal" step="0.5">
-          <label>سرعة التقدم</label>
-          <div class="seg" id="oPace"><button data-v="relaxed">مريحة</button><button data-v="moderate">متوسطة</button><button data-v="fast">أسرع</button></div>
-          <p class="small muted" id="oPaceHint" style="margin:8px 0 0"></p>
-        </div>
-        <div class="preview" id="oPreview">
-          <div class="small" style="opacity:.85">هدفك اليومي</div>
-          <div class="bigk num" id="pvKcal">—</div>
-          <div class="pg">
-            <div><b class="num" id="pvProtein">—</b>بروتين</div>
-            <div><b class="num" id="pvWeekly">—</b>أسبوعياً</div>
-            <div><b class="num" id="pvEta">—</b>الوصول</div>
-          </div>
-        </div>
-        <div id="pvNotices"></div>
-      </div>
-    </div>
-
-    <div data-step="5" class="hidden">
-      <div class="greet">لسلامتك</div>
-      <p class="sub">اختياري، لكنه يساعدنا على ألا نقترح شيئاً غير مناسب لك. لا يظهر لأحد.</p>
-      <div class="card">
-        <label class="check"><input type="checkbox" id="sPreg"> أنا حامل أو أرضع حالياً</label>
-        <label class="check"><input type="checkbox" id="sMed"> لدي حالة صحية يتابع طبيبي غذائي بسببها (مثل السكري أو أمراض الكلى)</label>
-        <label class="check"><input type="checkbox" id="sEd"> مررت سابقاً بصعوبات مع الأكل أو الحميات وأفضّل ألا أرى هدف إنقاص</label>
-      </div>
-      <p class="small muted">التطبيق أداة للمتابعة وليس بديلاً عن الطبيب أو أخصائي التغذية.</p>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:16px">
-      <button class="btn ghost" id="onbBack">رجوع</button>
-      <button class="btn" id="onbNext">التالي</button>
-    </div>
+  <section id="v-onb" class="hidden">
+    <div id="obRoot"></div>
   </section>
 
   <!-- ============ TODAY ============ -->
@@ -787,86 +780,325 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
   };
   $('logout').onclick = () => { ls.del('ns_key'); ls.del('ns_token'); ls.del('ns_name'); authTab('login'); show('setup'); };
 
-  // ---------------- onboarding ----------------
-  const onb = { step: 1, goal: 'lose', sex: null, act: 'light', pace: 'moderate' };
-  const STEPS = 5;
-  function pressed(container, value, attr = 'data-v') {
-    container.querySelectorAll(`[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
-  }
-  async function startOnboarding(prefill) {
-    if (prefill) {
-      Object.assign(onb, { goal: prefill.goal || 'lose', sex: prefill.sex, act: prefill.activityLevel || 'light', pace: prefill.pace || 'moderate' });
-      $('oYear').value = prefill.birthYear || ''; $('oHeight').value = prefill.heightCm || '';
-      $('oWeight').value = prefill.weightKg || ''; $('oTarget').value = prefill.targetWeightKg || '';
-      const sc = prefill.screening || {};
-      $('sPreg').checked = !!(sc.pregnant || sc.breastfeeding); $('sMed').checked = !!sc.medicalSupervision; $('sEd').checked = !!sc.edHistory;
-    }
-    onb.step = 1; renderOnb(); show('onb');
-  }
-  function renderOnb() {
-    $('onbSteps').innerHTML = Array.from({ length: STEPS }, (_, i) => `<i class="${i < onb.step ? 'on' : ''}"></i>`).join('');
-    document.querySelectorAll('#v-onb [data-step]').forEach((el) => el.classList.toggle('hidden', Number(el.dataset.step) !== onb.step));
-    pressed($('v-onb'), onb.goal, 'data-goal'); pressed($('oSex'), onb.sex); pressed($('oAct'), onb.act); pressed($('oPace'), onb.pace);
-    $('onbBack').style.visibility = onb.step === 1 ? 'hidden' : 'visible';
-    $('onbNext').textContent = onb.step === STEPS ? T('ابدأ خطتي') : T('التالي');
-    if (onb.step === 4) {
-      const m = onb.goal === 'maintain';
-      $('oTargetWrap').classList.toggle('hidden', m);
-      $('oTargetTitle').textContent = m ? T('خطتك للمحافظة') : onb.goal === 'lose' ? T('وزنك المستهدف') : T('الوزن الذي تريد الوصول إليه');
-      if (!$('oTarget').value && $('oWeight').value) {
-        const w = Number($('oWeight').value); $('oTarget').value = onb.goal === 'lose' ? Math.round(w * 0.92) : Math.round(w * 1.06);
-      }
-      $('oPaceHint').textContent = onb.goal === 'gain'
-        ? { relaxed: T('زيادة بطيئة جداً، أقل دهون'), moderate: T('الأنسب لبناء العضل مع التمرين'), fast: T('أسرع لكن بدهون أكثر') }[onb.pace]
-        : { relaxed: T('سهلة الالتزام، جوع أقل'), moderate: T('توازن بين السرعة والراحة (موصى به)'), fast: T('أسرع، تحتاج التزاماً أعلى — لن نتجاوز الحد الآمن') }[onb.pace];
-      previewPlan();
-    }
-  }
-  document.querySelectorAll('[data-goal]').forEach((b) => (b.onclick = () => { onb.goal = b.dataset.goal; $('oTarget').value = ''; renderOnb(); }));
-  $('oSex').querySelectorAll('button').forEach((b) => (b.onclick = () => { onb.sex = b.dataset.v; renderOnb(); }));
-  $('oAct').querySelectorAll('button').forEach((b) => (b.onclick = () => { onb.act = b.dataset.v; renderOnb(); }));
-  $('oPace').querySelectorAll('button').forEach((b) => (b.onclick = () => { onb.pace = b.dataset.v; renderOnb(); }));
-  $('oTarget').oninput = () => { clearTimeout(previewPlan._t); previewPlan._t = setTimeout(previewPlan, 250); };
+  // ---------------- onboarding (one question per screen) ----------------
+  const ob = { i: 0, goal: 'lose', sex: null, bd: { d: 1, m: 1, y: 1995 }, h: 170, w: 75, tw: 70, hUnit: 'cm', wUnit: 'kg', diet: 'normal', conds: [], preg: false, ed: false, act: 'light', pace: 'moderate', meals: 3, preview: null, paces: null, edit: false };
+  const OB_STEPS = ['goal', 'sex', 'dob', 'height', 'weight', 'target', 'diet', 'health', 'activity', 'pace', 'report', 'meals'];
+  const obSteps = () => OB_STEPS.filter((s) => !(ob.goal === 'maintain' && (s === 'target' || s === 'pace')));
+  const KG_LB = 2.20462;
+  const bmiOf = (kg) => (ob.h ? kg / ((ob.h / 100) ** 2) : 0);
+  const obOpt = (key, val, ic, title, sub, on) => `<button type="button" class="ob-opt" data-${key}="${val}" aria-pressed="${on}"><span class="ic">${ic}</span><span class="tx"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span><span class="rd"></span></button>`;
+  const ftIn = (cm) => { const t = cm / 2.54, f = Math.floor(t / 12); return `${f}′${Math.round(t - f * 12)}″`; };
 
-  function onbProfile() {
-    const num = (id) => ($(id).value === '' ? null : Number($(id).value));
+  async function startOnboarding(prefill) {
+    const p = prefill || {};
+    const today = new Date();
+    Object.assign(ob, {
+      i: 0, edit: !!p.onboarded, goal: p.goal && p.onboarded ? p.goal : 'lose', sex: p.sex ?? null,
+      h: p.heightCm || 170, w: p.weightKg || 75, act: p.activityLevel || 'light', pace: p.pace || 'moderate',
+      diet: p.dietStyle || 'normal', conds: [...(p.conditions || [])], meals: p.mealsPerDay || 3,
+      preg: !!(p.screening && (p.screening.pregnant || p.screening.breastfeeding)), ed: !!(p.screening && p.screening.edHistory),
+      preview: null, paces: null,
+    });
+    ob.tw = p.targetWeightKg || Math.round(ob.w * 0.92);
+    ob.twSet = !!p.targetWeightKg;
+    if (p.birthDate) { const [y, m, d] = p.birthDate.split('-').map(Number); ob.bd = { y, m, d }; }
+    else ob.bd = { y: p.birthYear || today.getFullYear() - 30, m: 1, d: 1 };
+    show('onb'); renderOb();
+  }
+
+  function obProfile(extra = {}) {
+    const bd = `${ob.bd.y}-${String(ob.bd.m).padStart(2, '0')}-${String(ob.bd.d).padStart(2, '0')}`;
     return {
-      goal: onb.goal, sex: onb.sex, birthYear: num('oYear'), heightCm: num('oHeight'), weightKg: num('oWeight'),
-      activityLevel: onb.act, pace: onb.pace, targetWeightKg: onb.goal === 'maintain' ? null : num('oTarget'),
-      screening: { pregnant: $('sPreg').checked, breastfeeding: false, medicalSupervision: $('sMed').checked, edHistory: $('sEd').checked },
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dubai',
+      goal: ob.goal, sex: ob.sex, birthDate: bd, heightCm: Math.round(ob.h), weightKg: Math.round(ob.w * 10) / 10,
+      targetWeightKg: ob.goal === 'maintain' ? null : Math.round(ob.tw * 10) / 10, activityLevel: ob.act, pace: ob.pace,
+      dietStyle: ob.diet, conditions: ob.conds, mealsPerDay: ob.meals,
+      screening: { pregnant: ob.preg, breastfeeding: false, medicalSupervision: false, edHistory: ob.ed },
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dubai', ...extra,
     };
   }
-  async function previewPlan() {
+  const obPreview = (extra) => api('plan/preview', { method: 'POST', json: obProfile(extra) });
+
+  function obFrame(title, sub, body, nextLabel) {
+    const steps = obSteps(), n = steps.length, i = ob.i;
+    $('obRoot').innerHTML = `
+      <div class="ob-top"><button type="button" class="ob-back" id="obBack" aria-label="${T('رجوع')}" ${i === 0 && !ob.edit ? 'hidden' : ''}><svg width="20" height="20"><use href="#i-chev-r"/></svg></button>
+        <span class="ob-count num" dir="ltr"><b>${i + 1}</b>/${n}</span></div>
+      <div class="ob-bar"><i style="width:${((i + 1) / n) * 100}%"></i></div>
+      <h1 class="ob-title">${title}</h1>${sub ? `<p class="ob-sub">${sub}</p>` : ''}
+      <div id="obBody">${body}</div>
+      <div class="ob-next"><button type="button" class="btn" id="obNext">${nextLabel || T('التالي')}</button></div>`;
+    $('obBack').onclick = () => { if (ob.i > 0) { ob.i--; renderOb(); } else if (ob.edit) show('plan'); };
+    $('obNext').onclick = obNext;
+    window.scrollTo(0, 0);
+  }
+
+  function bindPick(attr, set, multi) {
+    $('obBody').querySelectorAll(`[data-${attr}]`).forEach((b) => (b.onclick = () => {
+      set(b.dataset[attr], b);
+      if (!multi) $('obBody').querySelectorAll(`[data-${attr}]`).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    }));
+  }
+
+  function renderOb() {
+    const step = obSteps()[ob.i];
+    const lose = ob.goal === 'lose';
+    if (step === 'goal') {
+      obFrame(T('ما هدفك؟'), T('نبني لك خطة يومية آمنة وواقعية بحسب هدفك.'), `<div class="ob-opts">
+        ${obOpt('v', 'lose', '📉', T('إنقاص الوزن'), T('عجز معتدل + بروتين عالٍ للحفاظ على العضل'), ob.goal === 'lose')}
+        ${obOpt('v', 'maintain', '⚖️', T('المحافظة على وزني'), T('أكل متوازن يطابق حرقك'), ob.goal === 'maintain')}
+        ${obOpt('v', 'gain', '💪', T('زيادة الوزن (عضل)'), T('فائض صغير يركّز على بناء العضل لا الدهون'), ob.goal === 'gain')}</div>`);
+      bindPick('v', (v) => { ob.goal = v; ob.twSet = false; });
+    } else if (step === 'sex') {
+      obFrame(T('ما جنسك؟'), T('يغيّر طريقة حساب حرقك الأساسي.'), `<div class="ob-opts">
+        ${obOpt('v', 'male', '👨', T('ذكر'), '', ob.sex === 'male')}
+        ${obOpt('v', 'female', '👩', T('أنثى'), '', ob.sex === 'female')}
+        ${obOpt('v', 'none', '🙂', T('أفضّل عدم الذكر'), T('نستخدم متوسطاً تقديرياً'), ob.sex === null && ob.sexAsked)}</div>`);
+      bindPick('v', (v) => { ob.sex = v === 'none' ? null : v; ob.sexAsked = true; });
+    } else if (step === 'dob') {
+      obFrame(T('ما تاريخ ميلادك؟'), '', `<div class="wheel3" dir="ltr"><div class="wcol" id="wD"></div><div class="wcol" id="wM"></div><div class="wcol" id="wY"></div></div>`);
+      const yNow = new Date().getFullYear();
+      const years = []; for (let y = yNow - 100; y <= yNow - 13; y++) years.push(y);
+      const months = Array.from({ length: 12 }, (_, k) => new Date(2000, k, 1).toLocaleDateString(LOC, { month: 'short' }));
+      const days = Array.from({ length: 31 }, (_, k) => k + 1);
+      const clampDay = () => { const max = new Date(ob.bd.y, ob.bd.m, 0).getDate(); if (ob.bd.d > max) { ob.bd.d = max; wheelSet($('wD'), ob.bd.d - 1); } };
+      wheel($('wD'), days, ob.bd.d - 1, (k) => { ob.bd.d = k + 1; clampDay(); });
+      wheel($('wM'), months, ob.bd.m - 1, (k) => { ob.bd.m = k + 1; clampDay(); });
+      wheel($('wY'), years, Math.max(0, years.indexOf(ob.bd.y)), (k) => { ob.bd.y = years[k]; clampDay(); });
+    } else if (step === 'height') {
+      obFrame(T('كم طولك؟'), '', `${unitSeg('hu', [['cm', T('سم')], ['ft', 'ft']], ob.hUnit)}
+        <div class="ruler-v-wrap" dir="ltr"><div style="position:relative"><div class="ruler-v" id="rv"></div><div class="ruler-v-line"></div></div>
+        <div class="ob-valbox num" id="hVal"></div></div>`);
+      const upd = () => { $('hVal').innerHTML = ob.hUnit === 'cm' ? `${Math.round(ob.h)}<small>${T('سم')}</small>` : `${ftIn(ob.h)}`; };
+      rulerV($('rv'), 100, 230, ob.h, (v) => { ob.h = v; upd(); }, (v) => (ob.hUnit === 'cm' ? v : ftIn(v)));
+      upd();
+      bindPick('hu', (u) => { ob.hUnit = u; renderOb(); });
+    } else if (step === 'weight' || step === 'target') {
+      const tgt = step === 'target';
+      const title = tgt ? (lose ? T('ما وزنك المستهدف؟') : T('ما الوزن الذي تريد الوصول إليه؟')) : T('كم وزنك الحالي؟');
+      obFrame(title, '', `${unitSeg('wu', [['kg', T('كغ')], ['lb', 'lb']], ob.wUnit)}
+        <div class="ob-big num" dir="ltr" id="wBig"></div><div class="ob-delta num" id="wDelta"></div>
+        <div class="ruler-h-wrap" dir="ltr"><div class="ruler-h" id="rh"></div></div>
+        <div class="ob-bmi"><div class="v num" id="bmiV"></div><p id="bmiT"></p></div>`);
+      const show1 = (kg) => (ob.wUnit === 'kg' ? fmt1(kg) : fmt1(kg * KG_LB));
+      const upd = () => {
+        const kg = tgt ? ob.tw : ob.w;
+        $('wBig').innerHTML = `${show1(kg)}<small>${ob.wUnit === 'kg' ? T('كغ') : 'lb'}</small>`;
+        if (tgt) {
+          const d = ob.tw - ob.w;
+          $('wDelta').innerHTML = d ? `<span style="color:var(--good)">${d < 0 ? '↓' : '↑'}</span> ${show1(Math.abs(d))} ${ob.wUnit === 'kg' ? T('كغ') : 'lb'}` : '';
+        }
+        const b = bmiOf(kg), col = b < 18.5 ? 'var(--warn)' : b < 25 ? 'var(--good)' : b < 30 ? 'var(--warn)' : 'var(--bad)';
+        $('bmiV').innerHTML = `<span style="color:${col}">${b ? fmt1(b) : '—'}</span><small>${T('مؤشر كتلة الجسم')}</small>`;
+        let msg;
+        if (tgt) {
+          if (b < 18.5) msg = T('هذا الهدف أقل من الوزن الصحي — ننصح بهدف أعلى.');
+          else if (lose && b < 25) msg = T('هدف ممتاز ضمن الوزن الصحي — خسارة تدريجية تصنع فرقاً كبيراً.');
+          else if (lose) msg = T('خطوة رائعة — حتى خسارة 5–10٪ من وزنك تحسّن صحتك بوضوح.');
+          else msg = T('زيادة تدريجية مع تمارين المقاومة تبني العضل لا الدهون.');
+        } else {
+          msg = b < 18.5 ? T('مؤشرك أقل من الطبيعي — سنركّز على تغذية كافية.')
+            : b < 25 ? T('مؤشرك ضمن الطبيعي — أحسنت!')
+            : b < 30 ? T('مؤشرك أعلى من الطبيعي قليلاً — تعديلات يومية بسيطة تفيد.')
+            : T('مؤشرك مرتفع — خطة تدريجية آمنة ستساعدك.');
+        }
+        $('bmiT').textContent = msg;
+      };
+      rulerH($('rh'), 30, 220, tgt ? ob.tw : ob.w, (v) => { if (tgt) { ob.tw = v; ob.twSet = true; } else ob.w = v; upd(); }, (v) => (ob.wUnit === 'kg' ? v : Math.round(v * KG_LB)));
+      upd();
+      bindPick('wu', (u) => { ob.wUnit = u; renderOb(); });
+    } else if (step === 'diet') {
+      const D = [['normal', '🍽️', T('عادي'), T('بدون قيود غذائية خاصة')], ['vegetarian', '🥕', T('نباتي'), ''], ['vegan', '🥦', T('نباتي صرف'), ''],
+        ['keto', '🥑', T('كيتو'), ''], ['low_carb', '🥩', T('قليل الكربوهيدرات'), ''], ['mediterranean', '🫒', T('حمية البحر المتوسط'), ''],
+        ['paleo', '🍗', T('باليو'), ''], ['light', '🥗', T('أكل خفيف'), '']];
+      obFrame(T('ما نمط أكلك المعتاد؟'), T('نقترح وجبات وبدائل تناسبه.'), `<div class="ob-opts">${D.map(([v, ic, t, s]) => obOpt('v', v, ic, t, s, ob.diet === v)).join('')}</div>`);
+      bindPick('v', (v) => { ob.diet = v; });
+    } else if (step === 'health') {
+      const H = [['hypertension', '💓', T('ارتفاع ضغط الدم')], ['high_cholesterol', '🧈', T('ارتفاع الكوليسترول')], ['obesity', '⚖️', T('السمنة')],
+        ['kidney', '🫘', T('أمراض الكلى')], ['heart', '❤️', T('أمراض القلب')], ['thyroid', '🦋', T('الغدة الدرقية')], ['diabetes', '🩸', T('السكري')]];
+      const none = !ob.conds.length && !ob.preg && !ob.ed;
+      obFrame(T('هل لديك أي حالة صحية؟'), T('اختياري ولا يظهر لأحد — يساعدنا على اقتراح ما يناسبك. يمكنك اختيار أكثر من حالة.'), `<div class="ob-opts">
+        ${obOpt('h', 'none', '👍', T('لا شيء مما يلي'), '', none)}
+        ${H.map(([v, ic, t]) => obOpt('h', v, ic, t, '', ob.conds.includes(v))).join('')}
+        ${obOpt('h', 'preg', '🤰', T('حامل أو مرضعة'), T('لن نضع عجزاً في السعرات'), ob.preg)}
+        ${obOpt('h', 'ed', '🫶', T('مررت بصعوبات مع الأكل أو الحميات'), T('لن نعرض هدف إنقاص'), ob.ed)}</div>
+        <p class="small muted" style="text-align:center;margin-top:14px">${T('التطبيق أداة للمتابعة وليس بديلاً عن الطبيب أو أخصائي التغذية.')}</p>`);
+      bindPick('h', (v) => {
+        if (v === 'none') { ob.conds = []; ob.preg = false; ob.ed = false; }
+        else if (v === 'preg') ob.preg = !ob.preg;
+        else if (v === 'ed') ob.ed = !ob.ed;
+        else ob.conds = ob.conds.includes(v) ? ob.conds.filter((c) => c !== v) : [...ob.conds, v];
+        const isNone = !ob.conds.length && !ob.preg && !ob.ed;
+        $('obBody').querySelectorAll('[data-h]').forEach((x) => {
+          const k = x.dataset.h;
+          x.setAttribute('aria-pressed', String(k === 'none' ? isNone : k === 'preg' ? ob.preg : k === 'ed' ? ob.ed : ob.conds.includes(k)));
+        });
+      }, true);
+    } else if (step === 'activity') {
+      const A = [['sedentary', '🪑', T('قليل الحركة'), T('أغلب يومي جالس أو على المكتب')], ['light', '🚶', T('نشاط خفيف'), T('مشي أو تمرين 1–3 مرات أسبوعياً')],
+        ['moderate', '🏃', T('نشاط متوسط'), T('تمرين 3–5 مرات أسبوعياً')], ['active', '🏋️', T('نشيط'), T('تمرين 6–7 أيام')], ['very_active', '⚡', T('نشيط جداً'), T('تمارين قوية أو عمل بدني')]];
+      obFrame(T('ما مستوى نشاطك؟'), T('إذا ربطت ساعتك نصحّح هذا تلقائياً بعد 7 أيام من القياسات.'), `<div class="ob-opts">${A.map(([v, ic, t, s]) => obOpt('v', v, ic, t, s, ob.act === v)).join('')}</div>`);
+      bindPick('v', (v) => { ob.act = v; });
+    } else if (step === 'pace') {
+      obFrame(T('اختر سرعة تقدمك'), T('كل الخيارات ضمن الحدود الآمنة.'), `<div class="ob-opts" id="paceList"><div class="muted" style="text-align:center">${T('نحسب الخيارات…')}</div></div>`);
+      const P = [['relaxed', '🐢'], ['moderate', '🚶'], ['fast', '🚀']];
+      Promise.all(P.map(([v]) => obPreview({ pace: v }).catch(() => null))).then((rs) => {
+        if (obSteps()[ob.i] !== 'pace') return;
+        $('paceList').innerHTML = P.map(([v, ic], k) => {
+          const r = rs[k];
+          const weeks = r && r.weeksToGoal ? L`${fmt(r.weeksToGoal)} أسبوعاً` : { relaxed: T('مريحة'), moderate: T('متوسطة'), fast: T('أسرع') }[v];
+          const per = r && r.weeklyChangeKg ? L`<span dir="ltr">${fmt1(Math.abs(r.weeklyChangeKg))}</span> كغ أسبوعياً · ${fmt(r.targetKcal)} سعرة يومياً` : '';
+          return obOpt('v', v, ic, weeks, per, ob.pace === v);
+        }).join('');
+        bindPick('v', (v) => { ob.pace = v; });
+      });
+    } else if (step === 'report') {
+      obFrame(T('تقرير التغذية حسب إجاباتك'), '', `<div id="repBox"><div class="muted" style="text-align:center">${T('نحسب خطتك…')}</div></div>`);
+      obPreview().then((p) => {
+        ob.preview = p;
+        const kc = p.targetKcal, pr = p.proteinG * 4, cb = p.carbsG * 4, ft = p.fatG * 9, tot = pr + cb + ft || 1;
+        const pct = (x) => Math.round((x / tot) * 100);
+        $('repBox').innerHTML = `<div class="ob-card">
+          <div class="k">${T('هدفك اليومي من السعرات')}</div><div class="bigk num">${fmt(kc)}<small>${T('سعرة/يوم')}</small></div>
+          ${p.bmr ? L`<div class="small muted">حرقك الأساسي (BMR): <b class="num">${fmt(p.bmr)}</b> سعرة · حرقك اليومي: <b class="num">${fmt(p.maintenanceKcal)}</b> سعرة</div>` : ''}
+          <div class="mbar"><i style="width:${pct(cb)}%;background:var(--c)"></i><i style="width:${pct(pr)}%;background:var(--p)"></i><i style="width:${pct(ft)}%;background:var(--f)"></i></div>
+          <div class="mrow"><i style="background:var(--c)"></i><span>${T('كربوهيدرات')}</span><b class="num">${pct(cb)}%</b><span class="num">${fmt(p.carbsG)} ${T('غ')}</span></div>
+          <div class="mrow"><i style="background:var(--p)"></i><span>${T('بروتين')}</span><b class="num">${pct(pr)}%</b><span class="num">${fmt(p.proteinG)} ${T('غ')}</span></div>
+          <div class="mrow"><i style="background:var(--f)"></i><span>${T('دهون')}</span><b class="num">${pct(ft)}%</b><span class="num">${fmt(p.fatG)} ${T('غ')}</span></div>
+          <div class="mrow"><i style="background:var(--fi)"></i><span>${T('ألياف')}</span><b></b><span class="num">${fmt(p.fiberG)} ${T('غ')}</span></div></div>
+          ${renderNotices(p.notices)}`;
+      }).catch((e) => { $('repBox').innerHTML = `<div class="notice warn">${esc(e.message)}</div>`; });
+    } else if (step === 'meals') {
+      const M = [[1, '1️⃣', T('وجبة واحدة يومياً')], [2, '2️⃣', T('وجبتان يومياً')], [3, '3️⃣', T('ثلاث وجبات يومياً')], [4, '➕', T('أكثر من ثلاث وجبات')]];
+      obFrame(T('كم وجبة تأكل عادةً في اليوم؟'), T('نستخدمها لتقسيم سعراتك ولتذكيرك في أوقات وجباتك.'), `<div class="ob-opts">${M.map(([v, ic, t]) => obOpt('v', v, ic, t, '', ob.meals === v)).join('')}</div>`, ob.edit ? T('حفظ التعديلات') : T('ابدأ خطتي'));
+      bindPick('v', (v) => { ob.meals = Number(v); });
+    }
+  }
+
+  function unitSeg(attr, items, cur) {
+    return `<div class="ob-units"><div class="seg">${items.map(([v, t]) => `<button type="button" data-${attr}="${v}" aria-pressed="${v === cur}">${t}</button>`).join('')}</div></div>`;
+  }
+
+  // Scroll wheel: snaps to rows, calls onChange(index) when it settles.
+  function wheel(el, values, idx, onChange) {
+    el.innerHTML = `<div class="pad"></div>${values.map((v) => `<div>${v}</div>`).join('')}<div class="pad"></div>`;
+    const rows = [...el.children].slice(1, -1);
+    const mark = (k) => rows.forEach((r, j) => r.classList.toggle('on', j === k));
+    wheelSet(el, idx); mark(idx);
+    let t;
+    el.onscroll = () => {
+      const k = Math.max(0, Math.min(rows.length - 1, Math.round(el.scrollTop / 44)));
+      mark(k);
+      clearTimeout(t); t = setTimeout(() => onChange(k), 90);
+    };
+    rows.forEach((r, j) => (r.onclick = () => el.scrollTo({ top: j * 44, behavior: 'smooth' })));
+  }
+  function wheelSet(el, idx) { requestAnimationFrame(() => { el.scrollTop = idx * 44; }); }
+
+  // Horizontal ruler: 0.1 steps, 6 px each; labels every 1 unit.
+  function rulerH(el, min, max, val, onChange, label) {
+    const PX = 6, half = () => el.clientWidth / 2, width = (max - min) * 10 * PX;
+    let labels = '';
+    for (let v = min; v <= max; v++) { const x = (v - min) * 10 * PX; labels += `<span class="maj" style="left:${x}px"></span><span class="lbl num" style="left:${x}px">${label(v)}</span>`; }
+    el.innerHTML = `<div class="track" style="width:${width}px;margin:0 50%">${labels}</div>`;
+    const track = el.firstChild;
+    requestAnimationFrame(() => { track.style.margin = `0 ${half()}px`; el.scrollLeft = (val - min) * 10 * PX; });
+    let t;
+    el.onscroll = () => {
+      const v = Math.min(max, Math.max(min, min + Math.round(el.scrollLeft / PX) / 10));
+      onChange(v);
+      clearTimeout(t); t = setTimeout(() => { el.scrollTo({ left: (v - min) * 10 * PX, behavior: 'smooth' }); }, 140);
+    };
+  }
+
+  // Vertical ruler: 1 cm steps, 10 px each, larger values at the top.
+  function rulerV(el, min, max, val, onChange, label) {
+    const PX = 10, height = (max - min) * PX;
+    let marks = '';
+    for (let v = min; v <= max; v += 5) {
+      const y = (max - v) * PX;
+      marks += `<span class="maj" style="top:${y}px;width:${v % 10 ? 52 : 80}px"></span>${v % 10 ? '' : `<span class="lbl num" style="top:${y}px">${label(v)}</span>`}`;
+    }
+    el.innerHTML = `<div class="track" style="height:${height}px;margin:180px 0">${marks}</div>`;
+    requestAnimationFrame(() => { el.scrollTop = (max - val) * PX; });
+    let t;
+    el.onscroll = () => {
+      const v = Math.min(max, Math.max(min, max - Math.round(el.scrollTop / PX)));
+      onChange(v);
+      clearTimeout(t); t = setTimeout(() => el.scrollTo({ top: (max - v) * PX, behavior: 'smooth' }), 140);
+    };
+  }
+
+  async function obNext() {
+    const step = obSteps()[ob.i];
+    if (step === 'sex' && !ob.sexAsked && !ob.sex) return toast(T('اختر إجابة للمتابعة'));
+    if (step === 'target' && ob.goal !== 'maintain') {
+      if (ob.goal === 'lose' && ob.tw >= ob.w) return toast(T('الوزن المستهدف يجب أن يكون أقل من وزنك الحالي'));
+      if (ob.goal === 'gain' && ob.tw <= ob.w) return toast(T('الوزن المستهدف يجب أن يكون أعلى من وزنك الحالي'));
+    }
+    if (step === 'weight') {
+      // suggest a realistic target from the new current weight unless the user already chose one that still fits
+      const fits = ob.goal === 'lose' ? ob.tw < ob.w : ob.goal === 'gain' ? ob.tw > ob.w : true;
+      if (!ob.twSet || !fits) ob.tw = Math.round(ob.w * (ob.goal === 'gain' ? 1.06 : 0.92) * 2) / 2;
+    }
+    if (ob.i < obSteps().length - 1) { ob.i++; renderOb(); return; }
+    await obFinish();
+  }
+
+  async function obFinish() {
+    $('obRoot').innerHTML = `<div class="ob-load"><div><div class="ob-spin" id="obSpin"><span>📊</span></div>
+      <h1 class="ob-title">${T('نجهّز خطتك')}</h1><p class="ob-sub">${T('نضبط خطتك الغذائية ونحلّل هدفك…')}</p></div></div>`;
+    let pct = 0;
+    const tick = setInterval(() => { pct = Math.min(96, pct + 4); const s = $('obSpin'); if (s) s.style.background = `conic-gradient(var(--brand-2) ${pct}%, var(--line) 0)`; }, 60);
     try {
-      const p = await api('plan/preview', { method: 'POST', json: onbProfile() });
-      $('pvKcal').textContent = L`${fmt(p.targetKcal)} سعرة`;
-      $('pvProtein').textContent = L`${fmt(p.proteinG)} غ`;
-      $('pvWeekly').textContent = p.weeklyChangeKg ? L`${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ` : '—';
-      $('pvEta').textContent = p.etaDate ? new Date(`${p.etaDate}T12:00:00`).toLocaleDateString(LOC, { month: 'short', year: 'numeric' }) : '—';
-      $('pvNotices').innerHTML = renderNotices(p.notices);
-    } catch (e) { $('pvNotices').innerHTML = `<div class="notice warn">${esc(e.message)}</div>`; }
+      const { weightKg, ...rest } = obProfile();
+      const [saved] = await Promise.all([
+        (async () => {
+          await api('profile', { method: 'PUT', json: { ...rest, onboarded: true } });
+          await api('weights', { method: 'POST', json: { kg: weightKg } });
+          return api('plan');
+        })(),
+        new Promise((r) => setTimeout(r, 1800)),
+      ]);
+      clearInterval(tick);
+      obFinal(saved);
+    } catch (e) { clearInterval(tick); toast(e.message, 3500); renderOb(); }
+  }
+
+  function obFinal(p) {
+    const age = p.ageYears ?? null;
+    const sexTxt = ob.sex === 'male' ? T('ذكر') : ob.sex === 'female' ? T('أنثى') : '—';
+    const eta = p.etaDate ? new Date(`${p.etaDate}T12:00:00`).toLocaleDateString(LOC, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    const start = ob.w, end = ob.goal === 'maintain' ? ob.w : (p.targetWeightKg ?? ob.tw);
+    // projection curve: fast early change that eases toward the target, then holds
+    const W = 320, H = 170, y = (kg) => { const lo = Math.min(start, end) - 2, hi = Math.max(start, end) + 2; return 20 + (H - 40) * (1 - (kg - lo) / (hi - lo)); };
+    const pts = []; for (let k = 0; k <= 20; k++) { const f = k / 20, e = 1 - Math.pow(1 - Math.min(1, f / 0.8), 2); pts.push([20 + f * (W - 40), y(start + (end - start) * e)]); }
+    const path = pts.map(([x, yy], k) => `${k ? 'L' : 'M'}${x.toFixed(1)} ${yy.toFixed(1)}`).join(' ');
+    $('obRoot').innerHTML = `
+      <h1 class="ob-title" style="margin-top:12px">${T('تقريرك الصحي جاهز')}</h1>
+      <div class="ob-card" dir="ltr">
+        <svg viewBox="0 0 ${W} ${H + 24}" width="100%" role="img" aria-label="${T('توقّع الوزن')}">
+          <line x1="20" y1="${H}" x2="${W - 20}" y2="${H}" stroke="var(--line)"/>
+          <path d="${path}" fill="none" stroke="var(--brand-2)" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="19" fill="var(--accent)"/><text x="${pts[0][0]}" y="${pts[0][1] + 5}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${fmt1(start)}</text>
+          <circle cx="${pts[16][0]}" cy="${pts[16][1]}" r="7" fill="var(--card)" stroke="var(--brand-2)" stroke-width="4"/>
+          <text x="${pts[16][0]}" y="${pts[16][1] - 14}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--brand-2)">${fmt1(end)} ${T('كغ')}</text>
+          <text x="20" y="${H + 20}" font-size="12" fill="var(--muted)">${T('اليوم')}</text>
+          ${eta ? `<text x="${W - 20}" y="${H + 20}" font-size="12" font-weight="700" text-anchor="end" fill="var(--ink)">${eta}</text>` : ''}
+        </svg>
+      </div>
+      <h2 class="ob-title" style="font-size:22px">${T('هدفك اليومي')}</h2>
+      <div class="ob-card">
+        <div class="k">${T('السعرات اليومية الموصى بها لك')}</div>
+        <div class="bigk num" style="color:var(--brand-2)">${fmt(p.targetKcal)}<small>${T('سعرة')}</small></div>
+        <div class="small muted">${L`بروتين ${fmt(p.proteinG)} غ · كربوهيدرات ${fmt(p.carbsG)} غ · دهون ${fmt(p.fatG)} غ`}</div>
+        <div class="ob-sum"><div><span>${T('الجنس')}</span><b>${sexTxt}</b></div><div><span>${T('العمر')}</span><b class="num">${age ?? '—'}</b></div><div><span>${T('الطول')}</span><b class="num">${Math.round(ob.h)} ${T('سم')}</b></div></div>
+      </div>
+      ${renderNotices(p.notices)}
+      <div class="ob-next"><button type="button" class="btn" id="obGo">${T('ابدأ الآن')}</button></div>`;
+    $('obGo').onclick = () => { toast(T('خطتك جاهزة ✓')); show('today'); };
+    window.scrollTo(0, 0);
   }
   function renderNotices(list) { return (list || []).map((n) => `<div class="notice ${n.level}">${esc(tx(n, 'text'))}</div>`).join(''); }
-
-  $('onbBack').onclick = () => { if (onb.step > 1) { onb.step--; renderOnb(); } };
-  $('onbNext').onclick = async () => {
-    const p = onbProfile();
-    if (onb.step === 2) {
-      if (!onb.sex || !p.birthYear || !p.heightCm || !p.weightKg) return toast(T('أكملي الحقول الأربعة'));
-      if (p.heightCm < 100 || p.heightCm > 250 || p.weightKg < 25 || p.weightKg > 350) return toast(T('تحققي من الطول والوزن'));
-    }
-    if (onb.step === 4 && onb.goal !== 'maintain' && !p.targetWeightKg) return toast(T('أدخلي الوزن المستهدف'));
-    if (onb.step < STEPS) { onb.step++; renderOnb(); return; }
-    $('onbNext').disabled = true;
-    try {
-      const { weightKg, ...rest } = p;
-      await api('profile', { method: 'PUT', json: { ...rest, onboarded: true } });
-      if (weightKg) await api('weights', { method: 'POST', json: { kg: weightKg } });
-      toast(T('خطتك جاهزة ✓')); show('today');
-    } catch (e) { toast(e.message); }
-    finally { $('onbNext').disabled = false; }
-  };
   $('editPlan').onclick = async () => { try { startOnboarding(await api('profile')); } catch (e) { toast(e.message); } };
 
   // ---------------- today ----------------

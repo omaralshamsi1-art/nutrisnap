@@ -49,6 +49,8 @@ export interface CoachContext {
   proteinLeftG: number;
   avoidRestriction: boolean;
   language?: 'en' | 'ar';
+  dietStyle?: string;
+  conditions?: string[];
 }
 
 export function buildUserText(opts: {
@@ -75,6 +77,8 @@ export function buildUserText(opts: {
         (c.avoidRestriction ? '; IMPORTANT: avoid calorie-restriction advice (user preference for safety).' : '.'),
     );
   }
+  const diet = dietLine(opts.coach?.dietStyle, opts.coach?.conditions);
+  if (diet) lines.push(diet);
   const lang = opts.coach?.language ?? 'en';
   lines.push(
     lang === 'ar'
@@ -178,3 +182,23 @@ export const SUBMIT_TOOL_SCHEMA = {
     'coach_note_ar',
   ],
 } as const;
+
+/** One line for the AI about the user's eating style and health conditions (swaps / suggestions must respect it). */
+export function dietLine(style?: string, conditions?: string[]): string {
+  const parts: string[] = [];
+  if (style && style !== 'normal') parts.push(`eating style: ${style.replace('_', '-')} (only suggest foods that fit it)`);
+  const c = (conditions ?? []).filter(Boolean);
+  if (c.length) {
+    const hints: Record<string, string> = {
+      hypertension: 'keep sodium low',
+      high_cholesterol: 'limit saturated/fried fat',
+      kidney: 'do not push extra protein; moderate sodium/potassium; defer to their clinician',
+      heart: 'low sodium, little saturated fat',
+      diabetes: 'prefer low-glycaemic, high-fibre carbs; avoid sugary drinks',
+      thyroid: 'follow their clinician',
+      obesity: 'focus on satiety and protein',
+    };
+    parts.push(`health conditions: ${c.join(', ')} — ${c.map((x) => hints[x]).filter(Boolean).join('; ')}`);
+  }
+  return parts.length ? `User profile: ${parts.join('. ')}. Never give medical advice beyond food choices.` : '';
+}
