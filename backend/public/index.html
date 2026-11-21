@@ -1212,7 +1212,7 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
         const time = new Date(m.eatenAt).toLocaleTimeString(LOC, { hour: 'numeric', minute: '2-digit' });
         return L`<button class="meal" data-id="${esc(m.id)}"><span class="ic"><svg width="22" height="22"><use href="#${icon}"/></svg></span>
           <span class="t"><b>${esc(nameOf(m))}</b><span class="small muted">${slot} · ${time}${m.restaurant ? ` · ${esc(m.restaurant)}` : ''}</span></span>
-          <span class="k"><b class="num">${fmt(m.calories)}</b><div class="small muted num">${fmt(m.protein_g)} غ بروتين</div>${m.status !== 'confirmed' ? T('<span class="pill draft">مسودة</span>') : ''}</span></button>`;
+          <span class="k"><b class="num">${fmt(m.calories)}</b> <span class="small muted">سعرة</span><div class="small muted num">${fmt(m.protein_g)} غ بروتين</div>${m.status !== 'confirmed' ? T('<span class="pill draft">مسودة</span>') : ''}</span></button>`;
       }).join('') : T('<div class="empty">لا توجد وجبات بعد.<br>اضغطي زر الكاميرا لتسجيل وجبتك الأولى.</div>');
       document.querySelectorAll('.meal').forEach((el) => (el.onclick = async () => openReview(await api(`meals/${el.dataset.id}`))));
     } catch (e) { $('mealList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
