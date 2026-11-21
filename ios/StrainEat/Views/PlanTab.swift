@@ -19,6 +19,7 @@ struct PlanTab: View {
                         Text(t("Smart reminders (usual meal time and morning weigh-in) currently run from the web app once it's added to your Home Screen.", "التذكيرات الذكية (موعد الوجبة المعتاد ووزن الصباح) تعمل حالياً من تطبيق الويب بعد إضافته للشاشة الرئيسية."))
                             .font(.footnote).foregroundStyle(Theme.muted)
                     }
+                    if let profile { LocationCard(profile: profile) }
                     Card(title: t("Appearance", "المظهر"), icon: "circle.lefthalf.filled") { ThemePicker() }
                     Card(title: "Language · اللغة", icon: "globe") { LanguagePicker() }
                     if let message { Text(message).font(.footnote).foregroundStyle(Theme.muted) }
@@ -300,5 +301,41 @@ struct RamadanSettingsCard: View {
         let r: [String: Any] = ["enabled": flag, "suhoorTime": hhmm(suhoor), "iftarTime": hhmm(iftar)]
         _ = try? await APIClient.shared.updateProfile(["ramadan": r])
         onSaved()
+    }
+}
+
+// MARK: Location for meal suggestions
+
+struct LocationCard: View {
+    let profile: Profile
+    @State private var city = ""
+    @State private var area = ""
+    @State private var saved = false
+    @State private var error: String?
+    private let emirates = ["Abu Dhabi", "Dubai", "Sharjah", "Ajman", "Umm Al Quwain", "Ras Al Khaimah", "Fujairah", "Al Ain"]
+
+    var body: some View {
+        Card(title: t("Your location for suggestions", "موقعك للاقتراحات"), icon: "mappin.and.ellipse") {
+            Text(t("We suggest restaurants in your emirate and area.", "نقترح مطاعم موجودة في إمارتك ومنطقتك.")).font(.footnote).foregroundStyle(Theme.muted)
+            Picker(t("Emirate", "الإمارة"), selection: $city) {
+                Text("—").tag("")
+                ForEach(emirates, id: \.self) { Text($0).tag($0) }
+            }
+            TextField(t("Area, e.g. Al Nakheel", "المنطقة، مثال: النخيل"), text: $area)
+                .padding(10).background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
+            Button {
+                Task {
+                    do {
+                        _ = try await APIClient.shared.updateProfile(["city": city.isEmpty ? NSNull() as Any : city as Any, "area": area.trimmingCharacters(in: .whitespaces).isEmpty ? NSNull() as Any : area as Any])
+                        saved = true; error = nil
+                    } catch { self.error = error.localizedDescription }
+                }
+            } label: { Text(saved ? t("Saved ✓", "تم الحفظ ✓") : t("Save location", "حفظ الموقع")) }
+            .buttonStyle(SoftButtonStyle())
+            if let error { Text(error).font(.caption).foregroundStyle(Theme.bad) }
+        }
+        .onAppear { city = profile.city ?? ""; area = profile.area ?? "" }
+        .onChange(of: city) { saved = false }
+        .onChange(of: area) { saved = false }
     }
 }

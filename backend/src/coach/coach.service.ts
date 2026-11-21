@@ -22,28 +22,53 @@ export const langRule = (lang: string) =>
     ? 'Write every text field in Arabic (Gulf-friendly Modern Standard Arabic).'
     : 'Write every text field in clear, friendly English (field names ending in "_ar" still get English text). Local dish names may stay in their usual form, e.g. "chicken shawarma", "machboos".';
 
+const NUTR = {
+  kcal: { type: 'number' },
+  protein_g: { type: 'number' },
+  carbs_g: { type: 'number' },
+  fat_g: { type: 'number' },
+} as const;
+const OUT_OPTION = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    title: { type: 'string', description: 'exact menu item name (plus the size)' },
+    restaurant: { type: 'string', description: 'chain name only' },
+    order_tip: { type: 'string', description: 'how to order it to fit, e.g. grilled, no mayo, half rice; empty if none' },
+    why: { type: 'string' },
+    ...NUTR,
+  },
+  required: ['title', 'restaurant', 'order_tip', 'why', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
+} as const;
 const SUGGEST_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
     intro_ar: { type: 'string' },
-    options: {
+    home: {
       type: 'array',
+      description: 'exactly 2 home recipes, one serving each',
       items: {
         type: 'object',
         additionalProperties: false,
         properties: {
-          title_ar: { type: 'string' },
-          where_ar: { type: 'string', description: 'home, a restaurant the user already eats at, or a common UAE chain' },
-          kcal: { type: 'number' },
-          protein_g: { type: 'number' },
-          why_ar: { type: 'string' },
+          title: { type: 'string' },
+          prep_min: { type: 'number' },
+          ingredients: {
+            type: 'array',
+            items: { type: 'object', additionalProperties: false, properties: { item: { type: 'string' }, amount: { type: 'string', description: 'grams/ml/spoons/pieces' } }, required: ['item', 'amount'] },
+          },
+          steps: { type: 'array', items: { type: 'string' } },
+          why: { type: 'string' },
+          ...NUTR,
         },
-        required: ['title_ar', 'where_ar', 'kcal', 'protein_g', 'why_ar'],
+        required: ['title', 'prep_min', 'ingredients', 'steps', 'why', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
       },
     },
+    healthy: { type: 'array', description: 'exactly 2 options from healthy restaurants / meal-prep brands', items: OUT_OPTION },
+    fast: { type: 'array', description: 'exactly 2 options from fast-food chains', items: OUT_OPTION },
   },
-  required: ['intro_ar', 'options'],
+  required: ['intro_ar', 'home', 'healthy', 'fast'],
 } as const;
 
 const WEEKLY_SCHEMA = {
@@ -99,31 +124,58 @@ export class CoachService {
       ? ram.fasting ? 'iftar (the user is fasting now)' : hour < 4 || hour >= 22 ? 'suhoor' : 'evening meal after iftar'
       : hour < 5 || hour >= 22 ? 'light late snack' : hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 19 ? 'afternoon snack or early dinner' : 'dinner';
     const lang = profile.language ?? 'en';
-    const key = `suggest:${lang}:${profile.dietStyle ?? 'normal'}:${today}:${slot}:${Math.round(remaining / 75)}:${Math.round(proteinLeft / 10)}`;
-    return this.cached(userId, key, opts.force ? 0 : minutes(45), async () => {
-      const system = `You are StrainEat's nutrition coach. Suggest 3 or 4 concrete meal options for the user's next meal.\n${SAFETY}\n${langRule(lang)}\nEach option must state realistic kcal and protein. Prefer options close to the user's habits; include at least one home option and at least one from a restaurant they already use if any.`;
+    const key = `suggest6:${lang}:${profile.dietStyle ?? 'normal'}:${today}:${slot}:${Math.round(remaining / 75)}:${Math.round(proteinLeft / 10)}`;
+    // What was already shown today, so "refresh" brings different restaurants and recipes.
+    const seenKey = `suggest6-seen:${today}`;
+    const seen: string[] = ((await this.repo.getCache(userId, seenKey))?.payload as any)?.items ?? [];
+    const place = [profile.area, profile.city].filter(Boolean).join(', ') || 'the UAE';
+    const result = await this.cached(userId, key, opts.force ? 0 : minutes(45), async () => {
+      const system = `You are StrainEat's nutrition coach. Give the user 6 options for their next meal, in three groups:
+- home: 2 home recipes (one serving each) with exact ingredient amounts (g, ml, spoons, pieces), 3–6 short steps and prep minutes. Everyday ingredients sold in UAE supermarkets; vary cuisines (Gulf, Levantine, Indian, Asian, Western).
+- healthy: 2 dishes from healthy-focused restaurants or meal-prep brands that have branches in the user's emirate.
+- fast: 2 items from mainstream fast-food chains in the UAE — pick the menu item (and size) that best fits the user's numbers, plus how to order it lighter.
+Restaurant rules: only well-known chains/brands that really operate in the user's emirate; never invent restaurant names or menu items; prefer chains with published nutrition and use those values; vary brands — don't always pick the most famous ones; prefer restaurants the user already eats at when they fit.
+${SAFETY}
+${langRule(lang)}
+Every option needs realistic kcal, protein, carbs and fat for what is described.`;
       const user = [
-        `Meal slot: ${slot}. Local time hour: ${hour}. City: ${profile.city ?? 'UAE'}.`,
+        `Meal slot: ${slot}. Local time hour: ${hour}. Location: ${place}.`,
         `Goal: ${b.goal}. Calories left today: ${remaining}. Protein left today: ${proteinLeft} g. Fibre so far: ${Math.round(b.intake.fiber_g)} of ${b.macroTargets.fiber_g} g.`,
         ram.active && ram.split ? `Ramadan mode: suhoor ≈${ram.split.suhoor}, iftar ≈${ram.split.iftar}, evening ≈${ram.split.evening} kcal.` : '',
         `avoidRestriction: ${!!profile.screening?.edHistory}. medicalSupervision: ${!!profile.screening?.medicalSupervision}.`,
         dietLine(profile.dietStyle, profile.conditions),
         profile.mealsPerDay ? `The user usually eats ${profile.mealsPerDay} meal(s) a day — size the options for that.` : '',
         favourites.length ? `Recent meals the user enjoyed:\n- ${favourites.join('\n- ')}` : 'No meal history yet.',
+        seen.length ? `Already suggested today — give DIFFERENT recipes and different restaurants this time:\n- ${seen.slice(-24).join('\n- ')}` : '',
         b.goal === 'gain'
           ? 'For weight gain: options should be calorie- and protein-dense enough to close the gap.'
           : remaining <= 0
-            ? 'The user has reached today’s target: suggest light, high-protein, high-fibre options under ~250 kcal, or simply water/tea if they are not hungry. No guilt.'
+            ? 'The user has reached today’s target: every option must be light, high-protein, high-fibre and under ~250 kcal. No guilt.'
             : 'Keep every option within the calories left (or slightly under) and prioritise protein.',
       ].filter(Boolean).join('\n');
-      const out = await this.agent.completeJson<{ intro_ar: string; options: any[] }>(system, user, SUGGEST_SCHEMA, 1500);
+      const out = await this.agent.completeJson<any>(system, user, SUGGEST_SCHEMA, 3000);
       const cap = b.goal === 'gain' ? Infinity : Math.max(250, remaining + 100);
-      const options = (out.options ?? [])
-        .map((o) => ({ ...o, kcal: Math.round(Number(o.kcal) || 0), protein_g: Math.round(Number(o.protein_g) || 0) }))
-        .filter((o) => o.kcal > 0 && o.kcal <= cap)
-        .slice(0, 4);
-      return { slot, remainingKcal: remaining, proteinLeftG: proteinLeft, intro_ar: out.intro_ar ?? '', options };
+      const num = (o: any) => ({ kcal: Math.round(Number(o.kcal) || 0), protein_g: Math.round(Number(o.protein_g) || 0), carbs_g: Math.round(Number(o.carbs_g) || 0), fat_g: Math.round(Number(o.fat_g) || 0) });
+      const fits = (o: any) => o.kcal > 0 && o.kcal <= cap;
+      const home = (out.home ?? [])
+        .map((o: any) => ({ title: String(o.title ?? ''), prep_min: Math.round(Number(o.prep_min) || 0), ingredients: (o.ingredients ?? []).slice(0, 15), steps: (o.steps ?? []).slice(0, 8), why: String(o.why ?? ''), ...num(o) }))
+        .filter(fits).slice(0, 2);
+      const eat = (list: any[]) =>
+        (list ?? []).map((o: any) => ({ title: String(o.title ?? ''), restaurant: String(o.restaurant ?? ''), order_tip: String(o.order_tip ?? ''), why: String(o.why ?? ''), ...num(o) })).filter(fits).slice(0, 2);
+      const healthy = eat(out.healthy);
+      const fast = eat(out.fast);
+      // legacy flat list for older app builds
+      const options = [
+        ...home.map((o: any) => ({ title_ar: o.title, where_ar: lang === 'ar' ? 'البيت' : 'Home', kcal: o.kcal, protein_g: o.protein_g, why_ar: o.why })),
+        ...[...healthy, ...fast].map((o: any) => ({ title_ar: o.title, where_ar: o.restaurant, kcal: o.kcal, protein_g: o.protein_g, why_ar: o.order_tip || o.why })),
+      ];
+      return { slot, remainingKcal: remaining, proteinLeftG: proteinLeft, intro_ar: out.intro_ar ?? '', home, healthy, fast, options };
     });
+    if (!result.cached) {
+      const shown = [...result.home.map((o: any) => `home: ${o.title}`), ...[...result.healthy, ...result.fast].map((o: any) => `${o.restaurant}: ${o.title}`)];
+      await this.repo.setCache({ userId, key: seenKey, payload: { items: [...seen, ...shown].slice(-40) }, createdAt: new Date().toISOString() });
+    }
+    return result;
   }
 
   /** Weekly report: numbers computed here; the AI only writes the narrative. */

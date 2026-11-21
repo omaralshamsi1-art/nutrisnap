@@ -153,6 +153,17 @@ final class APIClient {
         return try await send(jsonRequest("meals", method: "POST", body))
     }
 
+    /// Log a suggested option as a confirmed meal (no AI call).
+    func logSuggestion(title: String, restaurant: String?, kcal: Double, protein: Double, carbs: Double, fat: Double) async throws {
+        let item: [String: Any] = ["name": title, "name_ar": title, "quantity": 1, "unit": "serving", "calories": kcal, "protein_g": protein,
+                                   "carbs_g": carbs, "fat_g": fat, "fiber_g": 0, "sugar_g": 0, "sodium_mg": 0]
+        var body: [String: Any] = ["meal_name": title, "meal_name_ar": title, "source": "estimate", "confidence": 0.7, "items": [item],
+                                   "eatenAt": ISO8601DateFormatter().string(from: Date())]
+        if let restaurant { body["restaurant"] = restaurant }
+        let meal: Meal = try await send(jsonRequest("meals", method: "POST", body))
+        _ = try await confirmMeal(id: meal.id)
+    }
+
     // MARK: Accounts
 
     func login(email: String, password: String) async throws -> AuthResponse {

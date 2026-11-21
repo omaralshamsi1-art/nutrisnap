@@ -113,6 +113,8 @@ export interface Profile {
   preferredEnergySource: EnergySource | null;
   timezone: string; // IANA, e.g. Asia/Dubai
   city: string | null;
+  /** neighbourhood / area inside the city, used for restaurant suggestions */
+  area?: string | null;
   country: string | null;
   // ---- goal engine (phase 2a) ----
   targetWeightKg: number | null;

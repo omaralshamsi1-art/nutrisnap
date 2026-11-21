@@ -10,7 +10,7 @@ nutrition when a restaurant is named), the user reviews/edits, then confirms. In
 target from the user's plan, and with calories burned (Apple Health, WHOOP or manual entry).
 Units: calories are kcal; macros in grams (g); weight in kg.
 Bottom navigation — web app: Today · Progress · Snap (camera button in the middle) · My plan · Settings.
-iPhone app: Today · Progress · Log meal · Plan (the iPhone "Plan" tab also holds the settings: account, Devices & apps
+iPhone app: Today · Progress · Log meal · Plan (the iPhone "Plan" tab also holds the settings: account, location, Devices & apps
 — Apple Health and WHOOP —, Ramadan & fasting, reminders, Language). On both, the orange ✦ button opens this assistant.
 The app is in English by default; Settings → Language switches to Arabic (the AI follows the chosen language).
 
@@ -21,7 +21,10 @@ The app is in English by default; Settings → Language switches to Arabic (the 
 - Macro bars: protein, carbs, fat, fiber — grams eaten vs grams targeted.
 - Ramadan card (appears during Ramadan or when fasting mode is on): suhoor/iftar times and how the day's target is split.
 - Tips and the weekly challenge.
-- "What should I eat now?": AI meal ideas that fit the calories left (Refresh for new ideas).
+- "What should I eat now?": 6 AI ideas that fit the calories and protein left — 2 home recipes (tap for ingredients
+  and method), 2 from healthy restaurants and 2 smart picks from fast-food chains near the user (based on the emirate and
+  area saved in Settings → "Your location for suggestions"). "Log it" adds one to today; "More options" brings
+  different restaurants and recipes.
 - Your activity: workouts synced from Apple Health/WHOOP or added manually, with calories burned.
 - Today's meals: every meal with its calories (the number + "kcal" on each row is that meal's calories) and a score.
   Tap a meal to open it, edit it, or delete it.

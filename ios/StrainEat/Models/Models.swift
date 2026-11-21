@@ -269,12 +269,26 @@ struct Motivation: Codable {
 struct Suggestions: Codable {
     struct Option: Codable, Hashable { let titleAr: String; let whereAr: String; let kcal: Double; let proteinG: Double; let whyAr: String
         enum CodingKeys: String, CodingKey { case kcal; case titleAr = "title_ar", whereAr = "where_ar", proteinG = "protein_g", whyAr = "why_ar" } }
+    struct Ingredient: Codable, Hashable { let item: String; let amount: String }
+    struct Home: Codable, Hashable {
+        let title: String; let prepMin: Double; let ingredients: [Ingredient]; let steps: [String]; let why: String
+        let kcal: Double; let proteinG: Double; let carbsG: Double; let fatG: Double
+        enum CodingKeys: String, CodingKey { case title, ingredients, steps, why, kcal; case prepMin = "prep_min", proteinG = "protein_g", carbsG = "carbs_g", fatG = "fat_g" }
+    }
+    struct Out: Codable, Hashable {
+        let title: String; let restaurant: String; let orderTip: String; let why: String
+        let kcal: Double; let proteinG: Double; let carbsG: Double; let fatG: Double
+        enum CodingKeys: String, CodingKey { case title, restaurant, why, kcal; case orderTip = "order_tip", proteinG = "protein_g", carbsG = "carbs_g", fatG = "fat_g" }
+    }
     let slot: String
     let remainingKcal: Double
     let proteinLeftG: Double
     let introAr: String
     let options: [Option]
-    enum CodingKeys: String, CodingKey { case slot, remainingKcal, proteinLeftG, options; case introAr = "intro_ar" }
+    let home: [Home]?
+    let healthy: [Out]?
+    let fast: [Out]?
+    enum CodingKeys: String, CodingKey { case slot, remainingKcal, proteinLeftG, options, home, healthy, fast; case introAr = "intro_ar" }
 }
 
 struct WeeklyReport: Codable {
@@ -330,6 +344,7 @@ struct Profile: Codable {
     var preferredEnergySource: String?
     var timezone: String
     var city: String?
+    var area: String?
     var targetWeightKg: Double?
     var pace: String?
     var screening: Screening?

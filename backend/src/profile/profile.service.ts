@@ -157,7 +157,7 @@ export function validateProfilePatch(patch: Partial<Profile>): Partial<Profile> 
       out.language = v;
     } else if (k === 'onboarded') {
       out.onboarded = !!v;
-    } else if (['timezone', 'city', 'country', 'startDate'].includes(k)) {
+    } else if (['timezone', 'city', 'area', 'country', 'startDate'].includes(k)) {
       out[k] = v === null ? null : String(v).slice(0, 64);
     }
   }

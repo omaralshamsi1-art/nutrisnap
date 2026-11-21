@@ -715,6 +715,17 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
     </div>
 
     <div class="card">
+      <h3>موقعك للاقتراحات</h3>
+      <p class="small muted" style="margin-top:-4px">نقترح مطاعم موجودة في إمارتك ومنطقتك.</p>
+      <div class="grid2">
+        <div><label for="locCity" style="margin-top:0">الإمارة</label><select id="locCity"><option value="">—</option><option>Abu Dhabi</option><option>Dubai</option><option>Sharjah</option><option>Ajman</option><option>Umm Al Quwain</option><option>Ras Al Khaimah</option><option>Fujairah</option><option>Al Ain</option></select></div>
+        <div><label for="locArea" style="margin-top:0">المنطقة</label><input id="locArea" placeholder="مثال: النخيل"></div>
+      </div>
+      <div style="height:12px"></div>
+      <button class="btn ghost" id="locSave">حفظ الموقع</button>
+    </div>
+
+    <div class="card">
       <h3>المظهر</h3>
       <div class="langsw" role="group" aria-label="المظهر" id="themeSw"><button type="button" data-theme-opt="system">تلقائي</button><button type="button" data-theme-opt="light">فاتح</button><button type="button" data-theme-opt="dark">داكن</button></div>
       <p class="small muted" style="margin:8px 0 0">تلقائي = يتبع إعداد جهازك.</p>
@@ -818,6 +829,7 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
     window.scrollTo(0, 0);
     if (v === 'today') loadToday();
     if (v === 'progress') loadProgress();
+    if (v === 'plan') loadLocation();
     if (v === 'plan') loadPlan().then(() => { if (scrollTo) $('eSave').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   }
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => show(b.dataset.v)));
@@ -1336,14 +1348,52 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
   };
 
   // ---------------- coach: suggestions ----------------
+  let sugCache = null;
+  function sugMacros(o) { return L`<span class="small num" style="white-space:nowrap">${fmt(o.kcal)} سعرة · ${fmt(o.protein_g)} غ بروتين</span>`; }
+  function sugCard(o, kind, i) {
+    const logBtn = `<button class="chip src" style="cursor:pointer;margin-top:8px" data-sug-log="${kind}:${i}">${T('سجّلها')}</button>`;
+    if (kind === 'home') {
+      return `<details class="opt"><summary style="cursor:pointer;list-style:none"><div class="row"><b>${esc(o.title)}</b>${sugMacros(o)}</div>
+        <div class="small muted" style="margin-top:4px">${L`🏠 البيت · ${fmt(o.prep_min)} دقيقة`} · <span style="text-decoration:underline">${T('المقادير وطريقة التحضير')}</span></div></summary>
+        <div class="small" style="margin-top:10px;line-height:1.7"><b>${T('المقادير')}</b><ul style="margin:4px 0 8px;padding-inline-start:18px">${o.ingredients.map((x) => `<li>${esc(x.item)} — <span class="num">${esc(x.amount)}</span></li>`).join('')}</ul>
+        <b>${T('طريقة التحضير')}</b><ol style="margin:4px 0 0;padding-inline-start:18px">${o.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+        <div class="muted" style="margin-top:8px">${L`كربوهيدرات ${fmt(o.carbs_g)} غ · دهون ${fmt(o.fat_g)} غ`}</div>${o.why ? `<div style="margin-top:6px">${esc(o.why)}</div>` : ''}</div>${logBtn}</details>`;
+    }
+    return `<div class="opt"><div class="row"><b>${esc(o.title)}</b>${sugMacros(o)}</div>
+      <div class="small muted" style="margin-top:4px">${kind === 'fast' ? '🍔' : '🥗'} ${esc(o.restaurant)}</div>
+      ${o.order_tip ? `<div class="small" style="margin-top:6px;line-height:1.6">💡 ${esc(o.order_tip)}</div>` : ''}${o.why ? `<div class="small muted" style="margin-top:4px;line-height:1.6">${esc(o.why)}</div>` : ''}${logBtn}</div>`;
+  }
   async function loadSuggestions(force) {
     $('sugBody').innerHTML = T('<div class="loading"><div class="spinner"></div>يفكّر المدرب في خيارات تناسبك…</div>');
     try {
       const r = await api(`coach/suggest${force ? '?force=1' : ''}`, { method: 'POST' });
+      sugCache = r;
       const head = L`<p class="small muted" style="margin:0">${esc(r.intro_ar)}</p><p class="small" style="margin:6px 0 0">متبقي لك: <b class="num">${fmt(Math.max(0, r.remainingKcal))}</b> سعرة · <b class="num">${fmt(r.proteinLeftG)}</b> غ بروتين</p>`;
-      $('sugBody').innerHTML = head + (r.options.length ? r.options.map((o) => L`<div class="opt"><div class="row"><b>${esc(o.title_ar)}</b><span class="small num" style="white-space:nowrap">${fmt(o.kcal)} سعرة · ${fmt(o.protein_g)} غ</span></div><div class="small muted" style="margin-top:4px">${esc(o.where_ar)}</div>${o.why_ar ? `<div class="small" style="margin-top:6px;line-height:1.6">${esc(o.why_ar)}</div>` : ''}</div>`).join('') : T('<div class="empty small">لم أجد خيارات مناسبة الآن، جرّب "تحديث".</div>'));
+      if (!r.home) { // older server
+        $('sugBody').innerHTML = head + r.options.map((o) => L`<div class="opt"><div class="row"><b>${esc(o.title_ar)}</b><span class="small num">${fmt(o.kcal)} سعرة</span></div><div class="small muted">${esc(o.where_ar)}</div></div>`).join('');
+        return;
+      }
+      const group = (title, list, kind) => list.length ? `<h4 style="margin:16px 0 0;font-size:15px">${title}</h4>${list.map((o, i) => sugCard(o, kind, i)).join('')}` : '';
+      const body = group(T('🏠 من البيت'), r.home, 'home') + group(T('🥗 من مطعم صحي'), r.healthy, 'healthy') + group(T('🍔 وجبات سريعة بخيار مناسب'), r.fast, 'fast');
+      $('sugBody').innerHTML = head + (body || T('<div class="empty small">لم أجد خيارات مناسبة الآن، جرّب "تحديث".</div>')) +
+        `<button class="btn ghost" id="sugMore" style="margin-top:14px">${T('🔄 خيارات أخرى (مطاعم ووصفات مختلفة)')}</button>`;
+      $('sugMore').onclick = () => loadSuggestions(true);
     } catch (e) { $('sugBody').innerHTML = L`<div class="empty small">${esc(e.message)}</div><button class="btn ghost" id="sugRetry">إعادة المحاولة</button>`; $('sugRetry').onclick = () => loadSuggestions(true); }
   }
+  $('sugBody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-sug-log]'); if (!btn || !sugCache) return;
+    e.preventDefault();
+    const [kind, i] = btn.dataset.sugLog.split(':'); const o = (sugCache[kind] || [])[+i]; if (!o) return;
+    btn.disabled = true; btn.textContent = T('جارٍ الحفظ…');
+    try {
+      const meal = await api('meals', { method: 'POST', json: {
+        meal_name: o.title, meal_name_ar: o.title, restaurant: kind === 'home' ? null : o.restaurant, source: 'estimate', confidence: 0.7, eatenAt: new Date().toISOString(),
+        items: [{ name: o.title, name_ar: o.title, quantity: 1, unit: 'serving', grams: null, calories: o.kcal, protein_g: o.protein_g, carbs_g: o.carbs_g, fat_g: o.fat_g, fiber_g: 0, sugar_g: 0, sodium_mg: 0 }],
+      } });
+      await api(`meals/${meal.id}/confirm`, { method: 'POST' });
+      btn.textContent = T('✓ تمت الإضافة'); toast(T('تمت إضافة الوجبة لليوم ✓')); loadToday();
+    } catch (err) { btn.disabled = false; btn.textContent = T('سجّلها'); toast(err.message); }
+  });
   $('sugBtn').onclick = () => loadSuggestions(false);
   $('sugRefresh').onclick = () => loadSuggestions(true);
 
@@ -1816,6 +1866,17 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
   };
 
   // ---------------- boot ----------------
+  // ---------------- location for suggestions ----------------
+  async function loadLocation() {
+    try { const p = await api('profile'); $('locCity').value = p.city || ''; $('locArea').value = p.area || ''; } catch {}
+  }
+  $('locSave').onclick = async () => {
+    try {
+      await api('profile', { method: 'PUT', json: { city: $('locCity').value || null, area: $('locArea').value.trim() || null } });
+      toast(T('تم الحفظ ✓'));
+    } catch (e) { toast(e.message); }
+  };
+
   // ---------------- appearance ----------------
   function paintThemeSw() {
     let cur = 'system'; try { cur = localStorage.getItem('ns_theme') || 'system'; } catch {}

@@ -63,25 +63,37 @@ describe('coach service', () => {
   }
   const respond = (input: any) => ({ stop_reason: 'tool_use', content: [{ type: 'tool_use', id: 't', name: 'respond', input }] });
 
-  it('suggest: passes budget + history, drops options over the budget, caches', async () => {
-    const s = setup(() => respond({ intro_ar: 'اقتراحات', options: [
-      { title_ar: 'سلطة دجاج مشوي', where_ar: 'البيت', kcal: 450, protein_g: 40, why_ar: '' },
-      { title_ar: 'برجر دبل', where_ar: 'مطعم', kcal: 1400, protein_g: 50, why_ar: '' },
-    ] }));
-    await s.profiles.update('u', { sex: 'female', birthYear: 1995, heightCm: 165, activityLevel: 'light', goal: 'lose', targetWeightKg: 65, onboarded: true });
+  it('suggest: 2 home recipes + 2 healthy + 2 fast food, drops over-budget, caches, refresh avoids repeats', async () => {
+    const home = (t: string, kcal: number) => ({ title: t, prep_min: 15, ingredients: [{ item: 'chicken breast', amount: '150 g' }], steps: ['Grill'], why: '', kcal, protein_g: 40, carbs_g: 20, fat_g: 10 });
+    const out = (r: string, t: string, kcal: number) => ({ title: t, restaurant: r, order_tip: 'no mayo', why: '', kcal, protein_g: 30, carbs_g: 40, fat_g: 12 });
+    const s = setup(() => respond({ intro_ar: 'اقتراحات',
+      home: [home('سلطة دجاج مشوي', 450), home('Mandi', 1500)],
+      healthy: [out('Kcal', 'Chicken bowl', 520), out('Calo', 'Salmon box', 480)],
+      fast: [out('KFC', 'Twister grilled', 430), out("McDonald's", 'Double Big Mac meal', 1400)],
+    }));
+    await s.profiles.update('u', { sex: 'female', birthYear: 1995, heightCm: 165, activityLevel: 'light', goal: 'lose', targetWeightKg: 65, onboarded: true, city: 'Ras Al Khaimah', area: 'Al Nakheel' } as any);
     await s.plans.addWeight('u', { kg: 75 });
     const m = await s.meals.createManual('u', { meal_name: 'Shawarma', meal_name_ar: 'شاورما', restaurant: 'Al Mallah', items: [{ name: 'w', name_ar: 'w', quantity: 1, unit: 'p', grams: null, calories: 600, protein_g: 30, carbs_g: 50, fat_g: 25, fiber_g: 3, sugar_g: 3, sodium_mg: 900 }] });
     await s.meals.confirm('u', m.id);
-    const r = await s.coach.suggest('u');
-    expect(r.options.map((o) => o.title_ar)).toEqual(['سلطة دجاج مشوي']);
+    const r: any = await s.coach.suggest('u');
+    expect(r.home.map((o: any) => o.title)).toEqual(['سلطة دجاج مشوي']);
+    expect(r.home[0].ingredients[0]).toEqual({ item: 'chicken breast', amount: '150 g' });
+    expect(r.healthy).toHaveLength(2);
+    expect(r.fast.map((o: any) => o.restaurant)).toEqual(['KFC']);
+    expect(r.options).toHaveLength(4); // legacy flat list
     expect(r.cached).toBe(false);
     const prompt = s.calls[0].messages[0].content as string;
     expect(prompt).toContain('شاورما (Al Mallah)');
+    expect(prompt).toContain('Location: Al Nakheel, Ras Al Khaimah');
     expect(prompt).toMatch(/Calories left today: \d+/);
     expect(s.calls[0].system).toContain('Never suggest eating below');
     const again = await s.coach.suggest('u');
     expect(again.cached).toBe(true);
     expect(s.calls).toHaveLength(1);
+    await s.coach.suggest('u', { force: true });
+    const p2 = s.calls[1].messages[0].content as string;
+    expect(p2).toContain('Already suggested today');
+    expect(p2).toContain('KFC: Twister grilled');
   });
 
   it('weekly: numbers are computed locally; AI only writes the narrative; empty weeks skip the AI', async () => {

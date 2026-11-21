@@ -219,30 +219,39 @@ struct ChallengeCard: View {
 // MARK: Coach suggestions
 
 struct SuggestCard: View {
+    @Environment(AppStore.self) private var store
     @State private var data: Suggestions?
     @State private var busy = false
     @State private var error: String?
+    @State private var logged: Set<String> = []
+    @State private var openRecipe: String?
 
     var body: some View {
         Card(title: t("What should I eat now?", "ماذا آكل الآن؟"), icon: "sparkles",
              trailing: data == nil ? nil : AnyView(Button { Task { await load(force: true) } } label: { Image(systemName: "arrow.clockwise") })) {
-            if let data {
+            if busy && data != nil { ProgressView().frame(maxWidth: .infinity) }
+            if let data, !busy {
                 if !data.introAr.isEmpty { Text(data.introAr).font(.subheadline).foregroundStyle(Theme.muted) }
-                ForEach(data.options, id: \.self) { o in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(o.titleAr).font(.subheadline.weight(.semibold))
-                            Spacer()
-                            Text(t("\(fmt(o.kcal)) kcal", "\(fmt(o.kcal)) سعرة")).font(.caption.weight(.bold)).monospacedDigit()
-                        }
-                        Text(t("\(o.whereAr) • \(fmt(o.proteinG)) g protein", "\(o.whereAr) • \(fmt(o.proteinG)) غ بروتين")).font(.caption).foregroundStyle(Theme.protein)
-                        Text(o.whyAr).font(.caption).foregroundStyle(Theme.muted)
+                if let home = data.home {
+                    if !home.isEmpty { header(t("🏠 Cook at home", "🏠 من البيت")) }
+                    ForEach(home, id: \.self) { homeCard($0) }
+                    if let h = data.healthy, !h.isEmpty { header(t("🥗 Healthy restaurant", "🥗 من مطعم صحي")); ForEach(h, id: \.self) { outCard($0, icon: "🥗") } }
+                    if let f = data.fast, !f.isEmpty { header(t("🍔 Fast food, smart pick", "🍔 وجبات سريعة بخيار مناسب")); ForEach(f, id: \.self) { outCard($0, icon: "🍔") } }
+                    Button { Task { await load(force: true) } } label: {
+                        Label(t("More options (different restaurants & recipes)", "خيارات أخرى (مطاعم ووصفات مختلفة)"), systemImage: "arrow.triangle.2.circlepath")
                     }
-                    .padding(12)
-                    .background(Theme.card2, in: RoundedRectangle(cornerRadius: 14))
+                    .buttonStyle(SoftButtonStyle())
+                } else {
+                    ForEach(data.options, id: \.self) { o in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(o.titleAr).font(.subheadline.weight(.semibold))
+                            Text(t("\(o.whereAr) • \(fmt(o.kcal)) kcal", "\(o.whereAr) • \(fmt(o.kcal)) سعرة")).font(.caption).foregroundStyle(Theme.muted)
+                        }
+                        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.card2, in: RoundedRectangle(cornerRadius: 14))
+                    }
                 }
-                if data.options.isEmpty { Text(t("No suitable options right now — try again later.", "لا خيارات مناسبة الآن — جرّب لاحقاً.")).font(.footnote).foregroundStyle(Theme.muted) }
-            } else {
+            } else if data == nil {
                 Text(t("Suggestions that fit the calories and protein you have left today.", "اقتراحات تناسب ما تبقى من سعراتك وبروتينك اليوم.")).font(.footnote).foregroundStyle(Theme.muted)
                 Button { Task { await load() } } label: {
                     if busy { ProgressView() } else { Label(t("Suggest something", "اقترح عليّ"), systemImage: "wand.and.stars") }
@@ -253,10 +262,75 @@ struct SuggestCard: View {
         }
     }
 
+    private func header(_ s: String) -> some View { Text(s).font(.subheadline.weight(.bold)).padding(.top, 6) }
+
+    private func macros(_ kcal: Double, _ p: Double) -> some View {
+        Text(t("\(fmt(kcal)) kcal · \(fmt(p)) g protein", "\(fmt(kcal)) سعرة · \(fmt(p)) غ بروتين")).font(.caption.weight(.bold)).monospacedDigit()
+    }
+
+    private func homeCard(_ o: Suggestions.Home) -> some View {
+        let open = openRecipe == o.title
+        return VStack(alignment: .leading, spacing: 6) {
+            Button { withAnimation { openRecipe = open ? nil : o.title } } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline) { Text(o.title).font(.subheadline.weight(.semibold)).multilineTextAlignment(.leading); Spacer(); macros(o.kcal, o.proteinG) }
+                    HStack(spacing: 4) {
+                        Text(t("🏠 Home · \(fmt(o.prepMin)) min", "🏠 البيت · \(fmt(o.prepMin)) دقيقة"))
+                        Text("·")
+                        Text(t("Ingredients & method", "المقادير وطريقة التحضير")).underline()
+                        Image(systemName: open ? "chevron.up" : "chevron.down")
+                    }
+                    .font(.caption).foregroundStyle(Theme.muted)
+                }
+            }
+            .buttonStyle(.plain)
+            if open {
+                Text(t("Ingredients", "المقادير")).font(.caption.weight(.bold))
+                ForEach(o.ingredients, id: \.self) { x in Text("• \(x.item) — \(x.amount)").font(.caption) }
+                Text(t("Method", "طريقة التحضير")).font(.caption.weight(.bold)).padding(.top, 4)
+                ForEach(Array(o.steps.enumerated()), id: \.offset) { i, step in Text("\(i + 1). \(step)").font(.caption) }
+                Text(t("Carbs \(fmt(o.carbsG)) g · Fat \(fmt(o.fatG)) g", "كربوهيدرات \(fmt(o.carbsG)) غ · دهون \(fmt(o.fatG)) غ")).font(.caption).foregroundStyle(Theme.muted)
+                if !o.why.isEmpty { Text(o.why).font(.caption).foregroundStyle(Theme.muted) }
+            }
+            logButton(id: "home|\(o.title)") {
+                try await APIClient.shared.logSuggestion(title: o.title, restaurant: nil, kcal: o.kcal, protein: o.proteinG, carbs: o.carbsG, fat: o.fatG)
+            }
+        }
+        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card2, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func outCard(_ o: Suggestions.Out, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) { Text(o.title).font(.subheadline.weight(.semibold)); Spacer(); macros(o.kcal, o.proteinG) }
+            Text("\(icon) \(o.restaurant)").font(.caption).foregroundStyle(Theme.muted)
+            if !o.orderTip.isEmpty { Text("💡 \(o.orderTip)").font(.caption) }
+            if !o.why.isEmpty { Text(o.why).font(.caption).foregroundStyle(Theme.muted) }
+            logButton(id: "\(o.restaurant)|\(o.title)") {
+                try await APIClient.shared.logSuggestion(title: o.title, restaurant: o.restaurant, kcal: o.kcal, protein: o.proteinG, carbs: o.carbsG, fat: o.fatG)
+            }
+        }
+        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card2, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func logButton(id: String, action: @escaping () async throws -> Void) -> some View {
+        Button {
+            Task {
+                do { try await action(); logged.insert(id); await store.refresh() } catch { self.error = error.localizedDescription }
+            }
+        } label: {
+            Text(logged.contains(id) ? t("✓ Added", "✓ تمت الإضافة") : t("Log it", "سجّلها")).font(.caption.weight(.semibold))
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(Theme.card, in: Capsule()).overlay(Capsule().stroke(Theme.line))
+        }
+        .buttonStyle(.plain).disabled(logged.contains(id)).padding(.top, 4)
+    }
+
     private func load(force: Bool = false) async {
         busy = true; error = nil
         defer { busy = false }
-        do { data = try await APIClient.shared.suggest(force: force) } catch { self.error = error.localizedDescription }
+        do { data = try await APIClient.shared.suggest(force: force); openRecipe = nil } catch { self.error = error.localizedDescription }
     }
 }
 
