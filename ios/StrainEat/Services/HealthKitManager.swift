@@ -54,9 +54,10 @@ final class HealthKitManager {
         return try await query.result(for: store)?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
     }
 
-    /// Reads the last `days` days of burn and sends them to the backend.
-    func syncBurnToServer(days: Int = 2) async {
-        guard isAvailable else { return }
+    /// Reads the last `days` days of burn and sends them to the backend. Returns today's kcal (nil = nothing read).
+    @discardableResult
+    func syncBurnToServer(days: Int = 2) async -> Double? {
+        guard isAvailable else { return nil }
         var samples: [EnergySample] = []
         for offset in 0..<days {
             let day = Calendar.current.date(byAdding: .day, value: -offset, to: Date())!
@@ -64,7 +65,10 @@ final class HealthKitManager {
             samples.append(EnergySample(date: DateFormatter.isoDay.string(from: day), source: "apple_health",
                                         activeKcal: e.active.rounded(), basalKcal: e.basal.rounded(), totalKcal: nil))
         }
-        if !samples.isEmpty { try? await APIClient.shared.pushEnergy(samples) }
+        guard !samples.isEmpty else { return nil }
+        do { try await APIClient.shared.pushEnergy(samples) } catch { return nil }
+        let today = DateFormatter.isoDay.string(from: Date())
+        return samples.first { $0.date == today }.map { ($0.activeKcal ?? 0) + ($0.basalKcal ?? 0) }
     }
 
     // MARK: Workouts → server (activity type, duration, kcal, heart rate, distance)

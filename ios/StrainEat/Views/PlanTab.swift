@@ -223,9 +223,14 @@ struct DevicesCard: View {
                 Button {
                     Task {
                         busy = true; defer { busy = false }
+                        guard HealthKitManager.shared.isAvailable else { message = t("Apple Health isn't available on this device.", "Apple Health غير متاح على هذا الجهاز."); return }
                         try? await HealthKitManager.shared.requestAuthorization()
+                        let kcal = await HealthKitManager.shared.syncBurnToServer()
+                        await HealthKitManager.shared.syncWorkoutsToServer()
                         await store.refresh(force: true)
-                        message = t("Apple Health synced ✓", "تمت مزامنة Apple Health ✓")
+                        message = kcal.map { t("Apple Health synced ✓ — today's burn \(fmt($0)) kcal", "تمت مزامنة Apple Health ✓ — حرق اليوم \(fmt($0)) سعرة") }
+                            ?? t("No burn data was read. Check iPhone Settings → Health → Data Access & Devices → StrainEat and allow Active & Resting Energy.",
+                                 "لم تُقرأ بيانات حرق. افتح إعدادات الآيفون ← الصحة ← الوصول إلى البيانات والأجهزة ← StrainEat واسمح بالطاقة النشطة وطاقة الراحة.")
                     }
                 } label: { Label(t("Sync Apple Health now", "مزامنة Apple Health الآن"), systemImage: "heart.fill") }
                     .buttonStyle(SoftButtonStyle()).disabled(busy)
