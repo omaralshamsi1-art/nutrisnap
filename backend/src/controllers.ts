@@ -13,6 +13,7 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
+  Headers,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -33,6 +34,7 @@ import { MotivationService } from './coach/motivation.service';
 import { RemindersService } from './coach/reminders.service';
 import { Workout } from './common/types';
 import { AssistantService } from './assistant/assistant.service';
+import { ShortcutService } from './energy/shortcut.service';
 import { ScheduleService } from './schedule/schedule.service';
 import { validateProfilePatch } from './profile/profile.service';
 
@@ -113,7 +115,28 @@ export class MealsController {
 
 @Controller()
 export class EnergyController {
-  constructor(private readonly energy: EnergyService) {}
+  constructor(
+    private readonly energy: EnergyService,
+    private readonly shortcut: ShortcutService,
+  ) {}
+
+  /** Personal token for the Apple Health iPhone Shortcut (rotate=1 makes a new one and disables the old). */
+  @Get('energy/shortcut-token')
+  shortcutToken(@UserId() userId: string, @Query('rotate') rotate?: string) {
+    return this.shortcut.token(userId, rotate === '1');
+  }
+
+  @Get('energy/shortcut-status')
+  shortcutStatus(@UserId() userId: string) {
+    return this.shortcut.status(userId);
+  }
+
+  /** Called by the iPhone Shortcut: { active, basal, date? } + header X-Sync-Token (or ?token=). No login needed. */
+  @Public()
+  @Post('energy/shortcut')
+  shortcutIngest(@Headers('x-sync-token') header: string, @Query('token') q: string, @Body() body: Record<string, unknown>) {
+    return this.shortcut.ingest(header || q, body ?? {});
+  }
 
   /** Devices push daily burn here (Apple Health from iOS, Health Connect from Android, Garmin/Fitbit bridges…). */
   @Post('energy/samples')

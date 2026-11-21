@@ -881,7 +881,21 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       <div id="srcApple" class="band p" style="margin-top:12px">
         <div class="bh">Apple Health <span id="ahStatus">—</span></div>
         <div style="padding:12px 14px;display:grid;gap:8px">
-          <p class="small" style="margin:0;line-height:1.6">تتم مزامنة Apple Health من تطبيق StrainEat على الآيفون: افتح التطبيق واسحب الشاشة لتحت، أو من الإعدادات اضغط «Apple Health — سماح ومزامنة».</p>
+          <p class="small" style="margin:0;line-height:1.6">الموقع لا يستطيع قراءة Apple Health مباشرة، لذلك نستخدم <b>اختصار آيفون</b> يرسل حرقك تلقائياً عدة مرات في اليوم.</p>
+          <div class="small" id="scLast" style="font-weight:700"></div>
+          <button class="btn ghost" id="scCopy">نسخ رابط المزامنة الخاص بك</button>
+          <details class="small" id="scSteps" style="line-height:1.8"><summary style="cursor:pointer;font-weight:700">خطوات إعداد الاختصار (مرة واحدة)</summary>
+            <ol style="padding-inline-start:18px;margin:8px 0">
+              <li>افتح تطبيق <b>الاختصارات (Shortcuts)</b> ← <b>+</b> وسمّه StrainEat.</li>
+              <li>أضف <b>Find Health Samples</b> (البحث عن عينات الصحة): النوع <b>Active Energy</b> (الطاقة النشطة)، وأضف شرط <b>Start Date ← is today</b>.</li>
+              <li>أضف <b>Calculate Statistics</b> (حساب الإحصائيات) ← <b>Sum</b>، ثم <b>Set Variable</b> باسم <b>active</b>.</li>
+              <li>كرر الخطوتين 2 و3 مع <b>Resting Energy</b> (طاقة الراحة) واسم المتغير <b>basal</b>.</li>
+              <li>أضف <b>Get Contents of URL</b> والصق الرابط المنسوخ ← Method: <b>POST</b> ← Request Body: <b>JSON</b> وأضف حقلين رقميين: <b>active</b> = المتغير active، و<b>basal</b> = المتغير basal.</li>
+              <li>شغّل الاختصار مرة واسمح بالوصول لبيانات الصحة، ثم اضغط «تحقق من وصول البيانات».</li>
+              <li>من تبويب <b>Automation</b> (الأتمتة) ← <b>+</b> ← <b>Time of Day</b>: الساعة 12:00 يومياً ← <b>Run Immediately</b> ← اختر الاختصار. كرر للساعة 6 و10 مساءً.</li>
+            </ol>
+            <button class="chip src" id="scRotate" style="cursor:pointer">إنشاء رابط جديد (يلغي القديم)</button>
+          </details>
           <button class="btn ghost" id="ahCheck">تحقق من وصول البيانات</button>
         </div>
       </div>
@@ -1722,7 +1736,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       $('plWeekly').textContent = p.weeklyChangeKg ? L`${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ/أسبوع` : '—';
       $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = L`${fmt(p.fiberG)} غ`;
       $('plNotices').innerHTML = renderNotices(p.notices);
-      $('pSrc').value = prof.preferredEnergySource || ''; paintSources(); checkApple();
+      $('pSrc').value = prof.preferredEnergySource || ''; paintSources(); checkApple(); scStatus();
       const rm = prof.ramadan || { enabled: null, suhoorTime: '04:45', iftarTime: '18:00' };
       $('rmMode').value = rm.enabled === null ? 'auto' : rm.enabled ? 'on' : 'off';
       $('rmSuhoor').value = rm.suhoorTime; $('rmIftar').value = rm.iftarTime;
@@ -1828,7 +1842,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       return has;
     } catch { $('ahStatus').textContent = '—'; return false; }
   }
-  $('ahCheck').onclick = async () => { const ok = await checkApple(); toast(ok ? T('بيانات Apple Health لليوم موجودة ✓') : T('لم تصل بيانات اليوم بعد — افتح تطبيق الآيفون واسحب لتحت'), 3500); };
+  $('ahCheck').onclick = async () => { scStatus(); const ok = await checkApple(); toast(ok ? T('بيانات Apple Health لليوم موجودة ✓') : T('لم تصل بيانات اليوم بعد — شغّل الاختصار من تطبيق الاختصارات'), 3500); };
   $('srcManualGo').onclick = () => $('manualCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('pSrc').onchange = async () => {
     paintSources();
@@ -2310,6 +2324,21 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       finally { busy = false; ptr.classList.remove('spin', 'ready'); ptr.style.transform = ''; ptr.style.opacity = '0'; }
     });
   })();
+
+  // ---------------- Apple Health via iPhone Shortcut ----------------
+  const API_ORIGIN = location.origin;
+  async function scUrl(rotate) { const r = await api(`energy/shortcut-token${rotate ? '?rotate=1' : ''}`); return `${API_ORIGIN}/energy/shortcut?token=${r.token}`; }
+  async function scStatus() {
+    try {
+      const r = await api('energy/shortcut-status');
+      $('scLast').textContent = r.last ? L`آخر إرسال من الاختصار: ${new Date(r.last.at).toLocaleString(LOC, { weekday: 'short', hour: 'numeric', minute: '2-digit' })} · ${fmt((r.last.active || 0) + (r.last.basal || 0))} سعرة` : T('لم يصل شيء من الاختصار بعد');
+    } catch { $('scLast').textContent = ''; }
+  }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; }
+  }
+  $('scCopy').onclick = async () => { try { const u = await scUrl(false); toast((await copyText(u)) ? T('تم نسخ الرابط ✓ — الصقه في خطوة Get Contents of URL') : u, 4000); $('scSteps').open = true; } catch (e) { toast(e.message); } };
+  $('scRotate').onclick = async () => { try { const u = await scUrl(true); await copyText(u); toast(T('رابط جديد نُسخ ✓ — حدّثه في الاختصار'), 4000); } catch (e) { toast(e.message); } };
 
   // ---------------- quick links ----------------
   $('qlSnap').onclick = () => show('snap');

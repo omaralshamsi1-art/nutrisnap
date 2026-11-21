@@ -118,3 +118,39 @@ describe('schedule service + reminders', () => {
     expect(sent).toEqual(['🍽️ وقت الغداء']);
   });
 });
+
+import { kcalOf, ShortcutService } from '../src/energy/shortcut.service';
+import { EnergyService } from '../src/energy/energy.service';
+import { WorkoutsService } from '../src/workouts/workouts.service';
+
+describe('Apple Health via iPhone Shortcut', () => {
+  it('parses messy numbers from Shortcuts', () => {
+    expect(kcalOf(512.4)).toBe(512);
+    expect(kcalOf('1,240.6 kcal')).toBe(1241);
+    expect(kcalOf(['200', 300.2])).toBe(500);
+    expect(kcalOf('٥١٢')).toBe(512);
+    expect(kcalOf('')).toBeNull();
+    expect(kcalOf(-5)).toBeNull();
+  });
+  it('token → ingest as apple_health burn; rotate disables the old token', async () => {
+    const repo = new MemoryRepository();
+    const profiles = new ProfileService(repo);
+    const plans = new PlanService(repo, profiles);
+    const energy = new EnergyService(repo, profiles, plans, new WorkoutsService(repo, profiles));
+    const sc = new ShortcutService(repo, energy, profiles);
+    await profiles.update('u', { sex: 'male', birthYear: 1990, heightCm: 178, weightKg: 80, timezone: 'Asia/Dubai' } as any);
+    const { token } = await sc.token('u');
+    expect((await sc.token('u')).token).toBe(token); // stable
+    const r = await sc.ingest(token, { active: '612.7', basal: 1680 });
+    expect(r).toMatchObject({ ok: true, activeKcal: 613, basalKcal: 1680, totalKcal: 2293 });
+    const b: any = await energy.balance('u', r.date);
+    expect(b.burn).toMatchObject({ source: 'apple_health', totalKcal: 2293 });
+    expect((await sc.status('u')).last).toMatchObject({ active: 613 });
+    await expect(sc.ingest('x'.repeat(24), { active: 1 })).rejects.toThrow('Invalid sync token');
+    await expect(sc.ingest(token, {})).rejects.toThrow();
+    const { token: t2 } = await sc.token('u', true);
+    expect(t2).not.toBe(token);
+    await expect(sc.ingest(token, { active: 100 })).rejects.toThrow('Invalid sync token');
+    await expect(sc.ingest(t2, { active: 100 })).resolves.toMatchObject({ ok: true });
+  });
+});

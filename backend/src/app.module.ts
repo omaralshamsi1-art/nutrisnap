@@ -22,6 +22,7 @@ import {
   ScheduleController,
 } from './controllers';
 import { ScheduleService } from './schedule/schedule.service';
+import { ShortcutService } from './energy/shortcut.service';
 import { AssistantService } from './assistant/assistant.service';
 import { EnergyService } from './energy/energy.service';
 import { WhoopService } from './integrations/whoop/whoop.service';
@@ -67,6 +68,7 @@ import { REPOSITORY } from './storage/repository';
     WhoopService,
     AssistantService,
     ScheduleService,
+    ShortcutService,
   ],
 })
 export class AppModule {}
