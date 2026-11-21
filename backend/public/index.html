@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0f3d2e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NutriSnap">
-<title>NutriSnap — صوّر وجبتك</title>
+<meta name="apple-mobile-web-app-title" content="StrainEat">
+<title>StrainEat — صوّر وجبتك</title>
 <script src="i18n.js"></script>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -262,7 +262,7 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
 
 <div class="wrap">
   <div class="top">
-    <div class="brand"><img src="icon.svg" alt=""><span>Nutri<b>Snap</b></span></div>
+    <div class="brand"><img src="icon.svg" alt=""><span>Strain<b>Eat</b></span></div>
     <div class="daynav" id="dayNav">
       <button id="prevDay" aria-label="اليوم السابق"><svg width="18" height="18"><use href="#i-chev-r"/></svg></button>
       <span id="dayLabel">اليوم</span>
@@ -682,7 +682,7 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
     <div class="card">
       <button class="btn text" id="logout">تسجيل الخروج</button>
       <p class="small muted" style="text-align:center;margin:6px 0 0">للتثبيت: زر المشاركة ← "إضافة إلى الشاشة الرئيسية" · <a href="privacy.html">الخصوصية</a></p>
-      <p class="small muted" style="text-align:center;margin:6px 0 0">NutriSnap أداة متابعة وليس بديلاً عن استشارة طبية.</p>
+      <p class="small muted" style="text-align:center;margin:6px 0 0">StrainEat أداة متابعة وليس بديلاً عن استشارة طبية.</p>
     </div>
   </section>
 </div>
@@ -1229,8 +1229,8 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
         return `<div class="fav"><div class="t"><span class="code">${esc(i.code)}</span><span class="small muted">${used ? L`استُخدمت · ${esc(i.usedByName || '')}` : expired ? T('منتهية') : L`صالحة حتى ${new Date(i.expiresAt).toLocaleDateString(LOC, { day: 'numeric', month: 'short' })}`}</span></div>${!used && !expired ? L`<button class="btn ghost" data-link="${esc(link)}">مشاركة</button>` : ''}</div>`;
       }).join('');
       $('invList').querySelectorAll('[data-link]').forEach((b) => (b.onclick = async () => {
-        const url = b.dataset.link, text = L`انضم إلى NutriSnap — رمز دعوتك: ${url.split('=')[1]}`;
-        try { if (navigator.share) await navigator.share({ title: 'NutriSnap', text, url }); else { await navigator.clipboard.writeText(url); toast(T('نُسخ الرابط ✓')); } } catch {}
+        const url = b.dataset.link, text = L`انضم إلى StrainEat — رمز دعوتك: ${url.split('=')[1]}`;
+        try { if (navigator.share) await navigator.share({ title: 'StrainEat', text, url }); else { await navigator.clipboard.writeText(url); toast(T('نُسخ الرابط ✓')); } } catch {}
       }));
     } catch (e) { $('invList').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
   }

@@ -1,4 +1,4 @@
-/* NutriSnap UI language. English is the default; Arabic is the original source text.
+/* StrainEat UI language. English is the default; Arabic is the original source text.
  * Arabic UI strings in index.html are wrapped as T('…') or L`…${x}…`; EN maps each Arabic text
  * segment (split at HTML tags, "{}" = an interpolated value) to English. */
 (function () {
@@ -9,7 +9,7 @@
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   var EN = {
-"NutriSnap — صوّر وجبتك": "NutriSnap — snap your meal",
+"StrainEat — صوّر وجبتك": "StrainEat — snap your meal",
 "اليوم السابق": "Previous day",
 "اليوم": "Today",
 "اليوم التالي": "Next day",
@@ -201,7 +201,7 @@
 "تسجيل الخروج": "Sign out",
 "للتثبيت: زر المشاركة ← \"إضافة إلى الشاشة الرئيسية\" ·": "To install: Share button → \"Add to Home Screen\" ·",
 "الخصوصية": "Privacy",
-"NutriSnap أداة متابعة وليس بديلاً عن استشارة طبية.": "NutriSnap is a tracking tool, not a substitute for medical advice.",
+"StrainEat أداة متابعة وليس بديلاً عن استشارة طبية.": "StrainEat is a tracking tool, not a substitute for medical advice.",
 "التنقل": "Navigation",
 "التقدم": "Progress",
 "صوّري وجبة": "Snap a meal",
@@ -347,7 +347,7 @@
 "منتهية": "Expired",
 "صالحة حتى {}": "Valid until {}",
 "مشاركة": "Share",
-"انضم إلى NutriSnap — رمز دعوتك: {}": "Join NutriSnap — your invite code: {}",
+"انضم إلى StrainEat — رمز دعوتك: {}": "Join StrainEat — your invite code: {}",
 "نُسخ الرابط ✓": "Link copied ✓",
 "غير مدعوم هنا": "Not supported here",
 "مفعّلة ✓": "On ✓",

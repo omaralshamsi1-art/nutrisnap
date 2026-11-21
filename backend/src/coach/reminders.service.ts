@@ -140,7 +140,7 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
   async test(userId: string) {
     const lang = (await this.profiles.get(userId)).language ?? 'en';
     const n = await this.notify(userId, {
-      title: 'NutriSnap ✓',
+      title: 'StrainEat ✓',
       body: lang === 'ar' ? 'التنبيهات تعمل — سنذكّرك في أوقات وجباتك المعتادة.' : "Notifications work — we'll remind you around your usual meal times.",
     });
     return { sent: n };

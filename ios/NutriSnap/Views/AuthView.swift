@@ -19,7 +19,7 @@ struct AuthView: View {
                     Image("Logo")
                         .resizable().scaledToFit().frame(width: 84, height: 84)
                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    Text("NutriSnap").font(.largeTitle.bold()).foregroundStyle(Theme.brand)
+                    Text("StrainEat").font(.largeTitle.bold()).foregroundStyle(Theme.brand)
                     Text(t("Snap your meal… and see where you stand", "صوّر وجبتك… واعرف موقعك من هدفك")).foregroundStyle(Theme.muted)
                 }
                 .padding(.top, 40)

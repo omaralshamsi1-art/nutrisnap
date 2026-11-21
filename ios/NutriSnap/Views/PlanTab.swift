@@ -21,7 +21,7 @@ struct PlanTab: View {
                     }
                     Card(title: "Language · اللغة", icon: "globe") { LanguagePicker() }
                     if let message { Text(message).font(.footnote).foregroundStyle(Theme.muted) }
-                    Text("NutriSnap \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
+                    Text("StrainEat \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
                         .font(.caption2).foregroundStyle(Theme.muted)
                 }
                 .padding(16)
@@ -145,7 +145,7 @@ struct AccountCard: View {
                             } else if inv.expiresAt < Date() {
                                 Text(t("Expired", "منتهي")).font(.caption).foregroundStyle(Theme.bad)
                             } else {
-                                ShareLink(item: t("Invite to NutriSnap 🍽️\nLink: \(APIClient.shared.baseURL.absoluteString)/app/\nInvite code: \(inv.code)", "دعوة لتطبيق NutriSnap 🍽️\nالرابط: \(APIClient.shared.baseURL.absoluteString)/app/\nرمز الدعوة: \(inv.code)")) {
+                                ShareLink(item: t("Invite to StrainEat 🍽️\nLink: \(APIClient.shared.baseURL.absoluteString)/app/\nInvite code: \(inv.code)", "دعوة لتطبيق StrainEat 🍽️\nالرابط: \(APIClient.shared.baseURL.absoluteString)/app/\nرمز الدعوة: \(inv.code)")) {
                                     Image(systemName: "square.and.arrow.up")
                                 }
                             }

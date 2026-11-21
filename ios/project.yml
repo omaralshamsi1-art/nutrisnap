@@ -13,7 +13,7 @@ targets:
     info:
       path: NutriSnap/Resources/Info.plist
       properties:
-        CFBundleDisplayName: NutriSnap
+        CFBundleDisplayName: StrainEat
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, ar]
         ITSAppUsesNonExemptEncryption: false

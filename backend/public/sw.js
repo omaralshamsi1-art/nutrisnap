@@ -1,9 +1,9 @@
-// NutriSnap service worker — push notifications only (no offline caching).
+// StrainEat service worker — push notifications only (no offline caching).
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'NutriSnap', body: '', url: '/app/' };
+  let data = { title: 'StrainEat', body: '', url: '/app/' };
   try { data = { ...data, ...event.data.json() }; } catch { if (event.data) data.body = event.data.text(); }
   event.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,

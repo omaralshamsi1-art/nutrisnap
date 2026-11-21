@@ -64,7 +64,7 @@ describe('barcode (Open Food Facts)', () => {
     let n = 0;
     const fetchFn: any = vi.fn(async (url: string, init: any): Promise<any> => {
       n++;
-      expect(init.headers['User-Agent']).toContain('NutriSnap');
+      expect(init.headers['User-Agent']).toContain('StrainEat');
       if (url.includes('/0000000000000')) return { ok: false, status: 404, json: async () => ({}) };
       return {
         ok: true, status: 200,

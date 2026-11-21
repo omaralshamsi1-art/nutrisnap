@@ -3,7 +3,7 @@ import { KnownMeal } from '../common/types';
 export const SUBMIT_TOOL_NAME = 'submit_nutrition';
 
 export function buildSystemPrompt(opts: { country: string; city: string | null; today: string; webSearch?: boolean; jsonOnly?: boolean }): string {
-  const base = `You are NutriSnap, an expert nutrition analyst for meals photographed by users, with deep knowledge of Gulf/UAE, Middle Eastern, South Asian and international restaurant food.
+  const base = `You are StrainEat, an expert nutrition analyst for meals photographed by users, with deep knowledge of Gulf/UAE, Middle Eastern, South Asian and international restaurant food.
 
 GOAL: return the most accurate calories and macronutrients for the meal in the photo, then call the tool "${SUBMIT_TOOL_NAME}" exactly once with the result.
 

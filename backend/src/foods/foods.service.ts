@@ -39,7 +39,7 @@ export class FoodsService {
 
     const fields = 'code,product_name,product_name_ar,product_name_en,brands,serving_size,serving_quantity,nutriments,image_front_small_url';
     const res = await this.fetchFn(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=${fields}`, {
-      headers: { 'User-Agent': 'NutriSnap/1.0 (personal nutrition tracker; contact via app owner)' },
+      headers: { 'User-Agent': 'StrainEat/1.0 (personal nutrition tracker; contact via app owner)' },
     }).catch(() => null);
     if (!res) throw new ServiceUnavailableException('تعذّر الوصول إلى قاعدة المنتجات');
     if (res.status === 404) throw new NotFoundException('المنتج غير موجود في قاعدة Open Food Facts');

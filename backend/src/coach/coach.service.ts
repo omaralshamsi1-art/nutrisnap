@@ -100,7 +100,7 @@ export class CoachService {
     const lang = profile.language ?? 'en';
     const key = `suggest:${lang}:${today}:${slot}:${Math.round(remaining / 75)}:${Math.round(proteinLeft / 10)}`;
     return this.cached(userId, key, opts.force ? 0 : minutes(45), async () => {
-      const system = `You are NutriSnap's nutrition coach. Suggest 3 or 4 concrete meal options for the user's next meal.\n${SAFETY}\n${langRule(lang)}\nEach option must state realistic kcal and protein. Prefer options close to the user's habits; include at least one home option and at least one from a restaurant they already use if any.`;
+      const system = `You are StrainEat's nutrition coach. Suggest 3 or 4 concrete meal options for the user's next meal.\n${SAFETY}\n${langRule(lang)}\nEach option must state realistic kcal and protein. Prefer options close to the user's habits; include at least one home option and at least one from a restaurant they already use if any.`;
       const user = [
         `Meal slot: ${slot}. Local time hour: ${hour}. City: ${profile.city ?? 'UAE'}.`,
         `Goal: ${b.goal}. Calories left today: ${remaining}. Protein left today: ${proteinLeft} g. Fibre so far: ${Math.round(b.intake.fiber_g)} of ${b.macroTargets.fiber_g} g.`,
@@ -200,7 +200,7 @@ export class CoachService {
               },
         };
       }
-      const system = `You are NutriSnap's coach writing a short weekly review.\n${SAFETY}\n${langRule(lang)}\nUse ONLY the numbers given — do not invent data. 2–3 wins, 2–3 specific improvements, and one small, measurable goal for next week. Celebrate consistency. Keep each bullet under 25 words.`;
+      const system = `You are StrainEat's coach writing a short weekly review.\n${SAFETY}\n${langRule(lang)}\nUse ONLY the numbers given — do not invent data. 2–3 wins, 2–3 specific improvements, and one small, measurable goal for next week. Celebrate consistency. Keep each bullet under 25 words.`;
       const user = `avoidRestriction: ${!!profile.screening?.edHistory}\nWeek stats (JSON):\n${JSON.stringify({ ...stats, days: undefined, perDay: stats.days })}`;
       const narrative = await this.agent.completeJson<any>(system, user, WEEKLY_SCHEMA, 1200);
       return { stats, narrative };
