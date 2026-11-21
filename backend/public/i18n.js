@@ -9,6 +9,16 @@
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   var EN = {
+"روابط": "quick",
+"سريعة": "links",
+"سجّل وجبة": "Log meal",
+"جدولي": "Schedule",
+"المساعد": "Ask AI",
+"جدول": "Today's",
+"وجباتك": "eating plan",
+"ماذا": "What",
+"آكل الآن؟": "should I eat now?",
+"وجبتك": "your meal",
 "جدول وجباتك اليوم": "Today's eating schedule",
 "تعديل الأوقات": "Edit times",
 "النوع": "Type",
