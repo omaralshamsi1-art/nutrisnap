@@ -37,6 +37,9 @@ export interface AnalyzeResult {
 
 const MAX_TURNS = 8;
 
+export interface ChatTurn { role: 'user' | 'assistant'; text: string }
+export interface ChatTool { name: string; description: string; parameters: Record<string, unknown> }
+
 @Injectable()
 export class NutritionAgentService {
   private readonly log = new Logger(NutritionAgentService.name);
@@ -213,6 +216,78 @@ export class NutritionAgentService {
     const block = (resp.content ?? []).find((b: any) => b.type === 'tool_use');
     if (!block) throw new BadGatewayException('Coach returned no usable result');
     return block.input as T;
+  }
+
+  /**
+   * Multi-turn chat where the model may call tools (read the user's data, propose actions).
+   * Returns the final text reply. Works with Gemini (function calling) and Anthropic (tool use).
+   */
+  async chatWithTools(
+    system: string,
+    history: ChatTurn[],
+    tools: ChatTool[],
+    exec: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    maxRounds = 5,
+  ): Promise<{ text: string; toolCalls: string[] }> {
+    const called: string[] = [];
+    if (this.provider === 'gemini') {
+      if (!this.geminiKey) throw new ServiceUnavailableException('GEMINI_API_KEY is not set');
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`;
+      const contents: any[] = history.map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.text }] }));
+      const declarations = tools.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters }));
+      for (let round = 0; round < maxRounds; round++) {
+        const res = await this.fetchFn(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents,
+            tools: [{ functionDeclarations: declarations }],
+            generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
+          }),
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          this.log.warn(`Gemini chat ${res.status}: ${t.slice(0, 300)}`);
+          if (res.status === 429) throw new ServiceUnavailableException('Gemini free-tier limit reached — try again shortly');
+          throw new BadGatewayException(`Gemini error ${res.status}`);
+        }
+        const data: any = await res.json();
+        const content = data.candidates?.[0]?.content ?? { role: 'model', parts: [] };
+        const parts: any[] = content.parts ?? [];
+        const calls = parts.filter((p) => p.functionCall);
+        if (!calls.length) return { text: parts.map((p) => p.text ?? '').join('').trim(), toolCalls: called };
+        contents.push({ role: 'model', parts }); // keep thought signatures intact
+        const responses = [];
+        for (const c of calls) {
+          called.push(c.functionCall.name);
+          const out = await exec(c.functionCall.name, c.functionCall.args ?? {}).catch((e) => ({ error: String(e?.message ?? e) }));
+          responses.push({ functionResponse: { name: c.functionCall.name, response: { result: out } } });
+        }
+        contents.push({ role: 'user', parts: responses });
+      }
+      return { text: '', toolCalls: called };
+    }
+    if (!this.client) throw new ServiceUnavailableException('No AI provider configured');
+    const messages: any[] = history.map((t) => ({ role: t.role, content: t.text }));
+    const anthropicTools = tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters }));
+    for (let round = 0; round < maxRounds; round++) {
+      const resp = await this.client.messages.create({ model: this.model, max_tokens: 2048, system, tools: anthropicTools, messages });
+      const blocks: any[] = resp.content ?? [];
+      const uses = blocks.filter((b) => b.type === 'tool_use');
+      if (resp.stop_reason !== 'tool_use' || !uses.length) {
+        return { text: blocks.filter((b) => b.type === 'text').map((b) => b.text).join('').trim(), toolCalls: called };
+      }
+      messages.push({ role: 'assistant', content: blocks });
+      const results = [];
+      for (const u of uses) {
+        called.push(u.name);
+        const out = await exec(u.name, u.input ?? {}).catch((e) => ({ error: String(e?.message ?? e) }));
+        results.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(out).slice(0, 20000) });
+      }
+      messages.push({ role: 'user', content: results });
+    }
+    return { text: '', toolCalls: called };
   }
 
   /** Gemini (free tier friendly): single call, image + JSON schema output; optional Google Search grounding. */

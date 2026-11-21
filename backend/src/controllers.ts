@@ -32,6 +32,7 @@ import { FoodsService } from './foods/foods.service';
 import { MotivationService } from './coach/motivation.service';
 import { RemindersService } from './coach/reminders.service';
 import { Workout } from './common/types';
+import { AssistantService } from './assistant/assistant.service';
 import { validateProfilePatch } from './profile/profile.service';
 
 @Controller('health')
@@ -339,5 +340,40 @@ export class PushController {
   @Post('test')
   test(@UserId() userId: string) {
     return this.reminders.test(userId);
+  }
+}
+
+@Controller('assistant')
+export class AssistantController {
+  constructor(
+    private readonly assistant: AssistantService,
+    private readonly usage: UsageService,
+  ) {}
+
+  @Get('history')
+  history(@UserId() userId: string) {
+    return this.assistant.history(userId);
+  }
+
+  /** { message, screen? } → assistant reply (+ confirm cards for proposed actions) */
+  @Post('chat')
+  async chat(@UserId() userId: string, @Role() role: string, @Body() body: { message: string; screen?: string }) {
+    await this.usage.consume(userId, role, 'chat');
+    return this.assistant.chat(userId, body);
+  }
+
+  @Post('actions/:id/confirm')
+  confirm(@UserId() userId: string, @Role() role: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.assistant.confirm(userId, id, () => this.usage.consume(userId, role, 'analyze'));
+  }
+
+  @Post('actions/:id/dismiss')
+  dismiss(@UserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.assistant.dismiss(userId, id);
+  }
+
+  @Delete('history')
+  clear(@UserId() userId: string) {
+    return this.assistant.clear(userId);
   }
 }

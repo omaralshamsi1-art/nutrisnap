@@ -190,6 +190,12 @@ final class APIClient {
         let _: R = try await send(request("integrations/whoop", method: "DELETE"))
     }
 
+    // MARK: generic helpers (used by feature extensions in other files)
+
+    func get<T: Decodable>(_ path: String) async throws -> T { try await send(request(path)) }
+    func post<T: Decodable>(_ path: String, _ body: [String: Any]) async throws -> T { try await send(jsonRequest(path, method: "POST", body)) }
+    func delete<T: Decodable>(_ path: String) async throws -> T { try await send(request(path, method: "DELETE")) }
+
     // MARK: plumbing
 
     private func request(_ path: String, method: String = "GET") -> URLRequest {

@@ -150,7 +150,7 @@ export class AuthService {
 }
 
 /** Per-user daily AI quotas (owner unlimited). */
-export const DAILY_LIMITS = { analyze: 20, coach: 12 } as const;
+export const DAILY_LIMITS = { analyze: 20, coach: 12, chat: 30 } as const;
 
 @Injectable()
 export class UsageService {
@@ -164,7 +164,11 @@ export class UsageService {
     const n = (cur?.n ?? 0) + 1;
     if (n > DAILY_LIMITS[kind]) {
       throw new HttpException(
-        kind === 'analyze' ? `وصلت للحد اليومي لتحليل الصور (${DAILY_LIMITS.analyze}). جرّب غداً أو أضف الوجبة من المفضلة.` : `وصلت للحد اليومي لطلبات المدرب (${DAILY_LIMITS.coach}).`,
+        kind === 'analyze'
+          ? `وصلت للحد اليومي لتحليل الصور (${DAILY_LIMITS.analyze}). جرّب غداً أو أضف الوجبة من المفضلة.`
+          : kind === 'chat'
+            ? `وصلت للحد اليومي لرسائل المساعد (${DAILY_LIMITS.chat}). جرّب غداً.`
+            : `وصلت للحد اليومي لطلبات المدرب (${DAILY_LIMITS.coach}).`,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

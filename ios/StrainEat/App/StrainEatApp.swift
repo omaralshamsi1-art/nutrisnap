@@ -27,6 +27,8 @@ struct StrainEatApp: App {
 struct RootView: View {
     @Environment(AppStore.self) private var store
     @State private var tab = UserDefaults.standard.integer(forKey: "initialTab")
+    @State private var showAssistant = UserDefaults.standard.bool(forKey: "openAssistant")
+    private var screenName: String { ["today", "progress", "snap", "plan"][min(max(tab, 0), 3)] }
 
     var body: some View {
         @Bindable var store = store
@@ -50,6 +52,15 @@ struct RootView: View {
                         HealthKitManager.shared.enableBackgroundSync()
                     }
                     await store.refresh()
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    AskFab { showAssistant = true }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 64)
+                }
+                .sheet(isPresented: $showAssistant) {
+                    AssistantView(screen: screenName, onChanged: { Task { await store.refresh() } })
+                        .environment(\.layoutDirection, appLayoutDirection)
                 }
                 .fullScreenCover(isPresented: $store.needsOnboarding) {
                     OnboardingView().environment(store).environment(\.layoutDirection, appLayoutDirection)

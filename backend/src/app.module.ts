@@ -18,7 +18,9 @@ import {
   PushController,
   ProfileController,
   WhoopController,
+  AssistantController,
 } from './controllers';
+import { AssistantService } from './assistant/assistant.service';
 import { EnergyService } from './energy/energy.service';
 import { WhoopService } from './integrations/whoop/whoop.service';
 import { MealsService } from './meals/meals.service';
@@ -35,7 +37,7 @@ import { REPOSITORY } from './storage/repository';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [HealthController, AuthController, FoodsController, MotivationController, PushController, MealsController, PlanController, WorkoutsController, CoachController, EnergyController, ProfileController, WhoopController],
+  controllers: [HealthController, AuthController, FoodsController, MotivationController, PushController, MealsController, PlanController, WorkoutsController, CoachController, EnergyController, ProfileController, WhoopController, AssistantController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: LocalizedErrorFilter },
@@ -61,6 +63,7 @@ import { REPOSITORY } from './storage/repository';
     MealsService,
     EnergyService,
     WhoopService,
+    AssistantService,
   ],
 })
 export class AppModule {}

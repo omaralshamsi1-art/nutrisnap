@@ -6,6 +6,9 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
  */
 const EXACT: Record<string, string> = {
   'بريد إلكتروني غير صالح': 'Invalid email address',
+  'اكتب رسالتك': 'Type your message',
+  'الرسالة طويلة جداً': 'Message is too long',
+  'الإجراء غير موجود': 'Action not found',
   'كلمة المرور يجب أن تكون 8 أحرف على الأقل': 'Password must be at least 8 characters',
   'هذا البريد مسجّل مسبقاً': 'This email is already registered',
   'هذا الحساب مرتبط مسبقاً': 'This account is already linked',
@@ -23,6 +26,7 @@ const EXACT: Record<string, string> = {
 
 const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^وصلت للحد اليومي لتحليل الصور \((\d+)\)/, (m) => `Daily photo-analysis limit reached (${m[1]}). Try tomorrow or add the meal from favourites.`],
+  [/^وصلت للحد اليومي لرسائل المساعد \((\d+)\)/, (m) => `Daily assistant message limit reached (${m[1]}). Try again tomorrow.`],
   [/^وصلت للحد اليومي لطلبات المدرب \((\d+)\)/, (m) => `Daily coach limit reached (${m[1]}).`],
 ];
 
