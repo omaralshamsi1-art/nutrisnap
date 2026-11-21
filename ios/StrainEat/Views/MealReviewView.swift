@@ -15,11 +15,12 @@ struct MealReviewView: View {
     @State private var mealName = ""
     @State private var restaurant = ""
     @State private var portion = 1.0
+    @State private var kind = "meal"
     @State private var busy = false
     @State private var error: String?
 
     private var dirty: Bool {
-        items != meal.final.items || mealName != originalName || restaurant != (meal.final.restaurant ?? "") || portion != 1
+        items != meal.final.items || mealName != originalName || restaurant != (meal.final.restaurant ?? "") || portion != 1 || kind != (meal.kind ?? "meal")
     }
     private var liveTotals: Nutrients {
         items.reduce(into: Nutrients()) { t, i in
@@ -40,6 +41,13 @@ struct MealReviewView: View {
                         Spacer()
                         Text(meal.final.servingDescription).font(.caption).foregroundStyle(.secondary)
                     }
+                    Picker(t("Type", "النوع"), selection: $kind) {
+                        Text(t("🍽️ Meal", "🍽️ وجبة")).tag("meal")
+                        Text(t("🍎 Snack", "🍎 سناك")).tag("snack")
+                        Text(t("☕ Drink", "☕ مشروب")).tag("drink")
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.top, 6)
                 }
             }
             if let sc = meal.score {
@@ -128,6 +136,7 @@ struct MealReviewView: View {
             items = meal.final.items
             mealName = originalName
             restaurant = meal.final.restaurant ?? ""
+            kind = meal.kind ?? "meal"
         }
     }
 
@@ -143,7 +152,8 @@ struct MealReviewView: View {
                     mealName: en || meal.final.mealName.isEmpty ? mealName : nil,
                     mealNameAr: !en || meal.final.mealNameAr.isEmpty ? mealName : nil,
                     restaurant: restaurant.isEmpty ? nil : restaurant,
-                    portionFactor: portion == 1 ? nil : portion)
+                    portionFactor: portion == 1 ? nil : portion,
+                    kind: kind)
             }
             meal = try await APIClient.shared.confirmMeal(id: meal.id)
             try? await HealthKitManager.shared.save(meal: meal)

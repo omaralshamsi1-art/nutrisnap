@@ -93,7 +93,28 @@ struct Meal: Codable, Identifiable, Hashable {
     var final: NutritionEstimate
     var edited: Bool
     var score: MealScore?
+    var kind: String?
     var isConfirmed: Bool { status == "confirmed" }
+}
+
+/// The day's eating plan from GET /schedule.
+struct DaySchedule: Codable {
+    struct Item: Codable, Hashable { let id: String; let name: String; let nameAr: String; let kcal: Double; let kind: String
+        var displayName: String { appLang == .ar ? (nameAr.isEmpty ? name : nameAr) : (name.isEmpty ? nameAr : name) }
+        enum CodingKeys: String, CodingKey { case id, name, kcal, kind; case nameAr = "name_ar" } }
+    struct Slot: Codable, Hashable, Identifiable {
+        let id: String; let kind: String; let time: String; let targetKcal: Double; let status: String; let eatenKcal: Double
+        let items: [Item]; let labelEn: String; let labelAr: String
+        var label: String { appLang == .ar ? labelAr : labelEn }
+        enum CodingKeys: String, CodingKey { case id, kind, time, targetKcal, status, eatenKcal, items; case labelEn = "label_en", labelAr = "label_ar" }
+    }
+    let date: String
+    let custom: Bool
+    let ramadan: Bool
+    let slots: [Slot]
+    let drinks: [Item]
+    let drinksKcal: Double
+    let extras: [Item]?
 }
 
 struct AnalyzeResponse: Codable {
@@ -108,8 +129,9 @@ struct Balance: Codable {
         let id: String; let eatenAt: Date; let status: String
         let name: String; let nameAr: String; let restaurant: String?; let source: String; let calories: Double
         let proteinG: Double?
+        let kind: String?
         var displayName: String { appLang == .ar ? (nameAr.isEmpty ? name : nameAr) : (name.isEmpty ? nameAr : name) }
-        enum CodingKeys: String, CodingKey { case id, eatenAt, status, name, restaurant, source, calories; case nameAr = "name_ar"; case proteinG = "protein_g" }
+        enum CodingKeys: String, CodingKey { case id, eatenAt, status, name, restaurant, source, calories, kind; case nameAr = "name_ar"; case proteinG = "protein_g" }
     }
     struct Split: Codable { let protein: Int; let carbs: Int; let fat: Int }
     struct MacroTargets: Codable {
@@ -357,6 +379,7 @@ struct Profile: Codable {
     var dietStyle: String?
     var conditions: [String]?
     var mealsPerDay: Int?
+    var mealSchedule: MealScheduleSetting?
 }
 
 struct EnergySample: Codable {
@@ -386,4 +409,10 @@ struct WorkoutUpload: Encodable {
     let avgHr: Double?
     let maxHr: Double?
     let distanceM: Double?
+}
+
+struct MealScheduleSetting: Codable, Hashable {
+    struct Slot: Codable, Hashable { var id: String; var kind: String?; var time: String }
+    var custom: Bool?
+    var slots: [Slot]
 }

@@ -56,10 +56,10 @@ final class APIClient {
         return try await send(req)
     }
 
-    func updateMeal(id: String, items: [MealItem]? = nil, mealName: String? = nil, mealNameAr: String? = nil, restaurant: String? = nil, portionFactor: Double? = nil) async throws -> Meal {
-        struct Patch: Encodable { var items: [MealItem]?; var meal_name: String?; var meal_name_ar: String?; var restaurant: String?; var portionFactor: Double? }
+    func updateMeal(id: String, items: [MealItem]? = nil, mealName: String? = nil, mealNameAr: String? = nil, restaurant: String? = nil, portionFactor: Double? = nil, kind: String? = nil) async throws -> Meal {
+        struct Patch: Encodable { var items: [MealItem]?; var meal_name: String?; var meal_name_ar: String?; var restaurant: String?; var portionFactor: Double?; var kind: String? }
         var req = request("meals/\(id)", method: "PATCH")
-        req.httpBody = try encoder.encode(Patch(items: items, meal_name: mealName, meal_name_ar: mealNameAr, restaurant: restaurant, portionFactor: portionFactor))
+        req.httpBody = try encoder.encode(Patch(items: items, meal_name: mealName, meal_name_ar: mealNameAr, restaurant: restaurant, portionFactor: portionFactor, kind: kind))
         return try await send(req)
     }
 
@@ -163,6 +163,8 @@ final class APIClient {
         let meal: Meal = try await send(jsonRequest("meals", method: "POST", body))
         _ = try await confirmMeal(id: meal.id)
     }
+
+    func schedule() async throws -> DaySchedule { try await send(request("schedule")) }
 
     // MARK: Accounts
 

@@ -20,6 +20,7 @@ struct TodayView: View {
                             VStack(spacing: 8) { ForEach(tips, id: \.self) { Notice(text: $0.text, level: $0.kind == "over" ? "warn" : "info") } }
                         }
                         if store.isToday, let c = store.motivation?.challenge { ChallengeCard(challenge: c) }
+                        if store.isToday { ScheduleCard() }
                         if store.isToday { SuggestCard() }
                         if let a = b.activity { ActivityCard(activity: a) }
                         MealsCard(meals: b.meals, onLog: onLog)
@@ -216,6 +217,69 @@ struct ChallengeCard: View {
     }
 }
 
+// MARK: Eating schedule
+
+struct ScheduleCard: View {
+    @Environment(AppStore.self) private var store
+    @State private var day: DaySchedule?
+    @State private var error: String?
+
+    var body: some View {
+        Card(title: t("Today's eating schedule", "جدول وجباتك اليوم"), icon: "clock") {
+            if let day {
+                if day.ramadan { Text(t("🌙 Ramadan schedule: iftar and suhoor", "🌙 جدول رمضان: الإفطار والسحور")).font(.caption).foregroundStyle(Theme.muted) }
+                ForEach(day.slots) { s in
+                    HStack(alignment: .top, spacing: 10) {
+                        Text(s.time).font(.subheadline.weight(.bold)).monospacedDigit().frame(width: 50, alignment: .leading)
+                            .environment(\.layoutDirection, .leftToRight)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Text("\(s.kind == "snack" ? "🍎" : "🍽️") \(s.label)").font(.subheadline.weight(.semibold))
+                                Text("~\(fmt(s.targetKcal)) \(t("kcal", "سعرة"))").font(.caption).foregroundStyle(Theme.muted)
+                            }
+                            if !s.items.isEmpty {
+                                Text(s.items.map(\.displayName).joined(separator: appLang == .ar ? "، " : ", ") + " · \(fmt(s.eatenKcal))")
+                                    .font(.caption).foregroundStyle(Theme.muted).lineLimit(2)
+                            }
+                        }
+                        Spacer()
+                        statusChip(s.status)
+                    }
+                    .padding(.vertical, 4)
+                }
+                if !day.drinks.isEmpty {
+                    Text(t("☕ Drinks today: \(day.drinks.count) · \(fmt(day.drinksKcal)) kcal (counted in calories, not as a meal)",
+                           "☕ المشروبات اليوم: \(day.drinks.count) · \(fmt(day.drinksKcal)) سعرة (تُحسب في السعرات، لا كوجبة)"))
+                        .font(.caption).foregroundStyle(Theme.muted)
+                }
+            } else if let error {
+                Text(error).font(.caption).foregroundStyle(Theme.bad)
+            } else {
+                ProgressView().frame(maxWidth: .infinity)
+            }
+        }
+        .task(id: store.balance?.meals.count ?? -1) { await load() }
+    }
+
+    private func statusChip(_ st: String) -> some View {
+        let (text, fg, bg): (String, Color, Color) = switch st {
+        case "done": (t("✓ Done", "✓ تم"), Theme.good, Theme.goodSoft)
+        case "now": (t("Now", "الآن"), Theme.warn, Theme.accentSoft)
+        case "missed": (t("Not logged", "لم تُسجّل"), Theme.bad, Theme.badSoft)
+        default: (t("Upcoming", "قادم"), Theme.muted, Theme.card2)
+        }
+        return Text(text).font(.caption2.weight(.semibold)).padding(.horizontal, 8).padding(.vertical, 4).foregroundStyle(fg).background(bg, in: Capsule())
+    }
+
+    private func load() async {
+        do {
+            let d = try await APIClient.shared.schedule()
+            day = d; error = nil
+            await MealNotifications.sync(d)
+        } catch { self.error = error.localizedDescription }
+    }
+}
+
 // MARK: Coach suggestions
 
 struct SuggestCard: View {
@@ -407,7 +471,7 @@ struct MealsCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(m.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                                 .lineLimit(1)
-                            Text([m.restaurant, m.eatenAt.arTime].compactMap { $0 }.joined(separator: " • "))
+                            Text([kindLabel(m.kind), m.restaurant, m.eatenAt.arTime].compactMap { $0 }.joined(separator: " • "))
                                 .font(.caption).foregroundStyle(Theme.muted).lineLimit(1)
                         }
                         Spacer()
@@ -439,5 +503,14 @@ struct MealLoaderView: View {
         .task {
             do { meal = try await APIClient.shared.meal(id: mealId) } catch { self.error = error.localizedDescription }
         }
+    }
+}
+
+/// Short label for a logged item's kind (meals show nothing extra).
+func kindLabel(_ kind: String?) -> String? {
+    switch kind {
+    case "drink": return t("☕ Drink", "☕ مشروب")
+    case "snack": return t("🍎 Snack", "🍎 سناك")
+    default: return nil
     }
 }

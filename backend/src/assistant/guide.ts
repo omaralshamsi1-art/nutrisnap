@@ -19,6 +19,10 @@ The app is in English by default; Settings → Language switches to Arabic (the 
   red = over target. Under the ring: Target, Eaten, Burned (source shown: WHOOP / Apple Health / manual / estimate),
   and "Drafts" — meals analysed but not yet confirmed (they do NOT count until confirmed).
 - Macro bars: protein, carbs, fat, fiber — grams eaten vs grams targeted.
+- Today's eating schedule: each planned meal/snack with its time, a kcal target and status (Done / Now / Upcoming /
+  Not logged). Drinks (coffee, tea, juice…) are listed apart: they count in calories but never as a meal. "Edit times"
+  opens Settings → Meal schedule (Automatic from meals per day and usual times, or My times). In Ramadan it becomes
+  iftar / evening / suhoor.
 - Ramadan card (appears during Ramadan or when fasting mode is on): suhoor/iftar times and how the day's target is split.
 - Tips and the weekly challenge.
 - "What should I eat now?": 6 AI ideas that fit the calories and protein left — 2 home recipes (tap for ingredients
@@ -44,6 +48,7 @@ After analysis the Review screen opens.
 - "Agent assumptions" — what the AI assumed (e.g. portion, cooking oil); correct them if wrong.
 - Warnings (e.g. high sodium for someone with hypertension), sources (restaurant pages used), a meal score with reasons
   and smarter swaps.
+- Type: Meal / Snack / Drink (guessed automatically; change it if wrong — it decides which schedule slot it fills).
 - Press Confirm to add it to the day. Unconfirmed meals stay as drafts and are not counted.
 
 ## Progress
@@ -65,8 +70,9 @@ After analysis the Review screen opens.
 - Manual burn entry: for users without WHOOP/Apple Health — enter active and basal kcal from the Health app.
 
 ## Settings
-- Account (name, email, role), invite users (owner), reminders (meal and weight notifications; on iPhone allow
-  notifications), Ramadan & fasting mode (on/off/auto, suhoor and iftar times), WHOOP connect/disconnect,
+- Account (name, email, role), invite users (owner), meal schedule + reminders (10 min before each meal/snack and
+  again if a meal isn't logged an hour later; on iPhone turn on "Meal reminders" and allow notifications; on the web
+  add the app to the Home Screen and enable reminders), Ramadan & fasting mode (on/off/auto, suhoor and iftar times), WHOOP connect/disconnect,
   Apple Health (iPhone app only: syncs burned energy, workouts and weight), Appearance (Auto / Light / Dark — Auto
   follows the phone), Language (English / العربية), sign out.
 

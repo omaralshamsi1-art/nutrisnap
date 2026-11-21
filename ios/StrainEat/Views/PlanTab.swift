@@ -15,10 +15,8 @@ struct PlanTab: View {
                     AccountCard()
                     DevicesCard(profile: profile, onChange: { Task { await load() } })
                     if let profile { RamadanSettingsCard(profile: profile, onSaved: { Task { await load() } }) }
-                    Card(title: t("Reminders", "التذكيرات"), icon: "bell.badge") {
-                        Text(t("Smart reminders (usual meal time and morning weigh-in) currently run from the web app once it's added to your Home Screen.", "التذكيرات الذكية (موعد الوجبة المعتاد ووزن الصباح) تعمل حالياً من تطبيق الويب بعد إضافته للشاشة الرئيسية."))
-                            .font(.footnote).foregroundStyle(Theme.muted)
-                    }
+                    MealRemindersCard()
+                    if let profile { ScheduleSettingsCard(profile: profile) }
                     if let profile { LocationCard(profile: profile) }
                     Card(title: t("Appearance", "المظهر"), icon: "circle.lefthalf.filled") { ThemePicker() }
                     Card(title: "Language · اللغة", icon: "globe") { LanguagePicker() }
@@ -337,5 +335,110 @@ struct LocationCard: View {
         .onAppear { city = profile.city ?? ""; area = profile.area ?? "" }
         .onChange(of: city) { saved = false }
         .onChange(of: area) { saved = false }
+    }
+}
+
+// MARK: Meal reminders + schedule
+
+struct MealRemindersCard: View {
+    @AppStorage(MealNotifications.enabledKey) private var on = false
+    @State private var denied = false
+    var body: some View {
+        Card(title: t("Meal reminders", "تنبيهات الوجبات"), icon: "bell.badge") {
+            Toggle(isOn: Binding(get: { on }, set: { v in
+                Task {
+                    if v {
+                        let ok = await MealNotifications.requestPermission()
+                        on = ok; denied = !ok
+                        if ok, let d = try? await APIClient.shared.schedule() { await MealNotifications.sync(d) }
+                    } else { on = false; await MealNotifications.clear() }
+                }
+            })) {
+                Text(t("10 min before each meal, and if a meal isn't logged an hour later", "قبل كل وجبة بـ10 دقائق، وإذا لم تسجّل الوجبة بعد ساعة")).font(.subheadline)
+            }
+            .tint(Theme.brand2)
+            if denied { Text(t("Allow notifications for StrainEat in iPhone Settings.", "اسمح بالتنبيهات لـStrainEat من إعدادات الآيفون.")).font(.caption).foregroundStyle(Theme.bad) }
+        }
+    }
+}
+
+struct ScheduleSettingsCard: View {
+    let profile: Profile
+    @State private var custom = false
+    @State private var on: [String: Bool] = [:]
+    @State private var times: [String: Date] = [:]
+    @State private var saved = false
+    @State private var error: String?
+    private let ids = ["breakfast", "snack1", "lunch", "snack2", "dinner", "snack3"]
+    private let defaults = ["breakfast": "08:00", "snack1": "10:30", "lunch": "13:30", "snack2": "16:30", "dinner": "19:30", "snack3": "21:30"]
+    private func name(_ id: String) -> String {
+        switch id {
+        case "breakfast": return t("🍽️ Breakfast", "🍽️ الفطور")
+        case "lunch": return t("🍽️ Lunch", "🍽️ الغداء")
+        case "dinner": return t("🍽️ Dinner", "🍽️ العشاء")
+        case "snack1": return t("🍎 Morning snack", "🍎 سناك الصباح")
+        case "snack2": return t("🍎 Afternoon snack", "🍎 سناك العصر")
+        default: return t("🍎 Evening snack", "🍎 سناك المساء")
+        }
+    }
+    private static func date(_ hm: String) -> Date {
+        let p = hm.split(separator: ":").compactMap { Int($0) }
+        return Calendar.current.date(bySettingHour: p.first ?? 8, minute: p.count > 1 ? p[1] : 0, second: 0, of: Date()) ?? Date()
+    }
+    private static func hm(_ d: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: d)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+    }
+
+    var body: some View {
+        Card(title: t("Meal schedule", "جدول الوجبات"), icon: "clock") {
+            Text(t("Coffee and other drinks don't count as a meal.", "القهوة والمشروبات لا تُحسب كوجبة.")).font(.caption).foregroundStyle(Theme.muted)
+            Picker("", selection: $custom) {
+                Text(t("Automatic", "تلقائي")).tag(false)
+                Text(t("My times", "أوقاتي")).tag(true)
+            }
+            .pickerStyle(.segmented)
+            if custom {
+                ForEach(ids, id: \.self) { id in
+                    HStack {
+                        Toggle(isOn: Binding(get: { on[id] ?? false }, set: { on[id] = $0; saved = false })) { Text(name(id)).font(.subheadline) }
+                            .toggleStyle(.switch).tint(Theme.brand2)
+                        DatePicker("", selection: Binding(get: { times[id] ?? Self.date(defaults[id]!) }, set: { times[id] = $0; saved = false }), displayedComponents: .hourAndMinute)
+                            .labelsHidden().disabled(!(on[id] ?? false))
+                    }
+                }
+            } else {
+                Text(t("Automatic = from your meals per day and usual eating times.", "تلقائي = من عدد وجباتك وأوقات أكلك المعتادة.")).font(.caption).foregroundStyle(Theme.muted)
+            }
+            Button {
+                Task { await save() }
+            } label: { Text(saved ? t("Saved ✓", "تم الحفظ ✓") : t("Save schedule", "حفظ الجدول")) }
+            .buttonStyle(SoftButtonStyle())
+            if let error { Text(error).font(.caption).foregroundStyle(Theme.bad) }
+        }
+        .onAppear {
+            let cur = profile.mealSchedule?.slots ?? []
+            custom = !cur.isEmpty
+            for id in ids {
+                let s = cur.first { $0.id == id }
+                on[id] = s != nil || (cur.isEmpty && ["breakfast", "lunch", "dinner"].contains(id))
+                times[id] = Self.date(s?.time ?? defaults[id]!)
+            }
+        }
+        .onChange(of: custom) { saved = false }
+    }
+
+    private func save() async {
+        var value: Any = NSNull()
+        if custom {
+            let slots = ids.filter { on[$0] ?? false }.map { ["id": $0, "time": Self.hm(times[$0] ?? Self.date(defaults[$0]!))] }
+            guard !slots.isEmpty else { error = t("Pick at least one meal", "اختر وجبة واحدة على الأقل"); return }
+            value = ["slots": slots]
+        }
+        do {
+            _ = try await APIClient.shared.updateProfile(["mealSchedule": value])
+            saved = true; error = nil
+            if let d = try? await APIClient.shared.schedule() { await MealNotifications.sync(d) }
+        } catch { self.error = error.localizedDescription }
     }
 }
