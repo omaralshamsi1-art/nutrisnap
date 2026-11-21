@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct NutriSnapApp: App {
+struct StrainEatApp: App {
     @State private var store = AppStore()
     @Environment(\.scenePhase) private var phase
     @AppStorage(appLanguageKey) private var lang = "en"
@@ -17,7 +17,7 @@ struct NutriSnapApp: App {
                 .onChange(of: phase) { _, p in
                     if p == .active, store.signedIn { Task { await store.refresh() } }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .nutriSnapUnauthorized)) { _ in
+                .onReceive(NotificationCenter.default.publisher(for: .strainEatUnauthorized)) { _ in
                     store.handleUnauthorized()
                 }
         }

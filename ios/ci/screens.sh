@@ -1,7 +1,7 @@
 #!/bin/bash
 # Launch the app on the booted simulator at each tab and save screenshots (English + Arabic).
 set -e
-APP=ae.sheen.nutrisnap
+APP=ae.sheen.straineat
 mkdir -p shots
 shot() { # tab name appearance lang
   xcrun simctl ui booted appearance "$3"

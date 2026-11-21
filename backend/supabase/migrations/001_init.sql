@@ -1,4 +1,4 @@
--- NutriSnap schema (Supabase / Postgres 15+)
+-- StrainEat schema (Supabase / Postgres 15+)
 create extension if not exists pg_trgm;
 
 create table if not exists meals (

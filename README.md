@@ -1,4 +1,4 @@
-# NutriSnap — حاسبة القيمة الغذائية بالصورة
+# StrainEat — حاسبة القيمة الغذائية بالصورة
 
 يصوّر المستخدم وجبته، فيتعرف عليها وكيل ذكي (Claude) ويحسب سعراتها وقيمتها الغذائية، ثم يقارنها بالحرق اليومي القادم من Apple Health أو WHOOP أو أي جهاز آخر.
 
@@ -82,11 +82,11 @@ npm run dev                 # http://localhost:3000
 
 ```bash
 brew install xcodegen
-cd ios && xcodegen && open NutriSnap.xcodeproj
+cd ios && xcodegen && open StrainEat.xcodeproj
 ```
 
 1. فعّل HealthKit و«Background Delivery» في Signing & Capabilities، واختر فريقك.
-2. عدّل `NutriSnapAPIBaseURL` في `project.yml`، أو غيّر عنوان الخادم من شاشة الإعدادات.
+2. عدّل `StrainEatAPIBaseURL` في `project.yml`، أو غيّر عنوان الخادم من شاشة الإعدادات.
 3. HealthKit يحتاج جهازاً حقيقياً لاختبار بيانات الحرق.
 
 ## إعداد WHOOP
@@ -96,7 +96,7 @@ cd ios && xcodegen && open NutriSnap.xcodeproj
 3. الصلاحيات المطلوبة: `offline read:cycles read:workout read:profile read:body_measurement`.
 4. ضع `WHOOP_CLIENT_ID` و `WHOOP_CLIENT_SECRET` و `OAUTH_STATE_SECRET` في `.env`.
 
-> السر لا يُخزَّن في التطبيق إطلاقاً. التطبيق يفتح رابط التفويض، والخادم يستلم الرمز ويعيد المستخدم إلى `nutrisnap://whoop`.
+> السر لا يُخزَّن في التطبيق إطلاقاً. التطبيق يفتح رابط التفويض، والخادم يستلم الرمز ويعيد المستخدم إلى `straineat://whoop`.
 
 ## ملاحظات
 

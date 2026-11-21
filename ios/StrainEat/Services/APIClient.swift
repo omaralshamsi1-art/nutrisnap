@@ -8,13 +8,13 @@ enum APIError: LocalizedError {
     }
 }
 
-/// Talks to the NutriSnap backend. Auth: the owner's server key (+ X-User-Id), or an account token (Bearer).
+/// Talks to the StrainEat backend. Auth: the owner's server key (+ X-User-Id), or an account token (Bearer).
 final class APIClient {
     static let shared = APIClient()
 
     var baseURL: URL {
         let stored = UserDefaults.standard.string(forKey: "apiBaseURL")
-        let fallback = Bundle.main.object(forInfoDictionaryKey: "NutriSnapAPIBaseURL") as? String ?? "http://localhost:3000"
+        let fallback = Bundle.main.object(forInfoDictionaryKey: "StrainEatAPIBaseURL") as? String ?? "http://localhost:3000"
         return URL(string: (stored?.isEmpty == false ? stored! : fallback))!
     }
     var accessToken: String? { UserDefaults.standard.string(forKey: "accessToken").flatMap { $0.isEmpty ? nil : $0 } }
@@ -220,17 +220,17 @@ final class APIClient {
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
-            if code == 401 { await MainActor.run { NotificationCenter.default.post(name: .nutriSnapUnauthorized, object: nil) } }
+            if code == 401 { await MainActor.run { NotificationCenter.default.post(name: .strainEatUnauthorized, object: nil) } }
             throw APIError.http(code, msg ?? String(data: data, encoding: .utf8) ?? "")
         }
         return try decoder.decode(T.self, from: data)
     }
 }
 
-extension Notification.Name { static let nutriSnapUnauthorized = Notification.Name("nutriSnapUnauthorized") }
+extension Notification.Name { static let strainEatUnauthorized = Notification.Name("strainEatUnauthorized") }
 
 struct MultipartForm {
-    private let boundary = "NutriSnap-\(UUID().uuidString)"
+    private let boundary = "StrainEat-\(UUID().uuidString)"
     private var body = Data()
     var contentType: String { "multipart/form-data; boundary=\(boundary)" }
 

@@ -98,7 +98,7 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
     if (pub && priv) {
       // VAPID subject must be https: or mailto:; never let a bad setting crash the server.
       const candidates = [config.get<string>('VAPID_SUBJECT'), config.get<string>('PUBLIC_BASE_URL')].filter(Boolean) as string[];
-      const subject = candidates.find((c) => /^(https:|mailto:)/.test(c)) ?? 'mailto:noreply@nutrisnap.app';
+      const subject = candidates.find((c) => /^(https:|mailto:)/.test(c)) ?? 'mailto:noreply@straineat.app';
       try {
         webpush.setVapidDetails(subject, pub, priv);
         ok = true;

@@ -158,7 +158,7 @@ export class WhoopController {
   async callback(@Query('code') code: string, @Query('state') state: string, @Query('error') error: string, @Res() res: Response) {
     const web = `${(this.config.get<string>('PUBLIC_BASE_URL') ?? '').replace(/\/$/, '')}/app/`;
     const app =
-      this.whoop.callbackTarget(state) === 'web' ? `${web}#whoop` : (this.config.get<string>('APP_CALLBACK_URL') ?? 'nutrisnap://whoop');
+      this.whoop.callbackTarget(state) === 'web' ? `${web}#whoop` : (this.config.get<string>('APP_CALLBACK_URL') ?? 'straineat://whoop');
     if (error || !code) return res.redirect(`${app}?status=error&reason=${encodeURIComponent(error ?? 'no_code')}`);
     try {
       await this.whoop.handleCallback(code, state);

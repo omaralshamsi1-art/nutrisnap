@@ -20,6 +20,6 @@ async function bootstrap() {
   app.enableShutdownHooks();
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
-  Logger.log(`NutriSnap API on :${port} (auth=${process.env.AUTH_MODE ?? 'dev'}, db=${process.env.DATABASE_URL ? 'postgres' : 'memory'})`);
+  Logger.log(`StrainEat API on :${port} (auth=${process.env.AUTH_MODE ?? 'dev'}, db=${process.env.DATABASE_URL ? 'postgres' : 'memory'})`);
 }
 bootstrap();

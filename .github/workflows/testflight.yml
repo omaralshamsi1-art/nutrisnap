@@ -50,8 +50,8 @@ jobs:
           cd ios
           set -o pipefail
           BUILD=$((100 + ${{ github.run_number }}))
-          xcodebuild -project NutriSnap.xcodeproj -scheme NutriSnap -configuration Release \
-            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/NutriSnap.xcarchive" archive \
+          xcodebuild -project StrainEat.xcodeproj -scheme StrainEat -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/StrainEat.xcarchive" archive \
             DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="$BUILD" \
             -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" > archive.log 2>&1 || {
@@ -78,7 +78,7 @@ jobs:
           </dict></plist>
           PLIST
           set -o pipefail
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/NutriSnap.xcarchive" \
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/StrainEat.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" > export.log 2>&1 || {

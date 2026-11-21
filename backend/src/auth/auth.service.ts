@@ -49,12 +49,12 @@ export class AuthService {
       .setSubject(u.id)
       .setIssuedAt()
       .setExpirationTime(`${TOKEN_DAYS}d`)
-      .setIssuer('nutrisnap')
+      .setIssuer('straineat')
       .sign(this.secret());
   }
 
   async verifyToken(token: string): Promise<{ userId: string; role: 'owner' | 'user' }> {
-    const { payload } = await jwtVerify(token, this.secret(), { issuer: 'nutrisnap' });
+    const { payload } = await jwtVerify(token, this.secret(), { issuer: 'straineat' });
     if (!payload.sub) throw new UnauthorizedException();
     return { userId: payload.sub, role: payload.role === 'owner' ? 'owner' : 'user' };
   }

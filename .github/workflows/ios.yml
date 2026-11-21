@@ -14,7 +14,7 @@ jobs:
         run: |
           cd ios
           set -o pipefail
-          xcodebuild -project NutriSnap.xcodeproj -scheme NutriSnap -sdk iphonesimulator \
+          xcodebuild -project StrainEat.xcodeproj -scheme StrainEat -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || true
           ERRS=$(grep -E "error:|\*\* BUILD|xcodebuild: error" build.log | sed "s|$PWD/||" | sort -u | head -80 | awk '{printf "%s%%0A", $0}')
           echo "::error title=build::${ERRS:-no error lines}"
@@ -41,16 +41,16 @@ jobs:
           brew install xcodegen && cd ios && xcodegen
           SIM=$(xcrun simctl list devices available | grep -m1 -oE "iPhone 1[5-7]( Pro)? \(" | sed 's/ ($//')
           echo "SIM=$SIM" >> $GITHUB_ENV
-          xcodebuild -project NutriSnap.xcodeproj -scheme NutriSnap -sdk iphonesimulator \
+          xcodebuild -project StrainEat.xcodeproj -scheme StrainEat -sdk iphonesimulator \
             -destination "platform=iOS Simulator,name=$SIM" -derivedDataPath dd CODE_SIGNING_ALLOWED=NO build -quiet
       - name: Screenshots
         run: |
           xcrun simctl boot "$SIM" && xcrun simctl bootstatus "$SIM" -b
-          xcrun simctl install booted "$(find ios/dd -name NutriSnap.app -path '*iphonesimulator*' | head -1)"
+          xcrun simctl install booted "$(find ios/dd -name StrainEat.app -path '*iphonesimulator*' | head -1)"
           cd ios && bash ci/screens.sh
       - name: Publish screenshots to the ci-screens branch
         run: |
           mkdir /tmp/pub && cp ios/shots/*.png /tmp/pub/
           cd /tmp/pub && git init -q && git checkout -q -b ci-screens
-          git add . && git -c user.name=ci -c user.email=ci@nutrisnap.local commit -qm "screens ${GITHUB_SHA::7}"
+          git add . && git -c user.name=ci -c user.email=ci@straineat.local commit -qm "screens ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-screens

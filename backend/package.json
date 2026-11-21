@@ -1,8 +1,8 @@
 {
-  "name": "nutrisnap-backend",
+  "name": "straineat-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "NutriSnap — AI meal photo → nutrition agent, energy balance, Apple Health / WHOOP sync",
+  "description": "StrainEat — AI meal photo → nutrition agent, energy balance, Apple Health / WHOOP sync",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
