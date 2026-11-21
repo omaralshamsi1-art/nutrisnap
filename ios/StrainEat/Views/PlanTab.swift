@@ -195,54 +195,73 @@ struct DevicesCard: View {
     var onChange: () -> Void
     @State private var message: String?
     @State private var busy = false
+    @State private var source = ""
+    @State private var loaded = false
     private let sources = [("", t("Automatic", "تلقائي")), ("whoop", "WHOOP"), ("apple_health", "Apple Health"), ("manual", t("Manual", "يدوي"))]
 
-    var body: some View {
-        Card(title: t("Devices & apps", "الأجهزة والتطبيقات"), icon: "applewatch") {
-            Button {
-                Task {
-                    try? await HealthKitManager.shared.requestAuthorization()
-                    await store.refresh(); message = t("Apple Health synced", "تمت مزامنة Apple Health")
-                }
-            } label: { Label(t("Apple Health — allow & sync", "Apple Health — سماح ومزامنة"), systemImage: "heart.fill") }
-                .buttonStyle(SoftButtonStyle())
+    private var showWhoop: Bool { source.isEmpty || source == "whoop" }
+    private var showApple: Bool { source.isEmpty || source == "apple_health" }
 
-            if store.whoopConnected {
-                HStack(spacing: 8) {
-                    Button {
-                        Task {
-                            busy = true; defer { busy = false }
-                            let from = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
-                            do { try await APIClient.shared.whoopSync(from: from, to: Date()); message = t("WHOOP synced", "تمت مزامنة WHOOP") }
-                            catch { message = error.localizedDescription }
-                            await store.refresh()
-                        }
-                    } label: { Label(t("Sync WHOOP", "مزامنة WHOOP"), systemImage: "arrow.triangle.2.circlepath") }
-                        .buttonStyle(SoftButtonStyle()).disabled(busy)
-                    Button(role: .destructive) {
-                        Task { try? await APIClient.shared.whoopDisconnect(); store.setWhoop(false) }
-                    } label: { Text(t("Disconnect", "فصل")) }
-                        .frame(width: 60)
-                }
-            } else {
-                Button { Task { await connectWhoop() } } label: { Label(t("Connect WHOOP", "ربط WHOOP"), systemImage: "link") }
-                    .buttonStyle(SoftButtonStyle())
+    var body: some View {
+        Card(title: t("Burn source", "مصدر الحرق"), icon: "applewatch") {
+            Picker(t("Preferred source", "المصدر المفضل"), selection: $source) {
+                ForEach(sources, id: \.0) { Text($0.1).tag($0.0) }
             }
-            if let profile {
-                HStack {
-                    Text(t("Preferred burn source", "مصدر الحرق المفضل")).font(.subheadline)
-                    Spacer()
-                    Picker("", selection: Binding(
-                        get: { profile.preferredEnergySource ?? "" },
-                        set: { v in Task { _ = try? await APIClient.shared.updateProfile(["preferredEnergySource": v.isEmpty ? NSNull() as Any : v as Any]); onChange(); await store.refresh() } })) {
-                        ForEach(sources, id: \.0) { Text($0.1).tag($0.0) }
-                    }
+            .pickerStyle(.segmented)
+            .onChange(of: source) { _, v in
+                guard loaded else { return }
+                Task {
+                    _ = try? await APIClient.shared.updateProfile(["preferredEnergySource": v.isEmpty ? NSNull() as Any : v as Any])
+                    onChange(); await store.refresh(force: true)
+                    message = t("Saved ✓", "تم الحفظ ✓")
                 }
+            }
+
+            if showApple {
+                Button {
+                    Task {
+                        busy = true; defer { busy = false }
+                        try? await HealthKitManager.shared.requestAuthorization()
+                        await store.refresh(force: true)
+                        message = t("Apple Health synced ✓", "تمت مزامنة Apple Health ✓")
+                    }
+                } label: { Label(t("Sync Apple Health now", "مزامنة Apple Health الآن"), systemImage: "heart.fill") }
+                    .buttonStyle(SoftButtonStyle()).disabled(busy)
+            }
+
+            if showWhoop {
+                if store.whoopConnected {
+                    HStack(spacing: 8) {
+                        Button {
+                            Task {
+                                busy = true; defer { busy = false }
+                                let from = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+                                do { try await APIClient.shared.whoopSync(from: from, to: Date()); message = t("WHOOP synced ✓", "تمت مزامنة WHOOP ✓") }
+                                catch { message = error.localizedDescription }
+                                await store.refresh()
+                            }
+                        } label: { Label(t("Sync WHOOP now", "مزامنة WHOOP الآن"), systemImage: "arrow.triangle.2.circlepath") }
+                            .buttonStyle(SoftButtonStyle()).disabled(busy)
+                        Button(role: .destructive) {
+                            Task { try? await APIClient.shared.whoopDisconnect(); store.setWhoop(false) }
+                        } label: { Text(t("Disconnect", "فصل")) }
+                            .frame(width: 60)
+                    }
+                } else {
+                    Button { Task { await connectWhoop() } } label: { Label(t("Connect WHOOP", "ربط WHOOP"), systemImage: "link") }
+                        .buttonStyle(SoftButtonStyle())
+                }
+            }
+
+            if source == "manual" {
+                Text(t("Enter today's active and basal burn in \"Today's burn (manual)\" below.", "أدخل حرق اليوم (النشط والأساسي) في بطاقة «الحرق اليوم (إدخال يدوي)» بالأسفل."))
+                    .font(.caption).foregroundStyle(Theme.muted)
             }
             Text(t("When several sources cover the same day, only one is used so your burn isn't counted twice.", "عند توفر أكثر من مصدر لنفس اليوم يُستخدم مصدر واحد فقط لتجنب احتساب الحرق مرتين."))
                 .font(.caption).foregroundStyle(Theme.muted)
             if let message { Text(message).font(.caption).foregroundStyle(Theme.brand2) }
         }
+        .onAppear { if !loaded { source = profile?.preferredEnergySource ?? ""; DispatchQueue.main.async { loaded = true } } }
         .task { if let c = try? await APIClient.shared.whoopStatus() { store.setWhoop(c) } }
     }
 

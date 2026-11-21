@@ -816,7 +816,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       <button class="btn ghost" id="editPlan">تعديل الهدف والخطة</button>
     </div>
 
-    <div class="card">
+    <div class="card" id="manualCard">
       <h3>الحرق اليوم (إدخال يدوي)</h3>
       <p class="small muted" style="margin-top:-4px">لمن لا يستخدم WHOOP: انقلي الأرقام من تطبيق "صحتي".</p>
       <div class="grid2">
@@ -866,12 +866,29 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       <button class="btn ghost" id="rmSave">حفظ</button>
     </div>
 
-    <div class="card">
-      <h3>WHOOP <span id="wStatus" class="small">—</span></h3>
-      <button class="btn ghost" id="wConnect">ربط WHOOP</button>
-      <button class="btn ghost hidden" id="wSync">مزامنة الآن</button>
-      <label for="pSrc">مصدر الحرق المفضل</label>
+    <div class="card" id="srcCard">
+      <h3>مصدر الحرق</h3>
+      <label for="pSrc" style="margin-top:0">المصدر المفضل</label>
       <select id="pSrc"><option value="">تلقائي</option><option value="whoop">WHOOP</option><option value="apple_health">Apple Health</option><option value="manual">يدوي</option></select>
+      <p class="small muted" style="margin:6px 0 0">عند توفر أكثر من مصدر لنفس اليوم يُستخدم مصدر واحد فقط لتجنب احتساب الحرق مرتين.</p>
+      <div id="srcWhoop" class="band s" style="margin-top:14px">
+        <div class="bh">WHOOP <span id="wStatus">—</span></div>
+        <div style="padding:12px 14px;display:grid;gap:8px">
+          <button class="btn ghost" id="wConnect">ربط WHOOP</button>
+          <button class="btn ghost hidden" id="wSync">مزامنة الآن</button>
+        </div>
+      </div>
+      <div id="srcApple" class="band p" style="margin-top:12px">
+        <div class="bh">Apple Health <span id="ahStatus">—</span></div>
+        <div style="padding:12px 14px;display:grid;gap:8px">
+          <p class="small" style="margin:0;line-height:1.6">تتم مزامنة Apple Health من تطبيق StrainEat على الآيفون: افتح التطبيق واسحب الشاشة لتحت، أو من الإعدادات اضغط «Apple Health — سماح ومزامنة».</p>
+          <button class="btn ghost" id="ahCheck">تحقق من وصول البيانات</button>
+        </div>
+      </div>
+      <div id="srcManual" class="band y hidden" style="margin-top:12px">
+        <div class="bh">يدوي</div>
+        <div style="padding:12px 14px"><button class="btn ghost" id="srcManualGo">إدخال الحرق اليوم</button></div>
+      </div>
     </div>
 
     <div class="card" id="schSettings">
@@ -1705,7 +1722,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
       $('plWeekly').textContent = p.weeklyChangeKg ? L`${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ/أسبوع` : '—';
       $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = L`${fmt(p.fiberG)} غ`;
       $('plNotices').innerHTML = renderNotices(p.notices);
-      $('pSrc').value = prof.preferredEnergySource || '';
+      $('pSrc').value = prof.preferredEnergySource || ''; paintSources(); checkApple();
       const rm = prof.ramadan || { enabled: null, suhoorTime: '04:45', iftarTime: '18:00' };
       $('rmMode').value = rm.enabled === null ? 'auto' : rm.enabled ? 'on' : 'off';
       $('rmSuhoor').value = rm.suhoorTime; $('rmIftar').value = rm.iftarTime;
@@ -1795,7 +1812,28 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
     try { await api('profile', { method: 'PUT', json: { reminders: { meals: $('rmMeals').checked, weight: $('rmWeight').checked } } }); toast(T('تم الحفظ ✓')); } catch (e) { toast(e.message); }
   };
 
-  $('pSrc').onchange = async () => { try { await api('profile', { method: 'PUT', json: { preferredEnergySource: $('pSrc').value || null } }); toast(T('تم الحفظ ✓')); } catch (e) { toast(e.message); } };
+  /** Show only the controls for the chosen burn source (automatic shows WHOOP and Apple Health). */
+  function paintSources() {
+    const v = $('pSrc').value;
+    $('srcWhoop').classList.toggle('hidden', !(v === '' || v === 'whoop'));
+    $('srcApple').classList.toggle('hidden', !(v === '' || v === 'apple_health'));
+    $('srcManual').classList.toggle('hidden', v !== 'manual');
+  }
+  async function checkApple() {
+    $('ahStatus').textContent = '…';
+    try {
+      const b = await api(`balance?date=${isoDay(new Date())}`);
+      const has = (b.availableSources || []).includes('apple_health');
+      $('ahStatus').textContent = has ? T('وصلت بيانات اليوم ✓') : T('لا توجد بيانات اليوم');
+      return has;
+    } catch { $('ahStatus').textContent = '—'; return false; }
+  }
+  $('ahCheck').onclick = async () => { const ok = await checkApple(); toast(ok ? T('بيانات Apple Health لليوم موجودة ✓') : T('لم تصل بيانات اليوم بعد — افتح تطبيق الآيفون واسحب لتحت'), 3500); };
+  $('srcManualGo').onclick = () => $('manualCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('pSrc').onchange = async () => {
+    paintSources();
+    try { await api('profile', { method: 'PUT', json: { preferredEnergySource: $('pSrc').value || null } }); toast(T('تم الحفظ ✓')); histCache = null; } catch (e) { toast(e.message); }
+  };
   const numOrNull = (v) => (v === '' ? null : Number(v));
   $('eSave').onclick = async () => {
     const a = numOrNull($('eActive').value), b = numOrNull($('eBasal').value);

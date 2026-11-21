@@ -9,6 +9,16 @@
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   var EN = {
+"مصدر الحرق": "Burn source",
+"المصدر المفضل": "Preferred source",
+"عند توفر أكثر من مصدر لنفس اليوم يُستخدم مصدر واحد فقط لتجنب احتساب الحرق مرتين.": "When several sources cover the same day, only one is used so your burn isn't counted twice.",
+"تتم مزامنة Apple Health من تطبيق StrainEat على الآيفون: افتح التطبيق واسحب الشاشة لتحت، أو من الإعدادات اضغط «Apple Health — سماح ومزامنة».": "Apple Health syncs from the StrainEat iPhone app: open the app and pull down to refresh, or tap “Apple Health — allow & sync” in its settings.",
+"تحقق من وصول البيانات": "Check data received",
+"إدخال الحرق اليوم": "Enter today's burn",
+"وصلت بيانات اليوم ✓": "Today's data received ✓",
+"لا توجد بيانات اليوم": "No data today yet",
+"بيانات Apple Health لليوم موجودة ✓": "Apple Health data for today is here ✓",
+"لم تصل بيانات اليوم بعد — افتح تطبيق الآيفون واسحب لتحت": "No data for today yet — open the iPhone app and pull down",
 "تم التحديث ✓": "Updated ✓",
 "أكلت {}": "ate {}",
 "فائض": "SURPLUS",
