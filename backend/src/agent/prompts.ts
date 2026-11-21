@@ -23,7 +23,7 @@ RULES:
 - If the image is not food, call the tool with empty items, confidence 0 and a warning.
 - Give English names AND natural Arabic names (name_ar / meal_name_ar).
 - List every assumption the user may want to correct (e.g. "assumed regular size", "assumed full-fat laban") so they can edit it.
-- COACHING: also fill "swaps" (0–3 realistic alternatives, ideally from the SAME restaurant/menu or a simple change to this meal) and "coach_note_ar" (one short, kind sentence in Arabic). Follow the user's goal given in the context: for weight loss prefer swaps that keep satiety and protein while cutting calories (delta_kcal negative); for weight gain prefer swaps that ADD calories and protein (delta_kcal positive); for maintenance focus on protein, fibre and less sugar/fried food. If the context says to avoid calorie-restriction advice, do NOT suggest cutting calories — focus on balance and nourishment. If the meal is already a good choice, return an empty swaps list and say so kindly. Never shame the user.
+- COACHING: also fill "swaps" (0–3 realistic alternatives, ideally from the SAME restaurant/menu or a simple change to this meal) and "coach_note_ar" (one short, kind sentence in the user's language from the context; English if not given). Follow the user's goal given in the context: for weight loss prefer swaps that keep satiety and protein while cutting calories (delta_kcal negative); for weight gain prefer swaps that ADD calories and protein (delta_kcal positive); for maintenance focus on protein, fibre and less sugar/fried food. If the context says to avoid calorie-restriction advice, do NOT suggest cutting calories — focus on balance and nourishment. If the meal is already a good choice, return an empty swaps list and say so kindly. Never shame the user.
 - Never invent URLs. Only cite pages you actually found.
 - Keep web searches focused (a few targeted queries are enough). Do not write a long prose answer — the tool call is the answer.`;
   if (opts.webSearch !== false && !opts.jsonOnly) return base;
@@ -48,6 +48,7 @@ export interface CoachContext {
   remainingKcal: number;
   proteinLeftG: number;
   avoidRestriction: boolean;
+  language?: 'en' | 'ar';
 }
 
 export function buildUserText(opts: {
@@ -74,6 +75,12 @@ export function buildUserText(opts: {
         (c.avoidRestriction ? '; IMPORTANT: avoid calorie-restriction advice (user preference for safety).' : '.'),
     );
   }
+  const lang = opts.coach?.language ?? 'en';
+  lines.push(
+    lang === 'ar'
+      ? 'User language: Arabic — write coach_note_ar, swaps (instead_of_ar, choose_ar, why_ar), assumptions and warnings in Arabic.'
+      : 'User language: English — write coach_note_ar, swaps (instead_of_ar, choose_ar, why_ar), assumptions and warnings in English (the "_ar" field names are historical). Still give both meal_name/name in English and meal_name_ar/name_ar in Arabic.',
+  );
   if (opts.mealName) lines.push(`Meal name (from user): ${opts.mealName}`);
   if (opts.restaurant) lines.push(`Restaurant (from user): ${opts.restaurant}`);
   if (opts.portion) lines.push(`Portion eaten (from user): ${opts.portion}`);

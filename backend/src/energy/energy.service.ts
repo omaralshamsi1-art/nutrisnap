@@ -125,28 +125,33 @@ export function dailyTips(i: {
   isToday: boolean;
   hour: number;
   mealsCount: number;
-}): { kind: string; text_ar: string }[] {
-  const tips: { kind: string; text_ar: string }[] = [];
+}): { kind: string; text_ar: string; text_en: string }[] {
+  const tips: { kind: string; text_ar: string; text_en: string }[] = [];
   if (!i.isToday) return tips;
   const proteinLeft = Math.round(i.macroTargets.protein_g - i.intake.protein_g);
   const kcalLeft = Math.round(i.target - i.intake.calories);
   if (i.mealsCount === 0 && i.hour >= 11) {
-    tips.push({ kind: 'log', text_ar: 'لم تسجّل أي وجبة اليوم بعد — صوّر وجبتك القادمة ليبقى الحساب دقيقاً.' });
+    tips.push({ kind: 'log', text_ar: 'لم تسجّل أي وجبة اليوم بعد — صوّر وجبتك القادمة ليبقى الحساب دقيقاً.', text_en: "You haven't logged a meal today — snap your next one to keep the count accurate." });
   }
   if (proteinLeft >= 25 && i.hour >= 14) {
     const extra = i.goal === 'lose' ? 'البروتين يحافظ على عضلاتك ويقلل الجوع' : 'البروتين أساس بناء العضل';
-    tips.push({ kind: 'protein', text_ar: `يتبقى ${proteinLeft} غ بروتين لهدف اليوم — ${extra}. خيارات سهلة: لبن يوناني، بيض، دجاج مشوي، تونة.` });
+    const extraEn = i.goal === 'lose' ? 'protein protects your muscle and curbs hunger' : 'protein is the building block of muscle';
+    tips.push({
+      kind: 'protein',
+      text_ar: `يتبقى ${proteinLeft} غ بروتين لهدف اليوم — ${extra}. خيارات سهلة: لبن يوناني، بيض، دجاج مشوي، تونة.`,
+      text_en: `${proteinLeft} g protein left for today — ${extraEn}. Easy options: Greek yoghurt, eggs, grilled chicken, tuna.`,
+    });
   }
   if (i.goal === 'gain' && kcalLeft > 600 && i.hour >= 17) {
-    tips.push({ kind: 'gain', text_ar: `يتبقى ${kcalLeft} سعرة لهدف الزيادة — أضف وجبة خفيفة غنية: مكسرات، تمر مع لبن، أو ساندويتش زبدة فول سوداني.` });
+    tips.push({ kind: 'gain', text_ar: `يتبقى ${kcalLeft} سعرة لهدف الزيادة — أضف وجبة خفيفة غنية: مكسرات، تمر مع لبن، أو ساندويتش زبدة فول سوداني.`, text_en: `${kcalLeft} kcal left for your gain goal — add a rich snack: nuts, dates with yoghurt, or a peanut-butter sandwich.` });
   }
   if (kcalLeft < -150) {
-    tips.push({ kind: 'over', text_ar: 'تجاوزت هدف اليوم قليلاً — لا مشكلة، يوم واحد لا يغيّر الاتجاه. ركّز على الماء والمشي، ونكمل غداً.' });
+    tips.push({ kind: 'over', text_ar: 'تجاوزت هدف اليوم قليلاً — لا مشكلة، يوم واحد لا يغيّر الاتجاه. ركّز على الماء والمشي، ونكمل غداً.', text_en: "A little over today's goal — no problem, one day doesn't change the trend. Focus on water and a walk; we carry on tomorrow." });
   } else if (i.goal === 'lose' && kcalLeft > 0 && kcalLeft < 350 && i.hour < 17) {
-    tips.push({ kind: 'budget', text_ar: `تبقى ${kcalLeft} سعرة — اختر عشاءً خفيفاً غنياً بالخضار والبروتين.` });
+    tips.push({ kind: 'budget', text_ar: `تبقى ${kcalLeft} سعرة — اختر عشاءً خفيفاً غنياً بالخضار والبروتين.`, text_en: `${kcalLeft} kcal left — pick a light dinner rich in vegetables and protein.` });
   }
   if (i.intake.calories > 1000 && i.intake.fiber_g < i.macroTargets.fiber_g * 0.4 && i.hour >= 15) {
-    tips.push({ kind: 'fiber', text_ar: 'الألياف قليلة اليوم — أضف خضاراً أو فاكهة أو حمّص للشبع وصحة الهضم.' });
+    tips.push({ kind: 'fiber', text_ar: 'الألياف قليلة اليوم — أضف خضاراً أو فاكهة أو حمّص للشبع وصحة الهضم.', text_en: 'Fibre is low today — add vegetables, fruit or hummus for fullness and digestion.' });
   }
   return tips.slice(0, 2);
 }

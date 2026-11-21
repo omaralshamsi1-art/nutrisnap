@@ -45,13 +45,29 @@ export function weekStart(date: string): string {
 }
 
 const CHALLENGES = {
-  log5: { title_ar: 'سجّل وجباتك 5 أيام هذا الأسبوع', desc_ar: 'التسجيل المنتظم هو أقوى عادة للوصول لهدفك.', target: 5, unit: 'أيام' },
-  protein4: { title_ar: 'حقق هدف البروتين 4 أيام', desc_ar: 'البروتين يحافظ على عضلاتك ويقلل الجوع.', target: 4, unit: 'أيام' },
-  fiber4: { title_ar: 'وصّل الألياف لهدفك 4 أيام', desc_ar: 'خضار وبقوليات وفاكهة كاملة — للشبع وصحة الهضم.', target: 4, unit: 'أيام' },
-  move3: { title_ar: 'تمرّن 3 مرات هذا الأسبوع', desc_ar: 'أي نشاط يُسجَّل في WHOOP أو Apple Health يُحتسب.', target: 3, unit: 'تمارين' },
-  ontarget5: { title_ar: 'ابقَ ضمن هدف السعرات 5 أيام', desc_ar: 'الثبات أهم من الكمال.', target: 5, unit: 'أيام' },
+  log5: { title_ar: 'سجّل وجباتك 5 أيام هذا الأسبوع', desc_ar: 'التسجيل المنتظم هو أقوى عادة للوصول لهدفك.', target: 5, unit: 'أيام', title_en: 'Log your meals 5 days this week', desc_en: 'Regular logging is the strongest habit for reaching your goal.', unit_en: 'days' },
+  protein4: { title_ar: 'حقق هدف البروتين 4 أيام', desc_ar: 'البروتين يحافظ على عضلاتك ويقلل الجوع.', target: 4, unit: 'أيام', title_en: 'Hit your protein goal 4 days', desc_en: 'Protein protects your muscle and keeps hunger down.', unit_en: 'days' },
+  fiber4: { title_ar: 'وصّل الألياف لهدفك 4 أيام', desc_ar: 'خضار وبقوليات وفاكهة كاملة — للشبع وصحة الهضم.', target: 4, unit: 'أيام', title_en: 'Reach your fibre goal 4 days', desc_en: 'Vegetables, legumes and whole fruit — for fullness and good digestion.', unit_en: 'days' },
+  move3: { title_ar: 'تمرّن 3 مرات هذا الأسبوع', desc_ar: 'أي نشاط يُسجَّل في WHOOP أو Apple Health يُحتسب.', target: 3, unit: 'تمارين', title_en: 'Work out 3 times this week', desc_en: 'Any activity recorded in WHOOP or Apple Health counts.', unit_en: 'workouts' },
+  ontarget5: { title_ar: 'ابقَ ضمن هدف السعرات 5 أيام', desc_ar: 'الثبات أهم من الكمال.', target: 5, unit: 'أيام', title_en: 'Stay within your calorie goal 5 days', desc_en: 'Consistency beats perfection.', unit_en: 'days' },
 } as const;
 type ChallengeId = keyof typeof CHALLENGES;
+
+const BADGE_EN: Record<string, { title_en: string; desc_en: string }> = {
+  first_meal: { title_en: 'First step', desc_en: 'Logged your first meal' },
+  streak_3: { title_en: '3-day streak', desc_en: 'Log 3 days in a row' },
+  streak_7: { title_en: 'Full week', desc_en: 'Log 7 days in a row' },
+  streak_30: { title_en: 'Month of commitment', desc_en: 'Log 30 days in a row' },
+  meals_50: { title_en: '50 meals', desc_en: 'Log 50 meals' },
+  on_target_7: { title_en: 'On target', desc_en: '7 days within your calorie goal' },
+  protein_5: { title_en: 'Protein champ', desc_en: 'Hit your protein goal 5 days' },
+  first_weight: { title_en: 'First weigh-in', desc_en: 'Log your weight for the first time' },
+  gain_2: { title_en: '+2 kg', desc_en: 'Gain 2 kg toward your goal' },
+  lose_2: { title_en: '−2 kg', desc_en: 'Lose 2 kg from your starting weight' },
+  gain_5: { title_en: '+5 kg', desc_en: 'Gain 5 kg toward your goal' },
+  lose_5: { title_en: '−5 kg', desc_en: 'Lose 5 kg from your starting weight' },
+  workouts_10: { title_en: 'Active', desc_en: 'Log 10 workouts' },
+};
 
 @Injectable()
 export class MotivationService {
@@ -93,7 +109,7 @@ export class MotivationService {
     // ---- badges (earned + progress) ----
     const lost = plan.startWeightKg && plan.currentWeightKg ? plan.startWeightKg - plan.currentWeightKg : 0;
     const b = (id: string, title_ar: string, desc_ar: string, value: number, target: number) => ({
-      id, title_ar, desc_ar, earned: value >= target, progress: Math.min(value, target), target,
+      id, title_ar, desc_ar, ...BADGE_EN[id], earned: value >= target, progress: Math.min(value, target), target,
     });
     const badges = [
       b('first_meal', 'البداية', 'سجّلت أول وجبة', confirmed.length, 1),

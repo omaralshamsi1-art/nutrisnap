@@ -26,6 +26,20 @@ const SPORTS: Record<string, [string, SportKind]> = {
   activity: ['نشاط', 'other'], other: ['نشاط آخر', 'other'], sauna: ['ساونا', 'mind'], icebath: ['حمام ثلج', 'mind'],
 };
 
+const EN_FIX: Record<string, string> = {
+  hiit: 'HIIT', highintensityintervaltraining: 'HIIT', crossfit: 'CrossFit', mma: 'MMA', jiujitsu: 'Jiu-Jitsu',
+  traditionalstrengthtraining: 'Strength training', functionalstrengthtraining: 'Functional strength', mixedcardio: 'Cardio',
+  hikingrucking: 'Hiking', spin: 'Spin', mindandbody: 'Mind & body', activity: 'Activity', other: 'Other activity',
+};
+
+/** English label from the raw WHOOP / HealthKit name ("functional-fitness" → "Functional fitness"). */
+export function sportEn(sport: string): string {
+  const fix = EN_FIX[norm(sport)];
+  if (fix) return fix;
+  const s = String(sport ?? 'activity').replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim().toLowerCase();
+  return s ? s[0].toUpperCase() + s.slice(1) : 'Activity';
+}
+
 export function sportInfo(sport: string): { ar: string; kind: SportKind } {
   const hit = SPORTS[norm(sport)];
   if (hit) return { ar: hit[0], kind: hit[1] };
@@ -113,7 +127,7 @@ export class WorkoutsService {
     if (!isIsoDate(date)) throw new BadRequestException('date must be YYYY-MM-DD');
     const profile = await this.profiles.get(userId);
     const list = dedupeWorkouts(await this.repo.listWorkouts(userId, date, date), profile.preferredEnergySource);
-    const items = list.map((w) => ({ ...w, ...sportInfo(w.sport), sportAr: sportInfo(w.sport).ar }));
+    const items = list.map((w) => ({ ...w, ...sportInfo(w.sport), sportAr: sportInfo(w.sport).ar, sportEn: sportEn(w.sport) }));
     return {
       date,
       workouts: items.map(({ ar, ...w }) => w),

@@ -132,7 +132,7 @@ struct MacroProgress: View {
     let value: Double
     let target: Double?
     let color: Color
-    var unit = "غ"
+    var unit = t("g", "غ")
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
@@ -164,22 +164,21 @@ func signed(_ v: Double) -> String {
     return ltr((n > 0 ? "+" : n < 0 ? "−" : "") + abs(n).formatted(.number.locale(Locale(identifier: "en_US"))))
 }
 /// Signed kg value ("+0.4 كغ" / "−1.2 كغ"), sign kept in front in Arabic text.
-func signedKg(_ v: Double) -> String { ltr((v > 0 ? "+" : v < 0 ? "−" : "") + fmt1(abs(v))) + " كغ" }
+func signedKg(_ v: Double) -> String { ltr((v > 0 ? "+" : v < 0 ? "−" : "") + fmt1(abs(v))) + t(" kg", " كغ") }
 /// Left-to-right isolate so signs and ranges are not reordered inside Arabic text.
 func ltr(_ s: String) -> String { "\u{202A}" + s + "\u{202C}" }
 
-let arabic = Locale(identifier: "ar")
 extension Date {
-    var arDayMonth: String { formatted(.dateTime.day().month(.wide).locale(arabic)) }
-    var arWeekday: String { formatted(.dateTime.weekday(.wide).locale(arabic)) }
-    var arMonthYear: String { formatted(.dateTime.month(.wide).year().locale(arabic)) }
-    var arTime: String { formatted(.dateTime.hour().minute().locale(arabic)) }
+    var arDayMonth: String { formatted(.dateTime.day().month(.wide).locale(appLocale)) }
+    var arWeekday: String { formatted(.dateTime.weekday(.wide).locale(appLocale)) }
+    var arMonthYear: String { formatted(.dateTime.month(.wide).year().locale(appLocale)) }
+    var arTime: String { formatted(.dateTime.hour().minute().locale(appLocale)) }
 }
 
 func sourceName(_ s: String) -> String {
     ["apple_health": "Apple Health", "whoop": "WHOOP", "health_connect": "Health Connect",
-     "garmin": "Garmin", "fitbit": "Fitbit", "manual": "يدوي", "estimate": "تقدير", "formula": "معادلة",
-     "device": "جهازك", "adaptive": "من بياناتك"][s] ?? s
+     "garmin": "Garmin", "fitbit": "Fitbit", "manual": t("Manual", "يدوي"), "estimate": t("Estimate", "تقدير"), "formula": t("Formula", "معادلة"),
+     "device": t("Your device", "جهازك"), "adaptive": t("From your data", "من بياناتك")][s] ?? s
 }
 
 func sportIcon(_ kind: String?) -> String {

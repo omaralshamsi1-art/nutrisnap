@@ -194,7 +194,7 @@ describe('reminders', () => {
     const at = new Date('2026-11-21T04:15:00Z'); // 08:15 Dubai → weight reminder
     const r1 = await svc.tick(at);
     expect(r1.sent).toBe(1);
-    expect(sent).toEqual(['قياس الصباح ⚖️']);
+    expect(sent).toEqual(['Morning weigh-in ⚖️']);
     expect((await repo.listPushSubs('u')).map((s) => s.endpoint)).toEqual(['https://push.example/ok']);
     const r2 = await svc.tick(new Date('2026-11-21T04:30:00Z'));
     expect(r2.sent).toBe(0);

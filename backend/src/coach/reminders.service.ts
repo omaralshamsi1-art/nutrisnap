@@ -53,6 +53,7 @@ export function dueReminders(i: {
   daysSinceWeight: number | null;
   fasting: boolean;
   prefs: { meals: boolean; weight: boolean };
+  lang?: 'en' | 'ar';
 }): { key: string; title: string; body: string }[] {
   const out: { key: string; title: string; body: string }[] = [];
   if (i.nowMin >= 23 * 60 || i.nowMin < 7 * 60) return out;
@@ -60,12 +61,20 @@ export function dueReminders(i: {
     for (const s of Object.keys(i.usual) as Slot[]) {
       const t = i.usual[s]!;
       if (i.nowMin >= t + 45 && i.nowMin <= t + 75 && !i.loggedSlotsToday.has(s)) {
-        out.push({ key: `meal:${s}`, title: `وقت ${SLOT_NAME[s]} 🍽️`, body: `لم تسجّل ${SLOT_AR[s]} بعد — صوّر الوجبة أو اختر من المفضلة بضغطة واحدة.` });
+        out.push(
+          i.lang === 'ar'
+            ? { key: `meal:${s}`, title: `وقت ${SLOT_NAME[s]} 🍽️`, body: `لم تسجّل ${SLOT_AR[s]} بعد — صوّر الوجبة أو اختر من المفضلة بضغطة واحدة.` }
+            : { key: `meal:${s}`, title: `${s[0].toUpperCase() + s.slice(1)} time 🍽️`, body: `You haven't logged your ${s} yet — snap it or pick a favourite in one tap.` },
+        );
       }
     }
   }
   if (i.prefs.weight && i.nowMin >= 7 * 60 + 30 && i.nowMin <= 9 * 60 && (i.daysSinceWeight == null || i.daysSinceWeight >= 2)) {
-    out.push({ key: 'weight', title: 'قياس الصباح ⚖️', body: 'سجّل وزنك بعد الاستيقاظ — يساعد المدرب على تعلّم حرقك الحقيقي.' });
+    out.push(
+      i.lang === 'ar'
+        ? { key: 'weight', title: 'قياس الصباح ⚖️', body: 'سجّل وزنك بعد الاستيقاظ — يساعد المدرب على تعلّم حرقك الحقيقي.' }
+        : { key: 'weight', title: 'Morning weigh-in ⚖️', body: 'Log your weight after waking up — it helps the coach learn your real burn.' },
+    );
   }
   return out;
 }
@@ -129,7 +138,11 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async test(userId: string) {
-    const n = await this.notify(userId, { title: 'NutriSnap ✓', body: 'التنبيهات تعمل — سنذكّرك في أوقات وجباتك المعتادة.' });
+    const lang = (await this.profiles.get(userId)).language ?? 'en';
+    const n = await this.notify(userId, {
+      title: 'NutriSnap ✓',
+      body: lang === 'ar' ? 'التنبيهات تعمل — سنذكّرك في أوقات وجباتك المعتادة.' : "Notifications work — we'll remind you around your usual meal times.",
+    });
     return { sent: n };
   }
 
@@ -169,6 +182,7 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
         daysSinceWeight: lastW ? Math.round((Date.parse(today) - Date.parse(lastW)) / 86400000) : null,
         fasting: ramadanView(p.ramadan, now, tz, 2000).fasting,
         prefs: p.reminders ?? { meals: true, weight: true },
+        lang: p.language ?? 'en',
       });
       for (const r of due) {
         const key = `reminder:${today}:${r.key}`;

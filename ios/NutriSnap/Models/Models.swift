@@ -54,10 +54,10 @@ enum NutritionSource: String, Codable {
 
     var labelAr: String {
         switch self {
-        case .restaurantPublished: return "قيمة معلنة من المطعم"
-        case .knownMeal: return "من وجباتك السابقة"
-        case .database: return "قاعدة بيانات غذائية"
-        case .estimate: return "تقدير تقريبي من الصورة"
+        case .restaurantPublished: return t("Published by the restaurant", "قيمة معلنة من المطعم")
+        case .knownMeal: return t("From your past meals", "من وجباتك السابقة")
+        case .database: return t("Nutrition database", "قاعدة بيانات غذائية")
+        case .estimate: return t("Rough estimate from the photo", "تقدير تقريبي من الصورة")
         }
     }
 }
@@ -108,6 +108,7 @@ struct Balance: Codable {
         let id: String; let eatenAt: Date; let status: String
         let name: String; let nameAr: String; let restaurant: String?; let source: String; let calories: Double
         let proteinG: Double?
+        var displayName: String { appLang == .ar ? (nameAr.isEmpty ? name : nameAr) : (name.isEmpty ? nameAr : name) }
         enum CodingKeys: String, CodingKey { case id, eatenAt, status, name, restaurant, source, calories; case nameAr = "name_ar"; case proteinG = "protein_g" }
     }
     struct Split: Codable { let protein: Int; let carbs: Int; let fat: Int }
@@ -115,8 +116,9 @@ struct Balance: Codable {
         let proteinG: Double; let carbsG: Double; let fatG: Double; let fiberG: Double
         enum CodingKeys: String, CodingKey { case proteinG = "protein_g", carbsG = "carbs_g", fatG = "fat_g", fiberG = "fiber_g" }
     }
-    struct Tip: Codable, Hashable { let kind: String; let textAr: String
-        enum CodingKeys: String, CodingKey { case kind; case textAr = "text_ar" } }
+    struct Tip: Codable, Hashable { let kind: String; let textAr: String; let textEn: String?
+        var text: String { pick(textEn, textAr) }
+        enum CodingKeys: String, CodingKey { case kind; case textAr = "text_ar", textEn = "text_en" } }
     let date: String
     let intake: Nutrients
     let pendingDrafts: Nutrients
@@ -162,6 +164,8 @@ struct Workout: Codable, Identifiable {
     let avgHr: Double?
     let maxHr: Double?
     let distanceM: Double?
+    let sportEn: String?
+    var displayName: String { (appLang == .ar ? sportAr : sportEn) ?? sport }
 }
 
 struct DayActivity: Codable {
@@ -173,13 +177,16 @@ struct DayActivity: Codable {
 }
 
 struct MealScore: Codable, Hashable {
-    struct Reason: Codable, Hashable { let good: Bool; let textAr: String
-        enum CodingKeys: String, CodingKey { case good; case textAr = "text_ar" } }
+    struct Reason: Codable, Hashable { let good: Bool; let textAr: String; let textEn: String?
+        var text: String { pick(textEn, textAr) }
+        enum CodingKeys: String, CodingKey { case good; case textAr = "text_ar", textEn = "text_en" } }
     let score: Double
     let grade: String
     let labelAr: String
+    let labelEn: String?
     let reasons: [Reason]
-    enum CodingKeys: String, CodingKey { case score, grade, reasons; case labelAr = "label_ar" }
+    var label: String { pick(labelEn, labelAr) }
+    enum CodingKeys: String, CodingKey { case score, grade, reasons; case labelAr = "label_ar", labelEn = "label_en" }
 }
 
 struct Swap: Codable, Hashable {
@@ -194,8 +201,9 @@ struct Swap: Codable, Hashable {
     }
 }
 
-struct PlanNotice: Codable, Hashable { let level: String; let code: String?; let textAr: String
-    enum CodingKeys: String, CodingKey { case level, code; case textAr = "text_ar" } }
+struct PlanNotice: Codable, Hashable { let level: String; let code: String?; let textAr: String; let textEn: String?
+    var text: String { pick(textEn, textAr) }
+    enum CodingKeys: String, CodingKey { case level, code; case textAr = "text_ar", textEn = "text_en" } }
 
 struct Plan: Codable {
     struct BurnData: Codable { let days: Int; let needed: Int; let window: Int; let avgKcal: Double? }
@@ -241,10 +249,14 @@ struct History: Codable { let days: [HistoryDay]; let avgIntakeKcal: Double?; le
 
 struct Motivation: Codable {
     struct Streak: Codable { let current: Int; let best: Int; let loggedToday: Bool? }
-    struct Badge: Codable, Identifiable { let id: String; let titleAr: String; let descAr: String; let earned: Bool; let progress: Double; let target: Double
-        enum CodingKeys: String, CodingKey { case id, earned, progress, target; case titleAr = "title_ar", descAr = "desc_ar" } }
-    struct Challenge: Codable { let id: String; let titleAr: String; let descAr: String; let target: Double; let unit: String; let progress: Double; let done: Bool; let daysLeft: Int
-        enum CodingKeys: String, CodingKey { case id, target, unit, progress, done, daysLeft; case titleAr = "title_ar", descAr = "desc_ar" } }
+    struct Badge: Codable, Identifiable { let id: String; let titleAr: String; let descAr: String; let titleEn: String?; let descEn: String?; let earned: Bool; let progress: Double; let target: Double
+        var title: String { pick(titleEn, titleAr) }
+        var desc: String { pick(descEn, descAr) }
+        enum CodingKeys: String, CodingKey { case id, earned, progress, target; case titleAr = "title_ar", descAr = "desc_ar", titleEn = "title_en", descEn = "desc_en" } }
+    struct Challenge: Codable { let id: String; let titleAr: String; let descAr: String; let titleEn: String?; let descEn: String?; let unitEn: String?; let target: Double; let unit: String; let progress: Double; let done: Bool; let daysLeft: Int
+        var title: String { pick(titleEn, titleAr) }
+        var unitText: String { pick(unitEn, unit) }
+        enum CodingKeys: String, CodingKey { case id, target, unit, progress, done, daysLeft; case titleAr = "title_ar", descAr = "desc_ar", titleEn = "title_en", descEn = "desc_en", unitEn = "unit_en" } }
     let streak: Streak
     let onTargetStreak: Streak?
     let badges: [Badge]
@@ -282,7 +294,7 @@ struct Favorite: Codable, Identifiable, Hashable {
     let key: String; let name: String; let nameAr: String?; let restaurant: String?
     let calories: Double; let proteinG: Double?; let timesLogged: Int?
     var id: String { key }
-    var title: String { (nameAr?.isEmpty == false ? nameAr! : name) }
+    var title: String { appLang == .ar ? (nameAr?.isEmpty == false ? nameAr! : name) : name }
     enum CodingKeys: String, CodingKey { case key, name, restaurant, calories, timesLogged; case nameAr = "name_ar", proteinG = "protein_g" }
 }
 
@@ -293,7 +305,7 @@ struct BarcodeProduct: Codable {
     }
     let barcode: String; let name: String; let nameAr: String?; let brand: String?
     let servingG: Double?; let servingLabel: String?; let per100: Per100; let imageUrl: String?
-    var title: String { nameAr?.isEmpty == false ? nameAr! : name }
+    var title: String { appLang == .ar ? (nameAr?.isEmpty == false ? nameAr! : name) : name }
     enum CodingKeys: String, CodingKey { case barcode, name, brand, servingG, servingLabel, per100, imageUrl; case nameAr = "name_ar" }
 }
 
@@ -322,6 +334,7 @@ struct Profile: Codable {
     var onboarded: Bool?
     var ramadan: Ramadan?
     var reminders: Reminders?
+    var language: String?
 }
 
 struct EnergySample: Codable {
@@ -351,4 +364,6 @@ struct WorkoutUpload: Encodable {
     let avgHr: Double?
     let maxHr: Double?
     let distanceM: Double?
+    let sportEn: String?
+    var displayName: String { (appLang == .ar ? sportAr : sportEn) ?? sport }
 }

@@ -50,6 +50,9 @@ const LEVEL_AR: Record<string, string> = {
   active: 'نشيط',
   very_active: 'نشيط جداً',
 };
+const LEVEL_EN: Record<string, string> = {
+  sedentary: 'sedentary', light: 'lightly active', moderate: 'moderately active', active: 'active', very_active: 'very active',
+};
 
 @Injectable()
 export class PlanService {
@@ -176,6 +179,7 @@ export class PlanService {
         level: 'info',
         code: 'activity_calibrated',
         text_ar: `عدّلنا مستوى نشاطك تلقائياً من «${LEVEL_AR[cal.from] ?? cal.from}» إلى «${LEVEL_AR[cal.to] ?? cal.to}» بناءً على ${cal.days} أيام من قياس الحرق (متوسط ${cal.avgBurnKcal.toLocaleString('en-US')} سعرة يومياً).`,
+        text_en: `We adjusted your activity level from "${LEVEL_EN[cal.from] ?? cal.from}" to "${LEVEL_EN[cal.to] ?? cal.to}" based on ${cal.days} days of measured burn (average ${cal.avgBurnKcal.toLocaleString('en-US')} kcal/day).`,
       });
     }
     if (source === 'formula' && deviceDays.length > 0) {
@@ -183,6 +187,7 @@ export class PlanService {
         level: 'info',
         code: 'collecting_burn',
         text_ar: `نجمع قياسات حرقك من ساعتك: ${deviceDays.length} من ${CALIBRATION_MIN_DAYS} أيام. بعدها نعتمد حرقك الحقيقي ونصحح مستوى النشاط تلقائياً.`,
+        text_en: `Collecting burn data from your watch: ${deviceDays.length} of ${CALIBRATION_MIN_DAYS} days. After that we use your real burn and correct your activity level automatically.`,
       });
     }
 

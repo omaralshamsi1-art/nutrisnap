@@ -15,10 +15,11 @@ struct PlanTab: View {
                     AccountCard()
                     DevicesCard(profile: profile, onChange: { Task { await load() } })
                     if let profile { RamadanSettingsCard(profile: profile, onSaved: { Task { await load() } }) }
-                    Card(title: "التذكيرات", icon: "bell.badge") {
-                        Text("التذكيرات الذكية (موعد الوجبة المعتاد ووزن الصباح) تعمل حالياً من تطبيق الويب بعد إضافته للشاشة الرئيسية.")
+                    Card(title: t("Reminders", "التذكيرات"), icon: "bell.badge") {
+                        Text(t("Smart reminders (usual meal time and morning weigh-in) currently run from the web app once it's added to your Home Screen.", "التذكيرات الذكية (موعد الوجبة المعتاد ووزن الصباح) تعمل حالياً من تطبيق الويب بعد إضافته للشاشة الرئيسية."))
                             .font(.footnote).foregroundStyle(Theme.muted)
                     }
+                    Card(title: "Language · اللغة", icon: "globe") { LanguagePicker() }
                     if let message { Text(message).font(.footnote).foregroundStyle(Theme.muted) }
                     Text("NutriSnap \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
                         .font(.caption2).foregroundStyle(Theme.muted)
@@ -26,11 +27,11 @@ struct PlanTab: View {
                 .padding(16)
             }
             .screenBackground()
-            .navigationTitle("الخطة")
+            .navigationTitle(t("Plan", "الخطة"))
             .refreshable { await load() }
             .task { await load() }
             .sheet(isPresented: $editing, onDismiss: { Task { await load(); await store.refresh() } }) {
-                OnboardingView(existing: profile).environment(store).environment(\.layoutDirection, .rightToLeft)
+                OnboardingView(existing: profile).environment(store).environment(\.layoutDirection, appLayoutDirection)
             }
         }
     }
@@ -49,36 +50,36 @@ struct PlanSummaryCard: View {
     let plan: Plan
     var onEdit: () -> Void
     var body: some View {
-        Card(title: "خطتك اليومية", icon: "target",
-             trailing: AnyView(Button("تعديل", action: onEdit).font(.subheadline.weight(.semibold)))) {
+        Card(title: t("Your daily plan", "خطتك اليومية"), icon: "target",
+             trailing: AnyView(Button(t("Edit", "تعديل"), action: onEdit).font(.subheadline.weight(.semibold)))) {
             HStack(alignment: .firstTextBaseline) {
                 Text(fmt(plan.targetKcal)).font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
-                Text("سعرة/يوم").foregroundStyle(Theme.muted)
+                Text(t("kcal/day", "سعرة/يوم")).foregroundStyle(Theme.muted)
                 Spacer()
                 Chip(text: goalName(plan.effectiveGoal))
             }
             HStack(spacing: 8) {
-                macro("بروتين", plan.proteinG, Theme.protein)
-                macro("كربوهيدرات", plan.carbsG, Theme.carbs)
-                macro("دهون", plan.fatG, Theme.fat)
-                macro("ألياف", plan.fiberG, Theme.fiber)
+                macro(t("Protein", "بروتين"), plan.proteinG, Theme.protein)
+                macro(t("Carbs", "كربوهيدرات"), plan.carbsG, Theme.carbs)
+                macro(t("Fat", "دهون"), plan.fatG, Theme.fat)
+                macro(t("Fibre", "ألياف"), plan.fiberG, Theme.fiber)
             }
             VStack(alignment: .leading, spacing: 6) {
-                row("حرقك اليومي (الصيانة)", "\(fmt(plan.maintenanceKcal)) • \(sourceName(plan.maintenanceSource))")
-                row("العجز/الفائض اليومي", signed(plan.dailyDeltaKcal))
-                if let w = plan.weeklyChangeKg, w != 0 { row("التغيّر المتوقع أسبوعياً", signedKg(w)) }
-                if let bmi = plan.bmi { row("مؤشر كتلة الجسم", fmt1(bmi)) }
+                row(t("Daily burn (maintenance)", "حرقك اليومي (الصيانة)"), "\(fmt(plan.maintenanceKcal)) • \(sourceName(plan.maintenanceSource))")
+                row(t("Daily deficit/surplus", "العجز/الفائض اليومي"), signed(plan.dailyDeltaKcal))
+                if let w = plan.weeklyChangeKg, w != 0 { row(t("Expected weekly change", "التغيّر المتوقع أسبوعياً"), signedKg(w)) }
+                if let bmi = plan.bmi { row(t("BMI", "مؤشر كتلة الجسم"), fmt1(bmi)) }
                 if let bd = plan.burnData, plan.maintenanceSource != "device" {
-                    row("قياسات الحرق من الساعة", "\(bd.days) من \(bd.needed) أيام")
+                    row(t("Burn data from your watch", "قياسات الحرق من الساعة"), t("\(bd.days) of \(bd.needed) days", "\(bd.days) من \(bd.needed) أيام"))
                 }
             }
-            ForEach(plan.notices, id: \.self) { Notice(text: $0.textAr, level: $0.level) }
+            ForEach(plan.notices, id: \.self) { Notice(text: $0.text, level: $0.level) }
         }
     }
-    private func macro(_ t: String, _ g: Double, _ c: Color) -> some View {
+    private func macro(_ label: String, _ g: Double, _ c: Color) -> some View {
         VStack(spacing: 2) {
             Text("\(fmt(g))").font(.headline).foregroundStyle(c).monospacedDigit()
-            Text("\(t) غ").font(.caption2).foregroundStyle(Theme.muted)
+            Text(t("\(label) g", "\(label) غ")).font(.caption2).foregroundStyle(Theme.muted)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 8)
         .background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
@@ -88,7 +89,7 @@ struct PlanSummaryCard: View {
             Text(k).foregroundStyle(Theme.muted)
             Spacer()
             Text(v).fontWeight(.semibold).monospacedDigit()
-                .environment(\.layoutDirection, ltr ? .leftToRight : .rightToLeft)
+                .environment(\.layoutDirection, ltr ? .leftToRight : appLayoutDirection)
         }
         .font(.footnote)
     }
@@ -105,34 +106,34 @@ struct AccountCard: View {
     @State private var message: String?
 
     var body: some View {
-        Card(title: "حسابي", icon: "person.crop.circle") {
+        Card(title: t("My account", "حسابي"), icon: "person.crop.circle") {
             if let me = store.me {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(me.name ?? me.id).font(.headline)
-                        Text(me.email ?? (me.role == "owner" ? "دخول بمفتاح المالك" : "")).font(.caption).foregroundStyle(Theme.muted)
+                        Text(me.email ?? (me.role == "owner" ? t("Signed in with the owner key", "دخول بمفتاح المالك") : "")).font(.caption).foregroundStyle(Theme.muted)
                     }
                     Spacer()
-                    if me.role == "owner" { Chip(text: "المالك", icon: "crown.fill", fg: Theme.warn, bg: Theme.accentSoft) }
+                    if me.role == "owner" { Chip(text: t("Owner", "المالك"), icon: "crown.fill", fg: Theme.warn, bg: Theme.accentSoft) }
                 }
                 if me.role == "owner" && me.account == false {
                     Divider()
-                    Text("اربط بريدك لتدخل بكلمة مرور بدل المفتاح — بياناتك الحالية تبقى كما هي.").font(.caption).foregroundStyle(Theme.muted)
-                    InputField(title: "البريد الإلكتروني", text: $linkEmail)
+                    Text(t("Link your email to sign in with a password instead of the key — your data stays as it is.", "اربط بريدك لتدخل بكلمة مرور بدل المفتاح — بياناتك الحالية تبقى كما هي.")).font(.caption).foregroundStyle(Theme.muted)
+                    InputField(title: t("Email", "البريد الإلكتروني"), text: $linkEmail)
                         .textInputAutocapitalization(.never).keyboardType(.emailAddress)
-                    SecureField("كلمة المرور (8 أحرف على الأقل)", text: $linkPass)
+                    SecureField(t("Password (at least 8 characters)", "كلمة المرور (8 أحرف على الأقل)"), text: $linkPass)
                         .padding(11).background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
-                    Button("ربط البريد") { Task { await link() } }.buttonStyle(SoftButtonStyle()).disabled(busy)
+                    Button(t("Link email", "ربط البريد")) { Task { await link() } }.buttonStyle(SoftButtonStyle()).disabled(busy)
                 }
                 if me.role == "owner" {
                     Divider()
                     HStack {
-                        Text("دعوة مستخدمين").font(.subheadline.weight(.semibold))
+                        Text(t("Invite users", "دعوة مستخدمين")).font(.subheadline.weight(.semibold))
                         Spacer()
-                        Button { Task { await createInvite() } } label: { Label("رمز جديد", systemImage: "plus") }
+                        Button { Task { await createInvite() } } label: { Label(t("New code", "رمز جديد"), systemImage: "plus") }
                             .font(.subheadline).disabled(busy)
                     }
-                    Text("كل رمز لشخص واحد وصالح 14 يوماً. حدود المستخدم: 20 تحليل و12 طلب مدرب يومياً.")
+                    Text(t("Each code is for one person and valid for 14 days. User limits: 20 analyses and 12 coach requests per day.", "كل رمز لشخص واحد وصالح 14 يوماً. حدود المستخدم: 20 تحليل و12 طلب مدرب يومياً."))
                         .font(.caption).foregroundStyle(Theme.muted)
                     ForEach(invites ?? []) { inv in
                         HStack {
@@ -140,11 +141,11 @@ struct AccountCard: View {
                                 .environment(\.layoutDirection, .leftToRight)
                             Spacer()
                             if let used = inv.usedByName ?? inv.usedBy {
-                                Text("استُخدم: \(used)").font(.caption).foregroundStyle(Theme.muted)
+                                Text(t("Used: \(used)", "استُخدم: \(used)")).font(.caption).foregroundStyle(Theme.muted)
                             } else if inv.expiresAt < Date() {
-                                Text("منتهي").font(.caption).foregroundStyle(Theme.bad)
+                                Text(t("Expired", "منتهي")).font(.caption).foregroundStyle(Theme.bad)
                             } else {
-                                ShareLink(item: "دعوة لتطبيق NutriSnap 🍽️\nالرابط: \(APIClient.shared.baseURL.absoluteString)/app/\nرمز الدعوة: \(inv.code)") {
+                                ShareLink(item: t("Invite to NutriSnap 🍽️\nLink: \(APIClient.shared.baseURL.absoluteString)/app/\nInvite code: \(inv.code)", "دعوة لتطبيق NutriSnap 🍽️\nالرابط: \(APIClient.shared.baseURL.absoluteString)/app/\nرمز الدعوة: \(inv.code)")) {
                                     Image(systemName: "square.and.arrow.up")
                                 }
                             }
@@ -156,7 +157,7 @@ struct AccountCard: View {
                 ProgressView()
             }
             if let message { Text(message).font(.caption).foregroundStyle(Theme.muted) }
-            Button(role: .destructive) { store.signOut() } label: { Text("تسجيل الخروج").frame(maxWidth: .infinity) }
+            Button(role: .destructive) { store.signOut() } label: { Text(t("Sign out", "تسجيل الخروج")).frame(maxWidth: .infinity) }
                 .padding(.top, 4)
         }
         .task {
@@ -168,10 +169,10 @@ struct AccountCard: View {
     private func link() async {
         busy = true; defer { busy = false }
         do {
-            _ = try await APIClient.shared.register(inviteCode: nil, name: store.me?.name ?? "المالك",
+            _ = try await APIClient.shared.register(inviteCode: nil, name: store.me?.name ?? t("Owner", "المالك"),
                                                     email: linkEmail.trimmingCharacters(in: .whitespaces), password: linkPass,
                                                     claimUserId: store.me?.id)
-            message = "تم الربط ✓ — يمكنك الآن الدخول بالبريد من أي جهاز"
+            message = t("Linked ✓ — you can now sign in with your email on any device", "تم الربط ✓ — يمكنك الآن الدخول بالبريد من أي جهاز")
             store.me = try? await APIClient.shared.me()
             linkPass = ""
         } catch { message = error.localizedDescription }
@@ -194,16 +195,16 @@ struct DevicesCard: View {
     var onChange: () -> Void
     @State private var message: String?
     @State private var busy = false
-    private let sources = [("", "تلقائي"), ("whoop", "WHOOP"), ("apple_health", "Apple Health"), ("manual", "يدوي")]
+    private let sources = [("", t("Automatic", "تلقائي")), ("whoop", "WHOOP"), ("apple_health", "Apple Health"), ("manual", t("Manual", "يدوي"))]
 
     var body: some View {
-        Card(title: "الأجهزة والتطبيقات", icon: "applewatch") {
+        Card(title: t("Devices & apps", "الأجهزة والتطبيقات"), icon: "applewatch") {
             Button {
                 Task {
                     try? await HealthKitManager.shared.requestAuthorization()
-                    await store.refresh(); message = "تمت مزامنة Apple Health"
+                    await store.refresh(); message = t("Apple Health synced", "تمت مزامنة Apple Health")
                 }
-            } label: { Label("Apple Health — سماح ومزامنة", systemImage: "heart.fill") }
+            } label: { Label(t("Apple Health — allow & sync", "Apple Health — سماح ومزامنة"), systemImage: "heart.fill") }
                 .buttonStyle(SoftButtonStyle())
 
             if store.whoopConnected {
@@ -212,24 +213,24 @@ struct DevicesCard: View {
                         Task {
                             busy = true; defer { busy = false }
                             let from = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
-                            do { try await APIClient.shared.whoopSync(from: from, to: Date()); message = "تمت مزامنة WHOOP" }
+                            do { try await APIClient.shared.whoopSync(from: from, to: Date()); message = t("WHOOP synced", "تمت مزامنة WHOOP") }
                             catch { message = error.localizedDescription }
                             await store.refresh()
                         }
-                    } label: { Label("مزامنة WHOOP", systemImage: "arrow.triangle.2.circlepath") }
+                    } label: { Label(t("Sync WHOOP", "مزامنة WHOOP"), systemImage: "arrow.triangle.2.circlepath") }
                         .buttonStyle(SoftButtonStyle()).disabled(busy)
                     Button(role: .destructive) {
                         Task { try? await APIClient.shared.whoopDisconnect(); store.setWhoop(false) }
-                    } label: { Text("فصل") }
+                    } label: { Text(t("Disconnect", "فصل")) }
                         .frame(width: 60)
                 }
             } else {
-                Button { Task { await connectWhoop() } } label: { Label("ربط WHOOP", systemImage: "link") }
+                Button { Task { await connectWhoop() } } label: { Label(t("Connect WHOOP", "ربط WHOOP"), systemImage: "link") }
                     .buttonStyle(SoftButtonStyle())
             }
             if let profile {
                 HStack {
-                    Text("مصدر الحرق المفضل").font(.subheadline)
+                    Text(t("Preferred burn source", "مصدر الحرق المفضل")).font(.subheadline)
                     Spacer()
                     Picker("", selection: Binding(
                         get: { profile.preferredEnergySource ?? "" },
@@ -238,7 +239,7 @@ struct DevicesCard: View {
                     }
                 }
             }
-            Text("عند توفر أكثر من مصدر لنفس اليوم يُستخدم مصدر واحد فقط لتجنب احتساب الحرق مرتين.")
+            Text(t("When several sources cover the same day, only one is used so your burn isn't counted twice.", "عند توفر أكثر من مصدر لنفس اليوم يُستخدم مصدر واحد فقط لتجنب احتساب الحرق مرتين."))
                 .font(.caption).foregroundStyle(Theme.muted)
             if let message { Text(message).font(.caption).foregroundStyle(Theme.brand2) }
         }
@@ -249,7 +250,7 @@ struct DevicesCard: View {
         do {
             let ok = try await WhoopConnector.shared.connect()
             store.setWhoop(ok)
-            message = ok ? "تم ربط WHOOP ✓" : "لم يكتمل الربط"
+            message = ok ? t("WHOOP connected ✓", "تم ربط WHOOP ✓") : t("Connection didn't finish", "لم يكتمل الربط")
             if ok { await store.refresh() }
         } catch { message = error.localizedDescription }
     }
@@ -266,14 +267,14 @@ struct RamadanSettingsCard: View {
     @State private var loaded = false
 
     var body: some View {
-        Card(title: "رمضان والصيام", icon: "moon.stars") {
-            Toggle("وضع الصيام", isOn: $enabled)
+        Card(title: t("Ramadan & fasting", "رمضان والصيام"), icon: "moon.stars") {
+            Toggle(t("Fasting mode", "وضع الصيام"), isOn: $enabled)
             if enabled {
-                DatePicker("السحور", selection: $suhoor, displayedComponents: .hourAndMinute)
-                DatePicker("الإفطار", selection: $iftar, displayedComponents: .hourAndMinute)
+                DatePicker(t("Suhoor", "السحور"), selection: $suhoor, displayedComponents: .hourAndMinute)
+                DatePicker(t("Iftar", "الإفطار"), selection: $iftar, displayedComponents: .hourAndMinute)
             }
-            Text("يتفعّل تلقائياً في رمضان. يمكنك تفعيله لأيام الصيام التطوعي.").font(.caption).foregroundStyle(Theme.muted)
-            Button("حفظ") { Task { await save() } }.buttonStyle(SoftButtonStyle())
+            Text(t("Turns on automatically in Ramadan. You can turn it on for voluntary fasting days.", "يتفعّل تلقائياً في رمضان. يمكنك تفعيله لأيام الصيام التطوعي.")).font(.caption).foregroundStyle(Theme.muted)
+            Button(t("Save", "حفظ")) { Task { await save() } }.buttonStyle(SoftButtonStyle())
         }
         .onAppear {
             guard !loaded else { return }

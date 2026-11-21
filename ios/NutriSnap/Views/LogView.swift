@@ -9,7 +9,7 @@ struct LogView: View {
     enum Mode: String, CaseIterable, Identifiable {
         case photo, text, barcode, favorites
         var id: String { rawValue }
-        var title: String { ["photo": "صورة", "text": "نص/صوت", "barcode": "باركود", "favorites": "المفضلة"][rawValue]! }
+        var title: String { ["photo": t("Photo", "صورة"), "text": t("Text/voice", "نص/صوت"), "barcode": t("Barcode", "باركود"), "favorites": t("Favourites", "المفضلة")][rawValue]! }
         var icon: String { ["photo": "camera.fill", "text": "text.bubble.fill", "barcode": "barcode.viewfinder", "favorites": "star.fill"][rawValue]! }
     }
 
@@ -45,7 +45,7 @@ struct LogView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .screenBackground()
-            .navigationTitle("سجّل وجبة")
+            .navigationTitle(t("Log meal", "سجّل وجبة"))
             .navigationDestination(item: $result) { MealReviewView(meal: $0, onDone: { result = nil; onLogged() }) }
         }
     }
@@ -80,29 +80,29 @@ struct PhotoLogPanel: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "camera.viewfinder").font(.system(size: 44)).foregroundStyle(Theme.brand2)
-                    Text("صوّر الوجبة كاملة من الأعلى").font(.subheadline).foregroundStyle(Theme.muted)
+                    Text(t("Photograph the whole meal from above", "صوّر الوجبة كاملة من الأعلى")).font(.subheadline).foregroundStyle(Theme.muted)
                 }
                 .frame(maxWidth: .infinity).frame(height: 150)
                 .background(Theme.brandSoft.opacity(0.5), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             HStack(spacing: 10) {
-                Button { showCamera = true } label: { Label("الكاميرا", systemImage: "camera.fill") }
+                Button { showCamera = true } label: { Label(t("Camera", "الكاميرا"), systemImage: "camera.fill") }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-                PhotosPicker(selection: $pickerItem, matching: .images) { Label("من الصور", systemImage: "photo.on.rectangle") }
+                PhotosPicker(selection: $pickerItem, matching: .images) { Label(t("Photos", "من الصور"), systemImage: "photo.on.rectangle") }
                     .buttonStyle(SoftButtonStyle())
             }
         }
-        Card(title: "معلومات تساعد المحلّل", icon: "info.circle") {
-            InputField(title: "اسم الوجبة (اختياري)", text: $mealName)
-            InputField(title: "المطعم (اختياري)", text: $restaurant)
-            InputField(title: "الكمية — مثلاً: نصف، حجم كبير", text: $portion)
-            InputField(title: "ملاحظة — مثلاً: بدون صوص", text: $note)
-            Text("ذكر المطعم واسم الوجبة يتيح البحث عن القيم المعلنة بدل التقدير.").font(.caption).foregroundStyle(Theme.muted)
+        Card(title: t("Info that helps the analyser", "معلومات تساعد المحلّل"), icon: "info.circle") {
+            InputField(title: t("Meal name (optional)", "اسم الوجبة (اختياري)"), text: $mealName)
+            InputField(title: t("Restaurant (optional)", "المطعم (اختياري)"), text: $restaurant)
+            InputField(title: t("Portion — e.g. half, large", "الكمية — مثلاً: نصف، حجم كبير"), text: $portion)
+            InputField(title: t("Note — e.g. no sauce", "ملاحظة — مثلاً: بدون صوص"), text: $note)
+            Text(t("Naming the restaurant and meal lets us look up published values instead of estimating.", "ذكر المطعم واسم الوجبة يتيح البحث عن القيم المعلنة بدل التقدير.")).font(.caption).foregroundStyle(Theme.muted)
         }
         if let error { Notice(text: error, level: "danger") }
         Button { Task { await analyze() } } label: {
-            if busy { HStack { ProgressView().tint(.white); Text("يحلل ويبحث…") } } else { Text("احسب القيمة الغذائية") }
+            if busy { HStack { ProgressView().tint(.white); Text(t("Analysing and searching…", "يحلل ويبحث…")) } } else { Text(t("Calculate nutrition", "احسب القيمة الغذائية")) }
         }
         .buttonStyle(PrimaryButtonStyle(color: image == nil ? Theme.muted : Theme.brand))
         .disabled(image == nil || busy)
@@ -135,7 +135,7 @@ struct TextLogPanel: View {
     @State private var speech = SpeechInput()
 
     var body: some View {
-        Card(title: "اكتب أو قل ما أكلت", icon: "text.bubble") {
+        Card(title: t("Type or say what you ate", "اكتب أو قل ما أكلت"), icon: "text.bubble") {
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $text)
                     .frame(minHeight: 110)
@@ -143,24 +143,24 @@ struct TextLogPanel: View {
                     .padding(8)
                     .background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
                 if text.isEmpty {
-                    Text("مثلاً: شاورما دجاج عربي وعصير برتقال صغير").foregroundStyle(Theme.muted).padding(16).allowsHitTesting(false)
+                    Text(t("e.g. chicken shawarma and a small orange juice", "مثلاً: شاورما دجاج عربي وعصير برتقال صغير")).foregroundStyle(Theme.muted).padding(16).allowsHitTesting(false)
                 }
             }
-            InputField(title: "المطعم (اختياري)", text: $restaurant)
+            InputField(title: t("Restaurant (optional)", "المطعم (اختياري)"), text: $restaurant)
             Button {
                 if speech.isRecording { speech.stop() } else {
                     Task { await speech.start { text = $0 } }
                 }
             } label: {
-                Label(speech.isRecording ? "إيقاف التسجيل" : "تحدّث بالعربي", systemImage: speech.isRecording ? "stop.circle.fill" : "mic.fill")
+                Label(speech.isRecording ? t("Stop recording", "إيقاف التسجيل") : t("Speak", "تحدّث بالعربي"), systemImage: speech.isRecording ? "stop.circle.fill" : "mic.fill")
             }
             .buttonStyle(SoftButtonStyle())
-            if speech.isRecording { Text("أستمع… تكلّم بوضوح ثم اضغط إيقاف").font(.caption).foregroundStyle(Theme.bad) }
+            if speech.isRecording { Text(t("Listening… speak clearly, then tap stop", "أستمع… تكلّم بوضوح ثم اضغط إيقاف")).font(.caption).foregroundStyle(Theme.bad) }
             if let e = speech.error { Text(e).font(.caption).foregroundStyle(Theme.bad) }
         }
         if let error { Notice(text: error, level: "danger") }
         Button { Task { await analyze() } } label: {
-            if busy { HStack { ProgressView().tint(.white); Text("يحلل…") } } else { Text("احسب القيمة الغذائية") }
+            if busy { HStack { ProgressView().tint(.white); Text(t("Analysing…", "يحلل…")) } } else { Text(t("Calculate nutrition", "احسب القيمة الغذائية")) }
         }
         .buttonStyle(PrimaryButtonStyle(color: text.trimmingCharacters(in: .whitespacesAndNewlines).count < 3 ? Theme.muted : Theme.brand))
         .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).count < 3)
@@ -193,20 +193,20 @@ struct BarcodeLogPanel: View {
     private var scannerAvailable: Bool { DataScannerViewController.isSupported && DataScannerViewController.isAvailable }
 
     var body: some View {
-        Card(title: "منتج مغلّف", icon: "barcode.viewfinder") {
+        Card(title: t("Packaged product", "منتج مغلّف"), icon: "barcode.viewfinder") {
             if scannerAvailable {
-                Button { scanning = true } label: { Label("امسح الباركود", systemImage: "barcode.viewfinder") }
+                Button { scanning = true } label: { Label(t("Scan barcode", "امسح الباركود"), systemImage: "barcode.viewfinder") }
                     .buttonStyle(PrimaryButtonStyle())
             }
             HStack {
-                TextField("أو اكتب رقم الباركود", text: $code)
+                TextField(t("or type the barcode number", "أو اكتب رقم الباركود"), text: $code)
                     .keyboardType(.numberPad)
                     .padding(11).background(Theme.card2, in: RoundedRectangle(cornerRadius: 12))
-                Button("بحث") { Task { await lookup(code) } }
+                Button(t("Search", "بحث")) { Task { await lookup(code) } }
                     .buttonStyle(SoftButtonStyle()).frame(width: 80)
                     .disabled(code.count < 6 || busy)
             }
-            Text("البيانات من Open Food Facts (قاعدة مفتوحة).").font(.caption).foregroundStyle(Theme.muted)
+            Text(t("Data from Open Food Facts (open database).", "البيانات من Open Food Facts (قاعدة مفتوحة).")).font(.caption).foregroundStyle(Theme.muted)
         }
         if busy { ProgressView() }
         if let error { Notice(text: error, level: "warn") }
@@ -214,19 +214,19 @@ struct BarcodeLogPanel: View {
             let g = Double(grams) ?? 0
             Card(title: p.title, icon: "shippingbox.fill") {
                 if let b = p.brand { Text(b).font(.subheadline).foregroundStyle(Theme.muted) }
-                Text("لكل 100 غ: \(fmt(p.per100.calories)) سعرة • بروتين \(fmt1(p.per100.proteinG)) • كربوهيدرات \(fmt1(p.per100.carbsG)) • دهون \(fmt1(p.per100.fatG))")
+                Text(t("Per 100 g: \(fmt(p.per100.calories)) kcal • protein \(fmt1(p.per100.proteinG)) • carbs \(fmt1(p.per100.carbsG)) • fat \(fmt1(p.per100.fatG))", "لكل 100 غ: \(fmt(p.per100.calories)) سعرة • بروتين \(fmt1(p.per100.proteinG)) • كربوهيدرات \(fmt1(p.per100.carbsG)) • دهون \(fmt1(p.per100.fatG))"))
                     .font(.caption).foregroundStyle(Theme.muted)
                 HStack {
-                    Text("الكمية (غ)")
+                    Text(t("Amount (g)", "الكمية (غ)"))
                     TextField("100", text: $grams).keyboardType(.decimalPad)
                         .padding(10).background(Theme.card2, in: RoundedRectangle(cornerRadius: 10))
-                    if let s = p.servingG { Button("حصة \(fmt(s))") { grams = String(Int(s.rounded())) }.buttonStyle(SoftButtonStyle()).frame(width: 100) }
+                    if let s = p.servingG { Button(t("Serving \(fmt(s))", "حصة \(fmt(s))")) { grams = String(Int(s.rounded())) }.buttonStyle(SoftButtonStyle()).frame(width: 100) }
                 }
                 if g > 0 {
-                    Text("= \(fmt(p.per100.calories * g / 100)) سعرة • \(fmt(p.per100.proteinG * g / 100)) غ بروتين")
+                    Text(t("= \(fmt(p.per100.calories * g / 100)) kcal • \(fmt(p.per100.proteinG * g / 100)) g protein", "= \(fmt(p.per100.calories * g / 100)) سعرة • \(fmt(p.per100.proteinG * g / 100)) غ بروتين"))
                         .font(.headline).foregroundStyle(Theme.brand2)
                 }
-                Button { Task { await add(p, g) } } label: { Text("أضف للمراجعة") }
+                Button { Task { await add(p, g) } } label: { Text(t("Add for review", "أضف للمراجعة")) }
                     .buttonStyle(PrimaryButtonStyle()).disabled(g <= 0 || busy)
             }
         }
@@ -250,7 +250,7 @@ struct BarcodeLogPanel: View {
             let p = try await APIClient.shared.barcode(clean)
             product = p
             grams = p.servingG.map { String(Int($0.rounded())) } ?? "100"
-        } catch { self.error = "لم نجد هذا المنتج — جرّب التصوير أو الوصف النصي." }
+        } catch { self.error = t("Product not found — try a photo or a text description.", "لم نجد هذا المنتج — جرّب التصوير أو الوصف النصي.") }
     }
 
     private func add(_ p: BarcodeProduct, _ g: Double) async {
@@ -307,10 +307,10 @@ struct FavoritesPanel: View {
     @State private var message: String?
 
     var body: some View {
-        Card(title: "وجباتك المعتادة", icon: "star.fill") {
-            Text("تسجيل بضغطة — بدون تحليل جديد.").font(.caption).foregroundStyle(Theme.muted)
+        Card(title: t("Your usual meals", "وجباتك المعتادة"), icon: "star.fill") {
+            Text(t("One-tap logging — no new analysis.", "تسجيل بضغطة — بدون تحليل جديد.")).font(.caption).foregroundStyle(Theme.muted)
             if let list {
-                if list.isEmpty { Text("أكّد بعض الوجبات أولاً لتظهر هنا.").font(.footnote).foregroundStyle(Theme.muted) }
+                if list.isEmpty { Text(t("Confirm a few meals first and they'll show up here.", "أكّد بعض الوجبات أولاً لتظهر هنا.")).font(.footnote).foregroundStyle(Theme.muted) }
                 ForEach(list) { f in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -321,14 +321,14 @@ struct FavoritesPanel: View {
                             }
                             Spacer()
                             VStack(alignment: .trailing) {
-                                Text("\(fmt(f.calories)) سعرة").font(.subheadline.bold()).monospacedDigit()
-                                if let p = f.proteinG { Text("\(fmt(p)) غ بروتين").font(.caption2).foregroundStyle(Theme.protein) }
+                                Text(t("\(fmt(f.calories)) kcal", "\(fmt(f.calories)) سعرة")).font(.subheadline.bold()).monospacedDigit()
+                                if let p = f.proteinG { Text(t("\(fmt(p)) g protein", "\(fmt(p)) غ بروتين")).font(.caption2).foregroundStyle(Theme.protein) }
                             }
                         }
                         HStack(spacing: 6) {
                             ForEach([0.5, 1.0, 1.5], id: \.self) { pf in
                                 Button { Task { await log(f, pf) } } label: {
-                                    Text(pf == 1 ? "حصة كاملة" : pf == 0.5 ? "نصف" : "ونصف").font(.caption.weight(.semibold))
+                                    Text(pf == 1 ? t("Full serving", "حصة كاملة") : pf == 0.5 ? t("Half", "نصف") : t("One and a half", "ونصف")).font(.caption.weight(.semibold))
                                         .frame(maxWidth: .infinity).padding(.vertical, 8)
                                         .foregroundStyle(pf == 1 ? .white : Theme.brand2)
                                         .background(pf == 1 ? Theme.brand2 : Theme.brandSoft, in: Capsule())

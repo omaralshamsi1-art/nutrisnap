@@ -1,3 +1,6 @@
+/** Supported UI / AI languages. */
+export type Lang = 'en' | 'ar';
+
 export type NutritionSource =
   | 'restaurant_published' // official menu / restaurant nutrition page
   | 'known_meal' // user's own confirmed meal history
@@ -113,6 +116,8 @@ export interface Profile {
   /** Set by the system when measured burn shows the declared activity level was off. */
   ramadan: { enabled: boolean | null; suhoorTime: string; iftarTime: string };
   reminders: { meals: boolean; weight: boolean };
+  /** UI + AI output language */
+  language: Lang;
   activityCalibration: {
     from: Profile['activityLevel'];
     to: Profile['activityLevel'];

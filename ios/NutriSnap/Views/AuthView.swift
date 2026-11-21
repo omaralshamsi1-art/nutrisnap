@@ -20,14 +20,16 @@ struct AuthView: View {
                         .resizable().scaledToFit().frame(width: 84, height: 84)
                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     Text("NutriSnap").font(.largeTitle.bold()).foregroundStyle(Theme.brand)
-                    Text("صوّر وجبتك… واعرف موقعك من هدفك").foregroundStyle(Theme.muted)
+                    Text(t("Snap your meal… and see where you stand", "صوّر وجبتك… واعرف موقعك من هدفك")).foregroundStyle(Theme.muted)
                 }
                 .padding(.top, 40)
 
+                LanguagePicker()
+
                 Picker("", selection: $mode) {
-                    Text("دخول").tag(0)
-                    Text("حساب جديد").tag(1)
-                    Text("المالك").tag(2)
+                    Text(t("Sign in", "دخول")).tag(0)
+                    Text(t("New account", "حساب جديد")).tag(1)
+                    Text(t("Owner", "المالك")).tag(2)
                 }
                 .pickerStyle(.segmented)
 
@@ -35,19 +37,19 @@ struct AuthView: View {
                     VStack(spacing: 12) {
                         switch mode {
                         case 1:
-                            field("رمز الدعوة", text: $invite, icon: "ticket")
+                            field(t("Invite code", "رمز الدعوة"), text: $invite, icon: "ticket")
                                 .textInputAutocapitalization(.characters)
-                            field("الاسم", text: $name, icon: "person")
-                            field("البريد الإلكتروني", text: $email, icon: "envelope").keyboardType(.emailAddress)
-                            secure("كلمة المرور (8 أحرف على الأقل)", text: $password)
+                            field(t("Name", "الاسم"), text: $name, icon: "person")
+                            field(t("Email", "البريد الإلكتروني"), text: $email, icon: "envelope").keyboardType(.emailAddress)
+                            secure(t("Password (at least 8 characters)", "كلمة المرور (8 أحرف على الأقل)"), text: $password)
                         case 2:
-                            Text("للمالك فقط: مفتاح الخادم (API_KEY) من متغيرات Railway.")
+                            Text(t("Owner only: the server key (API_KEY) from your Railway variables.", "للمالك فقط: مفتاح الخادم (API_KEY) من متغيرات Railway."))
                                 .font(.footnote).foregroundStyle(Theme.muted)
-                            secure("مفتاح الخادم", text: $ownerKey)
-                            field("معرّف المستخدم", text: $ownerId, icon: "person.badge.key")
+                            secure(t("Server key", "مفتاح الخادم"), text: $ownerKey)
+                            field(t("User ID", "معرّف المستخدم"), text: $ownerId, icon: "person.badge.key")
                         default:
-                            field("البريد الإلكتروني", text: $email, icon: "envelope").keyboardType(.emailAddress)
-                            secure("كلمة المرور", text: $password)
+                            field(t("Email", "البريد الإلكتروني"), text: $email, icon: "envelope").keyboardType(.emailAddress)
+                            secure(t("Password", "كلمة المرور"), text: $password)
                         }
                     }
                 }
@@ -55,13 +57,13 @@ struct AuthView: View {
                 if let e = error ?? store.error { Notice(text: e, level: "danger") }
 
                 Button { Task { await submit() } } label: {
-                    if busy { ProgressView().tint(.white) } else { Text(mode == 1 ? "إنشاء الحساب" : "دخول") }
+                    if busy { ProgressView().tint(.white) } else { Text(mode == 1 ? t("Create account", "إنشاء الحساب") : t("Sign in", "دخول")) }
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(busy)
 
                 if mode == 1 {
-                    Text("التسجيل بالدعوة فقط — اطلب رمزاً من صاحب التطبيق.")
+                    Text(t("Sign-up is invite-only — ask the app owner for a code.", "التسجيل بالدعوة فقط — اطلب رمزاً من صاحب التطبيق."))
                         .font(.footnote).foregroundStyle(Theme.muted)
                 }
                 ServerField()
@@ -82,10 +84,10 @@ struct AuthView: View {
                 store.signIn(token: r.token, user: r.user)
             case 2:
                 let key = ownerKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !key.isEmpty else { error = "أدخل مفتاح الخادم"; return }
+                guard !key.isEmpty else { error = t("Enter the server key", "أدخل مفتاح الخادم"); return }
                 store.signInOwner(apiKey: key, userId: ownerId.trimmingCharacters(in: .whitespaces))
                 do { store.me = try await APIClient.shared.me() } catch {
-                    store.signOut(); self.error = "المفتاح غير صحيح"; return
+                    store.signOut(); self.error = t("Wrong key", "المفتاح غير صحيح"); return
                 }
             default:
                 let r = try await APIClient.shared.login(email: email.trimmingCharacters(in: .whitespaces), password: password)
@@ -126,9 +128,9 @@ struct ServerField: View {
             TextField("https://…", text: $apiBaseURL)
                 .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                 .padding(10).background(Theme.card2, in: RoundedRectangle(cornerRadius: 10))
-            Text("اتركه فارغاً لاستخدام الخادم الافتراضي.").font(.caption).foregroundStyle(Theme.muted)
+            Text(t("Leave empty to use the default server.", "اتركه فارغاً لاستخدام الخادم الافتراضي.")).font(.caption).foregroundStyle(Theme.muted)
         } label: {
-            Text("إعدادات الخادم").font(.footnote).foregroundStyle(Theme.muted)
+            Text(t("Server settings", "إعدادات الخادم")).font(.footnote).foregroundStyle(Theme.muted)
         }
     }
 }

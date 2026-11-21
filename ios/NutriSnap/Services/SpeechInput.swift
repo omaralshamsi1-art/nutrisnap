@@ -8,7 +8,9 @@ final class SpeechInput {
     var isRecording = false
     var error: String?
 
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ar-AE")) ?? SFSpeechRecognizer(locale: Locale(identifier: "ar-SA"))
+    private let recognizer = appLang == .ar
+        ? SFSpeechRecognizer(locale: Locale(identifier: "ar-AE")) ?? SFSpeechRecognizer(locale: Locale(identifier: "ar-SA"))
+        : SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private let engine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
@@ -19,8 +21,8 @@ final class SpeechInput {
             SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0 == .authorized) }
         }
         let micOK = await AVAudioApplication.requestRecordPermission()
-        guard speechOK, micOK else { error = "اسمح بالميكروفون والتعرّف على الكلام من الإعدادات"; return }
-        guard let recognizer, recognizer.isAvailable else { error = "التعرّف على الكلام غير متاح الآن"; return }
+        guard speechOK, micOK else { error = t("Allow the microphone and speech recognition in Settings", "اسمح بالميكروفون والتعرّف على الكلام من الإعدادات"); return }
+        guard let recognizer, recognizer.isAvailable else { error = t("Speech recognition isn't available right now", "التعرّف على الكلام غير متاح الآن"); return }
 
         do {
             let session = AVAudioSession.sharedInstance()
@@ -49,7 +51,7 @@ final class SpeechInput {
                 }
             }
         } catch {
-            self.error = "تعذّر تشغيل الميكروفون"
+            self.error = t("Couldn't start the microphone", "تعذّر تشغيل الميكروفون")
             stop()
         }
     }

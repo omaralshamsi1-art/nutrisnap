@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NutriSnap">
 <title>NutriSnap — صوّر وجبتك</title>
+<script src="i18n.js"></script>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -77,7 +78,7 @@ button { font: inherit; color: inherit; }
 .meal .ic { width: 46px; height: 46px; border-radius: 14px; background: var(--brand-soft); color: var(--brand-2); display: grid; place-items: center; flex: none; }
 .meal .t { flex: 1; min-width: 0; }
 .meal .t b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.meal .k { text-align: left; }
+.meal .k { text-align: end; }
 .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 .pill.ok { background: var(--brand-soft); color: var(--ok); } .pill.db { background: #e6edfb; color: var(--p); }
 .pill.est, .pill.draft { background: var(--accent-soft); color: var(--warn); }
@@ -214,6 +215,15 @@ nav .snap .ci { width: 58px; height: 58px; border-radius: 20px; background: var(
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 a { color: var(--brand-2); }
 </style>
+<style>
+.langsw { display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 10px; }
+.card .langsw { justify-content: stretch; }
+.langsw button { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.card .langsw button { flex: 1; }
+.langsw button[aria-pressed="true"] { background: var(--brand); color: #fff; border-color: var(--brand); }
+/* direction-aware chevrons: drawn for RTL, mirrored in LTR */
+html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href="#i-chev-r"]) { transform: scaleX(-1); }
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -258,6 +268,7 @@ a { color: var(--brand-2); }
 
   <!-- ============ AUTH ============ -->
   <section id="v-setup" class="hidden fade">
+    <div class="langsw" role="group" aria-label="Language"><button type="button" data-lang="en">English</button><button type="button" data-lang="ar">العربية</button></div>
     <div class="greet">أهلاً بك 👋</div>
     <p class="sub">صوّر وجبتك، واعرف قيمتها، وتابع هدفك.</p>
     <div class="card">
@@ -436,7 +447,7 @@ a { color: var(--brand-2); }
       <h3>الوزن <span class="small" id="pWeightSrc"></span></h3>
       <div class="row" style="align-items:flex-end">
         <div><div style="font-size:40px;font-weight:700" class="num" id="pCurrent">—</div><div class="small muted">الاتجاه الحالي (كغ)</div></div>
-        <div style="text-align:left"><div style="font-size:20px;font-weight:700" class="num" id="pChange">—</div><div class="small muted">منذ البداية</div></div>
+        <div style="text-align:end"><div style="font-size:20px;font-weight:700" class="num" id="pChange">—</div><div class="small muted">منذ البداية</div></div>
       </div>
       <div id="pGoalWrap" style="margin-top:14px">
         <div class="row small" style="margin-bottom:6px"><span id="pStart" class="muted"></span><b id="pPct"></b><span id="pTarget" class="muted"></span></div>
@@ -660,6 +671,11 @@ a { color: var(--brand-2); }
     </div>
 
     <div class="card">
+      <h3>Language · اللغة</h3>
+      <div class="langsw" role="group" aria-label="Language"><button type="button" data-lang="en">English</button><button type="button" data-lang="ar">العربية</button></div>
+    </div>
+
+    <div class="card">
       <button class="btn text" id="logout">تسجيل الخروج</button>
       <p class="small muted" style="text-align:center;margin:6px 0 0">للتثبيت: زر المشاركة ← "إضافة إلى الشاشة الرئيسية" · <a href="privacy.html">الخصوصية</a></p>
       <p class="small muted" style="text-align:center;margin:6px 0 0">NutriSnap أداة متابعة وليس بديلاً عن استشارة طبية.</p>
@@ -680,6 +696,11 @@ a { color: var(--brand-2); }
 
 <script>
 (() => {
+  translateDom(document);
+  document.querySelectorAll('[data-lang]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.lang === LANG));
+    b.onclick = () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); };
+  });
   const $ = (id) => document.getElementById(id);
   const mem = {};
   const ls = {
@@ -693,7 +714,12 @@ a { color: var(--brand-2); }
   const fmt1 = (n) => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('en-US');
   const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const arDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' });
+  const LOC = LANG === 'ar' ? 'ar' : 'en-GB';
+  const arDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(LOC, { day: 'numeric', month: 'long', year: 'numeric' });
+  /** server text in the UI language: o.text_en / o.text_ar */
+  const tx = (o, k) => (o ? (LANG === 'en' ? o[`${k}_en`] ?? o[`${k}_ar`] : o[`${k}_ar`] ?? o[`${k}_en`]) ?? '' : '');
+  /** meal / item / product name in the UI language */
+  const nameOf = (o, k = 'name') => (o ? (LANG === 'en' ? o[k] || o[`${k}_ar`] : o[`${k}_ar`] || o[k]) ?? '' : '');
   let day = new Date();
   let current = null, items = [], photo = null, planCache = null, planGoal = 'lose', ramCtx = null;
 
@@ -701,15 +727,15 @@ a { color: var(--brand-2); }
 
   async function api(path, opts = {}) {
     const auth = token() ? { Authorization: `Bearer ${token()}` } : key() ? { 'X-API-Key': key(), 'X-User-Id': user() } : {};
-    const headers = { ...auth, ...(opts.headers || {}) };
+    const headers = { 'Accept-Language': LANG, ...auth, ...(opts.headers || {}) };
     if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.json); }
     const res = await fetch(`/${path}`, { ...opts, headers });
     const text = await res.text();
     let data; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     if (res.status === 401 && !path.startsWith('auth/login') && !path.startsWith('auth/register')) {
-      ls.del('ns_key'); ls.del('ns_token'); show('setup'); throw new Error((data && data.message) || 'سجّل الدخول من جديد');
+      ls.del('ns_key'); ls.del('ns_token'); show('setup'); throw new Error((data && data.message) || T('سجّل الدخول من جديد'));
     }
-    if (!res.ok) throw new Error((data && data.message) || `خطأ ${res.status}`);
+    if (!res.ok) throw new Error((data && data.message) || L`خطأ ${res.status}`);
     return data;
   }
 
@@ -737,7 +763,7 @@ a { color: var(--brand-2); }
   }
   $('authTabs').querySelectorAll('button').forEach((b) => (b.onclick = () => authTab(b.dataset.t)));
   $('setupSave').onclick = async () => {
-    const k = $('setupKey').value.trim(); if (!k) return toast('أدخل مفتاح الخادم');
+    const k = $('setupKey').value.trim(); if (!k) return toast(T('أدخل مفتاح الخادم'));
     ls.del('ns_token'); ls.set('ns_key', k); ls.set('ns_user', $('setupUser').value.trim() || 'meera');
     try { await boot(); } catch (e) { toast(e.message); }
   };
@@ -752,7 +778,7 @@ a { color: var(--brand-2); }
   $('rgBtn').onclick = async () => {
     try {
       await afterAuth(await api('auth/register', { method: 'POST', json: { inviteCode: $('rgCode').value, name: $('rgName').value, email: $('rgEmail').value, password: $('rgPass').value } }));
-      toast('أهلاً بك! لنبدأ بخطتك');
+      toast(T('أهلاً بك! لنبدأ بخطتك'));
     } catch (e) { toast(e.message, 3500); }
   };
   $('logout').onclick = () => { ls.del('ns_key'); ls.del('ns_token'); ls.del('ns_name'); authTab('login'); show('setup'); };
@@ -778,17 +804,17 @@ a { color: var(--brand-2); }
     document.querySelectorAll('#v-onb [data-step]').forEach((el) => el.classList.toggle('hidden', Number(el.dataset.step) !== onb.step));
     pressed($('v-onb'), onb.goal, 'data-goal'); pressed($('oSex'), onb.sex); pressed($('oAct'), onb.act); pressed($('oPace'), onb.pace);
     $('onbBack').style.visibility = onb.step === 1 ? 'hidden' : 'visible';
-    $('onbNext').textContent = onb.step === STEPS ? 'ابدأ خطتي' : 'التالي';
+    $('onbNext').textContent = onb.step === STEPS ? T('ابدأ خطتي') : T('التالي');
     if (onb.step === 4) {
       const m = onb.goal === 'maintain';
       $('oTargetWrap').classList.toggle('hidden', m);
-      $('oTargetTitle').textContent = m ? 'خطتك للمحافظة' : onb.goal === 'lose' ? 'وزنك المستهدف' : 'الوزن الذي تريد الوصول إليه';
+      $('oTargetTitle').textContent = m ? T('خطتك للمحافظة') : onb.goal === 'lose' ? T('وزنك المستهدف') : T('الوزن الذي تريد الوصول إليه');
       if (!$('oTarget').value && $('oWeight').value) {
         const w = Number($('oWeight').value); $('oTarget').value = onb.goal === 'lose' ? Math.round(w * 0.92) : Math.round(w * 1.06);
       }
       $('oPaceHint').textContent = onb.goal === 'gain'
-        ? { relaxed: 'زيادة بطيئة جداً، أقل دهون', moderate: 'الأنسب لبناء العضل مع التمرين', fast: 'أسرع لكن بدهون أكثر' }[onb.pace]
-        : { relaxed: 'سهلة الالتزام، جوع أقل', moderate: 'توازن بين السرعة والراحة (موصى به)', fast: 'أسرع، تحتاج التزاماً أعلى — لن نتجاوز الحد الآمن' }[onb.pace];
+        ? { relaxed: T('زيادة بطيئة جداً، أقل دهون'), moderate: T('الأنسب لبناء العضل مع التمرين'), fast: T('أسرع لكن بدهون أكثر') }[onb.pace]
+        : { relaxed: T('سهلة الالتزام، جوع أقل'), moderate: T('توازن بين السرعة والراحة (موصى به)'), fast: T('أسرع، تحتاج التزاماً أعلى — لن نتجاوز الحد الآمن') }[onb.pace];
       previewPlan();
     }
   }
@@ -810,30 +836,30 @@ a { color: var(--brand-2); }
   async function previewPlan() {
     try {
       const p = await api('plan/preview', { method: 'POST', json: onbProfile() });
-      $('pvKcal').textContent = `${fmt(p.targetKcal)} سعرة`;
-      $('pvProtein').textContent = `${fmt(p.proteinG)} غ`;
-      $('pvWeekly').textContent = p.weeklyChangeKg ? `${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ` : '—';
-      $('pvEta').textContent = p.etaDate ? new Date(`${p.etaDate}T12:00:00`).toLocaleDateString('ar', { month: 'short', year: 'numeric' }) : '—';
+      $('pvKcal').textContent = L`${fmt(p.targetKcal)} سعرة`;
+      $('pvProtein').textContent = L`${fmt(p.proteinG)} غ`;
+      $('pvWeekly').textContent = p.weeklyChangeKg ? L`${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ` : '—';
+      $('pvEta').textContent = p.etaDate ? new Date(`${p.etaDate}T12:00:00`).toLocaleDateString(LOC, { month: 'short', year: 'numeric' }) : '—';
       $('pvNotices').innerHTML = renderNotices(p.notices);
     } catch (e) { $('pvNotices').innerHTML = `<div class="notice warn">${esc(e.message)}</div>`; }
   }
-  function renderNotices(list) { return (list || []).map((n) => `<div class="notice ${n.level}">${esc(n.text_ar)}</div>`).join(''); }
+  function renderNotices(list) { return (list || []).map((n) => `<div class="notice ${n.level}">${esc(tx(n, 'text'))}</div>`).join(''); }
 
   $('onbBack').onclick = () => { if (onb.step > 1) { onb.step--; renderOnb(); } };
   $('onbNext').onclick = async () => {
     const p = onbProfile();
     if (onb.step === 2) {
-      if (!onb.sex || !p.birthYear || !p.heightCm || !p.weightKg) return toast('أكملي الحقول الأربعة');
-      if (p.heightCm < 100 || p.heightCm > 250 || p.weightKg < 25 || p.weightKg > 350) return toast('تحققي من الطول والوزن');
+      if (!onb.sex || !p.birthYear || !p.heightCm || !p.weightKg) return toast(T('أكملي الحقول الأربعة'));
+      if (p.heightCm < 100 || p.heightCm > 250 || p.weightKg < 25 || p.weightKg > 350) return toast(T('تحققي من الطول والوزن'));
     }
-    if (onb.step === 4 && onb.goal !== 'maintain' && !p.targetWeightKg) return toast('أدخلي الوزن المستهدف');
+    if (onb.step === 4 && onb.goal !== 'maintain' && !p.targetWeightKg) return toast(T('أدخلي الوزن المستهدف'));
     if (onb.step < STEPS) { onb.step++; renderOnb(); return; }
     $('onbNext').disabled = true;
     try {
       const { weightKg, ...rest } = p;
       await api('profile', { method: 'PUT', json: { ...rest, onboarded: true } });
       if (weightKg) await api('weights', { method: 'POST', json: { kg: weightKg } });
-      toast('خطتك جاهزة ✓'); show('today');
+      toast(T('خطتك جاهزة ✓')); show('today');
     } catch (e) { toast(e.message); }
     finally { $('onbNext').disabled = false; }
   };
@@ -842,31 +868,31 @@ a { color: var(--brand-2); }
   // ---------------- today ----------------
   function dayLabel() {
     const t = new Date(), y = new Date(); y.setDate(t.getDate() - 1);
-    if (isoDay(day) === isoDay(t)) return 'اليوم';
-    if (isoDay(day) === isoDay(y)) return 'أمس';
-    return day.toLocaleDateString('ar', { weekday: 'short', day: 'numeric' });
+    if (isoDay(day) === isoDay(t)) return T('اليوم');
+    if (isoDay(day) === isoDay(y)) return T('أمس');
+    return day.toLocaleDateString(LOC, { weekday: 'short', day: 'numeric' });
   }
   $('prevDay').onclick = () => { day.setDate(day.getDate() - 1); loadToday(); };
   // suggestions only make sense for today
   const _loadToday = () => { const isT = isoDay(day) === isoDay(new Date()); $('sugBody').closest('.card').classList.toggle('hidden', !isT); };
   $('nextDay').onclick = () => { if (isoDay(day) === isoDay(new Date())) return; day.setDate(day.getDate() + 1); loadToday(); };
 
-  const SRC = { apple_health: 'Apple Health', whoop: 'WHOOP', health_connect: 'Health Connect', garmin: 'Garmin', fitbit: 'Fitbit', manual: 'يدوي' };
-  const BADGE = { restaurant_published: ['ok', 'قيمة معلنة من المطعم'], known_meal: ['ok', 'من وجباتك السابقة'], database: ['db', 'قاعدة بيانات غذائية'], estimate: ['est', 'تقدير تقريبي'] };
-  const GOAL_AR = { lose: 'إنقاص الوزن', maintain: 'المحافظة', gain: 'زيادة الوزن' };
+  const SRC = { apple_health: 'Apple Health', whoop: 'WHOOP', health_connect: 'Health Connect', garmin: 'Garmin', fitbit: 'Fitbit', manual: T('يدوي') };
+  const BADGE = { restaurant_published: ['ok', T('قيمة معلنة من المطعم')], known_meal: ['ok', T('من وجباتك السابقة')], database: ['db', T('قاعدة بيانات غذائية')], estimate: ['est', T('تقدير تقريبي')] };
+  const GOAL_AR = { lose: T('إنقاص الوزن'), maintain: T('المحافظة'), gain: T('زيادة الوزن') };
   function mealSlot(iso) {
     const h = new Date(iso).getHours();
     if (ramCtx && ramCtx.active) {
       const toH = (t) => Number(t.split(':')[0]) + Number(t.split(':')[1]) / 60;
       const x = h + new Date(iso).getMinutes() / 60, ift = toH(ramCtx.iftarTime), suh = toH(ramCtx.suhoorTime);
-      if (x >= ift && x < ift + 2) return ['إفطار', 'i-moon'];
-      if (x >= suh - 3 && x < suh + 0.5) return ['سحور', 'i-moon'];
-      if (x >= ift + 2 || x < suh - 3) return ['وجبة مسائية', 'i-bowl'];
+      if (x >= ift && x < ift + 2) return [T('إفطار'), 'i-moon'];
+      if (x >= suh - 3 && x < suh + 0.5) return [T('سحور'), 'i-moon'];
+      if (x >= ift + 2 || x < suh - 3) return [T('وجبة مسائية'), 'i-bowl'];
     }
-    if (h >= 4 && h < 11) return ['فطور', 'i-sun']; if (h >= 11 && h < 16) return ['غداء', 'i-bowl'];
-    if (h >= 16 && h < 22) return ['عشاء', 'i-moon']; return ['وجبة خفيفة', 'i-apple'];
+    if (h >= 4 && h < 11) return [T('فطور'), 'i-sun']; if (h >= 11 && h < 16) return [T('غداء'), 'i-bowl'];
+    if (h >= 16 && h < 22) return [T('عشاء'), 'i-moon']; return [T('وجبة خفيفة'), 'i-apple'];
   }
-  function greeting() { const h = new Date().getHours(); return h < 12 ? 'صباح الخير' : h < 18 ? 'مساء النور' : 'مساء الخير'; }
+  function greeting() { const h = new Date().getHours(); return h < 12 ? T('صباح الخير') : h < 18 ? T('مساء النور') : T('مساء الخير'); }
 
   async function autoSyncWhoop() {
     const last = Number(ls.get('ns_whoop_sync', '0'));
@@ -883,17 +909,17 @@ a { color: var(--brand-2); }
   }
 
   function macroRows(intake, targets) {
-    return [['بروتين', 'protein_g', 'var(--p)'], ['كربوهيدرات', 'carbs_g', 'var(--c)'], ['دهون', 'fat_g', 'var(--f)'], ['ألياف', 'fiber_g', 'var(--fi)']].map(([t, k, c]) => {
+    return [[T('بروتين'), 'protein_g', 'var(--p)'], [T('كربوهيدرات'), 'carbs_g', 'var(--c)'], [T('دهون'), 'fat_g', 'var(--f)'], [T('ألياف'), 'fiber_g', 'var(--fi)']].map(([t, k, c]) => {
       const have = intake[k] || 0, want = targets ? targets[k] : 0;
       const pct = want ? Math.min(100, (have / want) * 100) : 0;
-      return `<div class="mrow"><div class="top2"><b>${t}</b><span class="num"><b>${fmt(have)}</b>${want ? ` / ${fmt(want)}` : ''} غ</span></div><div class="bar"><i style="width:${pct}%;background:${c}"></i></div></div>`;
+      return L`<div class="mrow"><div class="top2"><b>${t}</b><span class="num"><b>${fmt(have)}</b>${want ? ` / ${fmt(want)}` : ''} غ</span></div><div class="bar"><i style="width:${pct}%;background:${c}"></i></div></div>`;
     }).join('');
   }
 
   /** Plain-language daily delta: "عجز 683 سعرة يومياً" rather than "-683". */
   function deltaWords(d) {
     if (!d) return '';
-    return d < 0 ? ` · عجز ${fmt(-d)} سعرة يومياً لإنقاص الوزن` : ` · فائض ${fmt(d)} سعرة يومياً لزيادة الوزن`;
+    return d < 0 ? L` · عجز ${fmt(-d)} سعرة يومياً لإنقاص الوزن` : L` · فائض ${fmt(d)} سعرة يومياً لزيادة الوزن`;
   }
   /**
    * Green = on target, red = over (lose / maintain). For "gain" the aim is to REACH the target,
@@ -902,25 +928,25 @@ a { color: var(--brand-2); }
   function dayState(goal, eaten, target, meals, isToday) {
     const over = eaten - target, left = target - eaten;
     if (goal === 'gain') {
-      if (eaten >= target * 0.95 && eaten <= target * 1.15) return { cls: 'good', color: 'var(--good)', text: 'وصلت هدف اليوم' };
-      if (eaten > target * 1.15) return { cls: 'bad', color: 'var(--bad)', text: `تجاوزت الهدف بـ ${fmt(over)} سعرة` };
-      return { cls: isToday ? 'pending' : 'bad', color: isToday ? 'var(--warn)' : 'var(--bad)', text: isToday ? `يتبقى ${fmt(left)} سعرة لتصل هدف الزيادة` : `نقص ${fmt(left)} سعرة عن هدف الزيادة` };
+      if (eaten >= target * 0.95 && eaten <= target * 1.15) return { cls: 'good', color: 'var(--good)', text: T('وصلت هدف اليوم') };
+      if (eaten > target * 1.15) return { cls: 'bad', color: 'var(--bad)', text: L`تجاوزت الهدف بـ ${fmt(over)} سعرة` };
+      return { cls: isToday ? 'pending' : 'bad', color: isToday ? 'var(--warn)' : 'var(--bad)', text: isToday ? L`يتبقى ${fmt(left)} سعرة لتصل هدف الزيادة` : L`نقص ${fmt(left)} سعرة عن هدف الزيادة` };
     }
-    if (over > 0) return { cls: 'bad', color: 'var(--bad)', text: `تجاوزت هدف اليوم بـ ${fmt(over)} سعرة` };
-    if (!meals) return { cls: 'good', color: 'var(--good)', text: `ضمن الهدف — متاح لك ${fmt(left)} سعرة اليوم` };
-    return { cls: 'good', color: 'var(--good)', text: isToday ? `ممتاز، أنت ضمن هدف اليوم — متبقي ${fmt(left)} سعرة` : `كنت ضمن الهدف — أقل بـ ${fmt(left)} سعرة` };
+    if (over > 0) return { cls: 'bad', color: 'var(--bad)', text: L`تجاوزت هدف اليوم بـ ${fmt(over)} سعرة` };
+    if (!meals) return { cls: 'good', color: 'var(--good)', text: L`ضمن الهدف — متاح لك ${fmt(left)} سعرة اليوم` };
+    return { cls: 'good', color: 'var(--good)', text: isToday ? L`ممتاز، أنت ضمن هدف اليوم — متبقي ${fmt(left)} سعرة` : L`كنت ضمن الهدف — أقل بـ ${fmt(left)} سعرة` };
   }
 
   async function loadToday() {
     $('dayLabel').textContent = dayLabel();
-    const nm = ls.get('ns_name') || (user() === 'meera' ? 'ميرا' : user());
+    const nm = ls.get('ns_name') || (user() === 'meera' ? T('ميرا') : user());
     $('greet').textContent = `${greeting()} ${nm}`;
     $('mealList').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     await autoSyncWhoop();
     try {
       const b = await api(`balance?date=${isoDay(day)}`);
       if (b.onboarded === false && isoDay(day) === isoDay(new Date())) { startOnboarding(await api('profile')); return; }
-      $('goalLine').textContent = `هدفك: ${GOAL_AR[b.goal] || ''}${deltaWords(b.goalDeltaKcal)}`;
+      $('goalLine').textContent = L`هدفك: ${GOAL_AR[b.goal] || ''}${deltaWords(b.goalDeltaKcal)}`;
       const eaten = b.intake.calories, target = b.targetIntakeKcal;
       const p = target ? Math.min(eaten / target, 1) : 0;
       requestAnimationFrame(() => { $('ringArc').style.strokeDashoffset = String(452.4 * (1 - p)); });
@@ -929,7 +955,7 @@ a { color: var(--brand-2); }
       $('ringNum').textContent = `${b.remainingKcal > 0 ? '+' : b.remainingKcal < 0 ? '−' : ''}${fmt(Math.abs(b.remainingKcal))}`;
       $('ringNum').style.color = st.color;
       $('ringNum').style.fontSize = $('ringNum').textContent.length > 5 ? '31px' : '';
-      $('ringLbl').textContent = b.remainingKcal >= 0 ? 'سعرة متبقية لك' : 'سعرة فوق هدفك';
+      $('ringLbl').textContent = b.remainingKcal >= 0 ? T('سعرة متبقية لك') : T('سعرة فوق هدفك');
       $('dayStatus').className = `status ${st.cls}`;
       $('dayStatus').innerHTML = `<svg width="22" height="22"><use href="#${st.cls === 'good' ? 'i-check' : 'i-alert'}"/></svg><span>${st.text}</span>`;
       $('kTarget').textContent = fmt(target); $('kEaten').textContent = fmt(eaten);
@@ -937,21 +963,21 @@ a { color: var(--brand-2); }
       $('kSrc').textContent = b.burn ? `(${SRC[b.burn.source] || b.burn.source})` : '';
       $('kPendRow').classList.toggle('hidden', !(b.pendingDrafts.calories > 0)); $('kPend').textContent = fmt(b.pendingDrafts.calories);
       $('macros').innerHTML = macroRows(b.intake, b.macroTargets);
-      $('tips').innerHTML = (b.tips || []).map((t) => `<div class="tip fade"><svg width="20" height="20"><use href="#i-bulb"/></svg><div>${esc(t.text_ar)}</div></div>`).join('');
+      $('tips').innerHTML = (b.tips || []).map((t) => `<div class="tip fade"><svg width="20" height="20"><use href="#i-bulb"/></svg><div>${esc(tx(t, 'text'))}</div></div>`).join('');
       planGoal = b.goal;
       renderActivity(b.activity);
       loadMotivation();
       renderRamadan(b.ramadan);
       _loadToday();
       ramCtx = b.ramadan;
-      $('mealCount').textContent = b.meals.length ? `${b.meals.length} وجبات` : '';
+      $('mealCount').textContent = b.meals.length ? L`${b.meals.length} وجبات` : '';
       $('mealList').innerHTML = b.meals.length ? b.meals.map((m) => {
         const [slot, icon] = mealSlot(m.eatenAt);
-        const time = new Date(m.eatenAt).toLocaleTimeString('ar', { hour: 'numeric', minute: '2-digit' });
-        return `<button class="meal" data-id="${esc(m.id)}"><span class="ic"><svg width="22" height="22"><use href="#${icon}"/></svg></span>
-          <span class="t"><b>${esc(m.name_ar || m.name)}</b><span class="small muted">${slot} · ${time}${m.restaurant ? ` · ${esc(m.restaurant)}` : ''}</span></span>
-          <span class="k"><b class="num">${fmt(m.calories)}</b><div class="small muted num">${fmt(m.protein_g)} غ بروتين</div>${m.status !== 'confirmed' ? '<span class="pill draft">مسودة</span>' : ''}</span></button>`;
-      }).join('') : '<div class="empty">لا توجد وجبات بعد.<br>اضغطي زر الكاميرا لتسجيل وجبتك الأولى.</div>';
+        const time = new Date(m.eatenAt).toLocaleTimeString(LOC, { hour: 'numeric', minute: '2-digit' });
+        return L`<button class="meal" data-id="${esc(m.id)}"><span class="ic"><svg width="22" height="22"><use href="#${icon}"/></svg></span>
+          <span class="t"><b>${esc(nameOf(m))}</b><span class="small muted">${slot} · ${time}${m.restaurant ? ` · ${esc(m.restaurant)}` : ''}</span></span>
+          <span class="k"><b class="num">${fmt(m.calories)}</b><div class="small muted num">${fmt(m.protein_g)} غ بروتين</div>${m.status !== 'confirmed' ? T('<span class="pill draft">مسودة</span>') : ''}</span></button>`;
+      }).join('') : T('<div class="empty">لا توجد وجبات بعد.<br>اضغطي زر الكاميرا لتسجيل وجبتك الأولى.</div>');
       document.querySelectorAll('.meal').forEach((el) => (el.onclick = async () => openReview(await api(`meals/${el.dataset.id}`))));
     } catch (e) { $('mealList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
   }
@@ -963,69 +989,69 @@ a { color: var(--brand-2); }
     try {
       const m = await api('motivation'); motCache = m;
       const st = m.streak;
-      $('streakChip').innerHTML = st.current ? `<span class="streak">🔥 ${st.current} ${st.current === 1 ? 'يوم' : 'أيام'} متتالية${st.loggedToday ? '' : ' — سجّل اليوم لتستمر'}</span>` : '';
+      $('streakChip').innerHTML = st.current ? L`<span class="streak">🔥 ${st.current} ${st.current === 1 ? T('يوم') : T('أيام')} متتالية${st.loggedToday ? '' : T(' — سجّل اليوم لتستمر')}</span>` : '';
       const c = m.challenge;
       $('chalCard').classList.remove('hidden');
-      $('chalTitle').textContent = c.title_ar; $('chalDesc').textContent = c.desc_ar;
-      $('chalProg').textContent = `${c.progress} من ${c.target} ${c.unit}`;
-      $('chalDone').textContent = c.done ? 'أنجزته 🎉' : '';
-      $('chalLeft').textContent = c.done ? '' : `باقي ${c.daysLeft} ${c.daysLeft === 1 ? 'يوم' : 'أيام'}`;
+      $('chalTitle').textContent = tx(c, 'title'); $('chalDesc').textContent = tx(c, 'desc');
+      $('chalProg').textContent = L`${c.progress} من ${c.target} ${LANG === 'en' ? c.unit_en || c.unit : c.unit}`;
+      $('chalDone').textContent = c.done ? T('أنجزته 🎉') : '';
+      $('chalLeft').textContent = c.done ? '' : L`باقي ${c.daysLeft} ${c.daysLeft === 1 ? T('يوم') : T('أيام')}`;
       $('chalBar').style.width = `${(c.progress / c.target) * 100}%`;
       $('chalBar').style.background = c.done ? 'var(--good)' : 'var(--accent)';
     } catch (e) { console.warn(e); }
   }
   function renderBadges(m) {
-    $('bdgCount').textContent = `${m.earnedCount} من ${m.badges.length}`;
-    $('bestStreak').textContent = `${m.streak.best} ${m.streak.best === 1 ? 'يوم' : 'أيام'}`;
-    $('badges').innerHTML = m.badges.map((b) => `<div class="badge ${b.earned ? 'on' : ''}" title="${esc(b.desc_ar)}"><div class="ico">${BADGE_ICON[b.id] || '⭐'}</div><b>${esc(b.title_ar)}</b><span>${b.earned ? esc(b.desc_ar) : `${fmt1(b.progress)} / ${fmt1(b.target)}`}</span></div>`).join('');
+    $('bdgCount').textContent = L`${m.earnedCount} من ${m.badges.length}`;
+    $('bestStreak').textContent = `${m.streak.best} ${m.streak.best === 1 ? T('يوم') : T('أيام')}`;
+    $('badges').innerHTML = m.badges.map((b) => `<div class="badge ${b.earned ? 'on' : ''}" title="${esc(tx(b, 'desc'))}"><div class="ico">${BADGE_ICON[b.id] || '⭐'}</div><b>${esc(b.title_ar)}</b><span>${b.earned ? esc(b.desc_ar) : `${fmt1(b.progress)} / ${fmt1(b.target)}`}</span></div>`).join('');
   }
 
   // ---------------- Ramadan ----------------
   function renderRamadan(r) {
     $('ramCard').classList.toggle('hidden', !(r && r.active));
     if (!r || !r.active) return;
-    $('ramTimes').textContent = `السحور ${r.suhoorTime} · الإفطار ${r.iftarTime}`;
+    $('ramTimes').textContent = L`السحور ${r.suhoorTime} · الإفطار ${r.iftarTime}`;
     const m = r.minutesToIftar;
-    $('ramState').textContent = r.fasting ? `صائم — باقي على الإفطار ${Math.floor(m / 60) ? `${Math.floor(m / 60)} ساعة و` : ''}${m % 60} دقيقة` : 'وقت الإفطار والسحور — هدفك موزّع كالتالي:';
-    $('ramSplit').innerHTML = r.split ? `<div><b class="num">${fmt(r.split.suhoor)}</b><span>السحور</span></div><div><b class="num">${fmt(r.split.iftar)}</b><span>الإفطار</span></div><div><b class="num">${fmt(r.split.evening)}</b><span>بينهما</span></div>` : '';
+    $('ramState').textContent = r.fasting ? L`صائم — باقي على الإفطار ${Math.floor(m / 60) ? L`${Math.floor(m / 60)} ساعة و` : ''}${m % 60} دقيقة` : T('وقت الإفطار والسحور — هدفك موزّع كالتالي:');
+    $('ramSplit').innerHTML = r.split ? L`<div><b class="num">${fmt(r.split.suhoor)}</b><span>السحور</span></div><div><b class="num">${fmt(r.split.iftar)}</b><span>الإفطار</span></div><div><b class="num">${fmt(r.split.evening)}</b><span>بينهما</span></div>` : '';
     $('ramChoice').classList.toggle('hidden', !r.needsChoice);
   }
   async function setRamadan(enabled, extra = {}) {
     const prof = await api('profile');
     await api('profile', { method: 'PUT', json: { ramadan: { ...(prof.ramadan || {}), enabled, ...extra } } });
   }
-  $('ramKeep').onclick = async () => { try { await setRamadan(true); toast('تم ✓'); loadToday(); } catch (e) { toast(e.message); } };
-  $('ramOff').onclick = async () => { try { await setRamadan(false); toast('أوقفنا وضع رمضان'); loadToday(); } catch (e) { toast(e.message); } };
+  $('ramKeep').onclick = async () => { try { await setRamadan(true); toast(T('تم ✓')); loadToday(); } catch (e) { toast(e.message); } };
+  $('ramOff').onclick = async () => { try { await setRamadan(false); toast(T('أوقفنا وضع رمضان')); loadToday(); } catch (e) { toast(e.message); } };
   $('rmSave').onclick = async () => {
     const mode = $('rmMode').value;
     try {
       await setRamadan(mode === 'auto' ? null : mode === 'on', { suhoorTime: $('rmSuhoor').value || '04:45', iftarTime: $('rmIftar').value || '18:00' });
-      toast('تم الحفظ ✓');
+      toast(T('تم الحفظ ✓'));
     } catch (e) { toast(e.message); }
   };
 
   // ---------------- coach: suggestions ----------------
   async function loadSuggestions(force) {
-    $('sugBody').innerHTML = '<div class="loading"><div class="spinner"></div>يفكّر المدرب في خيارات تناسبك…</div>';
+    $('sugBody').innerHTML = T('<div class="loading"><div class="spinner"></div>يفكّر المدرب في خيارات تناسبك…</div>');
     try {
       const r = await api(`coach/suggest${force ? '?force=1' : ''}`, { method: 'POST' });
-      const head = `<p class="small muted" style="margin:0">${esc(r.intro_ar)}</p><p class="small" style="margin:6px 0 0">متبقي لك: <b class="num">${fmt(Math.max(0, r.remainingKcal))}</b> سعرة · <b class="num">${fmt(r.proteinLeftG)}</b> غ بروتين</p>`;
-      $('sugBody').innerHTML = head + (r.options.length ? r.options.map((o) => `<div class="opt"><div class="row"><b>${esc(o.title_ar)}</b><span class="small num" style="white-space:nowrap">${fmt(o.kcal)} سعرة · ${fmt(o.protein_g)} غ</span></div><div class="small muted" style="margin-top:4px">${esc(o.where_ar)}</div>${o.why_ar ? `<div class="small" style="margin-top:6px;line-height:1.6">${esc(o.why_ar)}</div>` : ''}</div>`).join('') : '<div class="empty small">لم أجد خيارات مناسبة الآن، جرّب "تحديث".</div>');
-    } catch (e) { $('sugBody').innerHTML = `<div class="empty small">${esc(e.message)}</div><button class="btn ghost" id="sugRetry">إعادة المحاولة</button>`; $('sugRetry').onclick = () => loadSuggestions(true); }
+      const head = L`<p class="small muted" style="margin:0">${esc(r.intro_ar)}</p><p class="small" style="margin:6px 0 0">متبقي لك: <b class="num">${fmt(Math.max(0, r.remainingKcal))}</b> سعرة · <b class="num">${fmt(r.proteinLeftG)}</b> غ بروتين</p>`;
+      $('sugBody').innerHTML = head + (r.options.length ? r.options.map((o) => L`<div class="opt"><div class="row"><b>${esc(o.title_ar)}</b><span class="small num" style="white-space:nowrap">${fmt(o.kcal)} سعرة · ${fmt(o.protein_g)} غ</span></div><div class="small muted" style="margin-top:4px">${esc(o.where_ar)}</div>${o.why_ar ? `<div class="small" style="margin-top:6px;line-height:1.6">${esc(o.why_ar)}</div>` : ''}</div>`).join('') : T('<div class="empty small">لم أجد خيارات مناسبة الآن، جرّب "تحديث".</div>'));
+    } catch (e) { $('sugBody').innerHTML = L`<div class="empty small">${esc(e.message)}</div><button class="btn ghost" id="sugRetry">إعادة المحاولة</button>`; $('sugRetry').onclick = () => loadSuggestions(true); }
   }
   $('sugBtn').onclick = () => loadSuggestions(false);
   $('sugRefresh').onclick = () => loadSuggestions(true);
 
   // ---------------- coach: weekly ----------------
   async function loadWeekly(force) {
-    $('wkBody').innerHTML = '<div class="loading"><div class="spinner"></div>يجهّز المدرب تقرير أسبوعك…</div>';
+    $('wkBody').innerHTML = T('<div class="loading"><div class="spinner"></div>يجهّز المدرب تقرير أسبوعك…</div>');
     try {
       const r = await api(`coach/weekly${force ? '?force=1' : ''}`);
       const s = r.stats, nv = r.narrative;
-      const rng = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('ar', { day: 'numeric', month: 'short' });
+      const rng = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(LOC, { day: 'numeric', month: 'short' });
       const pct = (a, b) => (a != null && b ? `${fmt((a / b) * 100)}%` : '—');
       const wc = s.weightChangeKg;
-      $('wkBody').innerHTML = `<div class="small muted">${rng(s.from)} – ${rng(s.to)}</div>
+      $('wkBody').innerHTML = L`<div class="small muted">${rng(s.from)} – ${rng(s.to)}</div>
         <div class="wk-head">${esc(nv.headline_ar)}</div>
         <div class="stats">
           <div><b class="num">${s.loggedDays}/7</b><span>أيام مسجّلة</span></div>
@@ -1035,10 +1061,10 @@ a { color: var(--brand-2); }
         <div class="stats" style="margin-top:10px">
           <div><b class="num">${s.avgKcal != null ? fmt(s.avgKcal) : '—'}</b><span>متوسط السعرات / ${fmt(s.targetKcal)}</span></div>
           <div><b class="num">${pct(s.avgProtein, s.proteinTarget)}</b><span>من هدف البروتين</span></div>
-          <div><b class="num">${s.avgDeficit != null ? fmt(s.avgDeficit) : '—'}</b><span>متوسط ${s.avgDeficit != null && s.avgDeficit < 0 ? 'الفائض' : 'العجز'} الفعلي</span></div>
+          <div><b class="num">${s.avgDeficit != null ? fmt(s.avgDeficit) : '—'}</b><span>متوسط ${s.avgDeficit != null && s.avgDeficit < 0 ? T('الفائض') : T('العجز')} الفعلي</span></div>
         </div>
-        ${nv.wins_ar.length ? `<h3 style="margin:16px 0 0;color:var(--good)">ما نجح ✓</h3><ul class="blist">${nv.wins_ar.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-        ${nv.improve_ar.length ? `<h3 style="margin:14px 0 0;color:var(--warn)">ما يمكن تحسينه</h3><ul class="blist">${nv.improve_ar.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${nv.wins_ar.length ? L`<h3 style="margin:16px 0 0;color:var(--good)">ما نجح ✓</h3><ul class="blist">${nv.wins_ar.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${nv.improve_ar.length ? L`<h3 style="margin:14px 0 0;color:var(--warn)">ما يمكن تحسينه</h3><ul class="blist">${nv.improve_ar.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         <div class="notice" style="margin-top:14px"><b>هدف الأسبوع القادم:</b> ${esc(nv.next_week_goal_ar)}</div>`;
     } catch (e) { $('wkBody').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
   }
@@ -1048,32 +1074,32 @@ a { color: var(--brand-2); }
   // ---------------- activity ----------------
   const KIND_ICON = { run: 'i-walk', walk: 'i-walk', bike: 'i-bike', strength: 'i-dumbbell', swim: 'i-swim', hiit: 'i-bolt', mind: 'i-leaf', racket: 'i-ball', team: 'i-ball', combat: 'i-bolt', other: 'i-heart' };
   const ZONE_COLORS = ['#c9d3cd', '#7cc4e8', '#4fb37a', '#e8c23d', '#ef8f3a', '#d9473a'];
-  const SRC_AR = { whoop: 'WHOOP', apple_health: 'Apple Health', health_connect: 'Health Connect', manual: 'يدوي' };
-  function strainLabel(x) { return x >= 18 ? 'قصوى' : x >= 14 ? 'عالية' : x >= 10 ? 'متوسطة' : 'خفيفة'; }
+  const SRC_AR = { whoop: 'WHOOP', apple_health: 'Apple Health', health_connect: 'Health Connect', manual: T('يدوي') };
+  function strainLabel(x) { return x >= 18 ? T('قصوى') : x >= 14 ? T('عالية') : x >= 10 ? T('متوسطة') : T('خفيفة'); }
   function renderActivity(a) {
     const list = (a && a.workouts) || [];
-    $('actSub').textContent = list.length ? `${list.length} ${list.length === 1 ? 'تمرين' : 'تمارين'}` : '';
+    $('actSub').textContent = list.length ? `${list.length} ${list.length === 1 ? T('تمرين') : T('تمارين')}` : '';
     if (!list.length) {
-      $('actList').innerHTML = '<div class="empty small">لا يوجد تمرين مسجّل لهذا اليوم.<br>تُسحب التمارين تلقائياً من WHOOP، ومن Apple Health عبر تطبيق iOS.</div>';
+      $('actList').innerHTML = T('<div class="empty small">لا يوجد تمرين مسجّل لهذا اليوم.<br>تُسحب التمارين تلقائياً من WHOOP، ومن Apple Health عبر تطبيق iOS.</div>');
       return;
     }
-    const sum = `<div class="actsum"><div><b class="num">${fmt(a.totalMin)}</b><span>دقيقة</span></div><div><b class="num">${a.totalKcal ? fmt(a.totalKcal) : '—'}</b><span>سعرة في التمارين</span></div>${a.maxStrain != null
-      ? `<div><b class="num">${fmt1(a.maxStrain)}</b><span>أعلى إجهاد (من 21)</span></div>`
-      : `<div><b class="num">${(() => { const h = list.filter((w) => w.avgHr); return h.length ? fmt(h.reduce((x, w) => x + w.avgHr, 0) / h.length) : '—'; })()}</b><span>متوسط النبض</span></div>`}</div>`;
+    const sum = L`<div class="actsum"><div><b class="num">${fmt(a.totalMin)}</b><span>دقيقة</span></div><div><b class="num">${a.totalKcal ? fmt(a.totalKcal) : '—'}</b><span>سعرة في التمارين</span></div>${a.maxStrain != null
+      ? L`<div><b class="num">${fmt1(a.maxStrain)}</b><span>أعلى إجهاد (من 21)</span></div>`
+      : L`<div><b class="num">${(() => { const h = list.filter((w) => w.avgHr); return h.length ? fmt(h.reduce((x, w) => x + w.avgHr, 0) / h.length) : '—'; })()}</b><span>متوسط النبض</span></div>`}</div>`;
     $('actList').innerHTML = sum + list.map((w) => {
-      const t0 = new Date(w.start).toLocaleTimeString('ar', { hour: 'numeric', minute: '2-digit' });
+      const t0 = new Date(w.start).toLocaleTimeString(LOC, { hour: 'numeric', minute: '2-digit' });
       const chips = [
-        w.kcal != null ? `<span class="chip"><svg width="13" height="13"><use href="#i-flame"/></svg>${fmt(w.kcal)} سعرة</span>` : '',
-        w.strain != null ? `<span class="chip">إجهاد ${fmt1(w.strain)} · ${strainLabel(w.strain)}</span>` : '',
-        w.avgHr != null ? `<span class="chip"><svg width="13" height="13"><use href="#i-heart"/></svg><span dir="ltr">${fmt(w.avgHr)}${w.maxHr ? `–${fmt(w.maxHr)}` : ''}</span> نبضة</span>` : '',
-        w.distanceM ? `<span class="chip">${fmt1(w.distanceM / 1000)} كم</span>` : '',
+        w.kcal != null ? L`<span class="chip"><svg width="13" height="13"><use href="#i-flame"/></svg>${fmt(w.kcal)} سعرة</span>` : '',
+        w.strain != null ? L`<span class="chip">إجهاد ${fmt1(w.strain)} · ${strainLabel(w.strain)}</span>` : '',
+        w.avgHr != null ? L`<span class="chip"><svg width="13" height="13"><use href="#i-heart"/></svg><span dir="ltr">${fmt(w.avgHr)}${w.maxHr ? `–${fmt(w.maxHr)}` : ''}</span> نبضة</span>` : '',
+        w.distanceM ? L`<span class="chip">${fmt1(w.distanceM / 1000)} كم</span>` : '',
         `<span class="chip src">${SRC_AR[w.source] || w.source}</span>`,
       ].join('');
       const zt = (w.zonesMin || []).reduce((x, y) => x + y, 0);
-      const zones = zt ? `<div class="zones" title="مناطق نبض القلب" style="direction:ltr">${w.zonesMin.map((m, i) => (m ? `<i style="flex:${m};background:${ZONE_COLORS[i]}"></i>` : '')).join('')}</div>` : '';
-      return `<div class="wk"><span class="ic"><svg width="22" height="22"><use href="#${KIND_ICON[w.kind] || 'i-heart'}"/></svg></span>
-        <div class="t"><div class="row"><b>${esc(w.sportAr)}</b><span class="small muted num">${fmt(w.durationMin)} د · ${t0}</span></div><div class="chips">${chips}</div>${zones}</div></div>`;
-    }).join('') + (list.some((w) => w.zonesMin) ? '<div class="legend" style="direction:ltr;justify-content:flex-end">' + ['راحة', '1', '2', '3', '4', '5'].map((z, i) => `<span><i style="background:${ZONE_COLORS[i]}"></i>${z}</span>`).join('') + '</div>' : '');
+      const zones = zt ? L`<div class="zones" title="مناطق نبض القلب" style="direction:ltr">${w.zonesMin.map((m, i) => (m ? `<i style="flex:${m};background:${ZONE_COLORS[i]}"></i>` : '')).join('')}</div>` : '';
+      return L`<div class="wk"><span class="ic"><svg width="22" height="22"><use href="#${KIND_ICON[w.kind] || 'i-heart'}"/></svg></span>
+        <div class="t"><div class="row"><b>${esc((LANG === 'en' ? w.sportEn : w.sportAr) || w.sport)}</b><span class="small muted num">${fmt(w.durationMin)} د · ${t0}</span></div><div class="chips">${chips}</div>${zones}</div></div>`;
+    }).join('') + (list.some((w) => w.zonesMin) ? '<div class="legend" style="direction:ltr;justify-content:flex-end">' + [T('راحة'), '1', '2', '3', '4', '5'].map((z, i) => `<span><i style="background:${ZONE_COLORS[i]}"></i>${z}</span>`).join('') + '</div>' : '');
   }
 
   // ---------------- progress ----------------
@@ -1081,19 +1107,19 @@ a { color: var(--brand-2); }
     try {
       const [w, plan, h] = await Promise.all([api('weights?days=90'), api('plan'), api('history?days=7')]);
       planCache = plan;
-      $('pSub').textContent = `هدفك: ${GOAL_AR[plan.effectiveGoal]}`;
+      $('pSub').textContent = L`هدفك: ${GOAL_AR[plan.effectiveGoal]}`;
       $('pCurrent').textContent = plan.currentWeightKg ? fmt1(plan.currentWeightKg) : '—';
       const ch = plan.changeSinceStartKg;
-      $('pChange').textContent = ch == null ? '—' : `${ch > 0 ? '+' : ''}${fmt1(ch)} كغ`;
+      $('pChange').textContent = ch == null ? '—' : L`${ch > 0 ? '+' : ''}${fmt1(ch)} كغ`;
       $('pChange').style.color = ch == null || ch === 0 ? '' : (plan.goal === 'lose') === ch < 0 ? 'var(--ok)' : 'var(--warn)';
       const last = w.entries[w.entries.length - 1];
-      $('pWeightSrc').textContent = last ? ({ manual: 'يدوي', whoop: 'WHOOP', apple_health: 'Apple Health' }[last.source] || '') : '';
+      $('pWeightSrc').textContent = last ? ({ manual: T('يدوي'), whoop: 'WHOOP', apple_health: 'Apple Health' }[last.source] || '') : '';
       const hasGoal = plan.targetWeightKg && plan.startWeightKg && plan.effectiveGoal !== 'maintain';
       $('pGoalWrap').classList.toggle('hidden', !hasGoal);
       if (hasGoal) {
-        $('pStart').textContent = `البداية ${fmt1(plan.startWeightKg)}`; $('pTarget').textContent = `الهدف ${fmt1(plan.targetWeightKg)}`;
+        $('pStart').textContent = L`البداية ${fmt1(plan.startWeightKg)}`; $('pTarget').textContent = L`الهدف ${fmt1(plan.targetWeightKg)}`;
         $('pPct').textContent = `${plan.progressPct ?? 0}%`; $('pBar').style.width = `${plan.progressPct ?? 0}%`;
-        $('pEta').textContent = plan.etaDate ? `بهذا المعدل تصلين تقريباً في ${arDate(plan.etaDate)} (${plan.weeksToGoal} أسبوعاً)` : '';
+        $('pEta').textContent = plan.etaDate ? L`بهذا المعدل تصلين تقريباً في ${arDate(plan.etaDate)} (${plan.weeksToGoal} أسبوعاً)` : '';
       }
       $('wChart').innerHTML = weightChart(w.entries, plan.targetWeightKg);
       planGoal = plan.effectiveGoal;
@@ -1105,7 +1131,7 @@ a { color: var(--brand-2); }
     } catch (e) { toast(e.message); }
   }
   function weightChart(entries, target) {
-    if (!entries.length) return '<div class="empty">سجّلي وزنك اليوم ليبدأ الرسم البياني.</div>';
+    if (!entries.length) return T('<div class="empty">سجّلي وزنك اليوم ليبدأ الرسم البياني.</div>');
     const W = 520, H = 190, pl = 34, pr = 10, pt = 12, pb = 24;
     const vals = entries.flatMap((e) => [e.kg, e.trend]).concat(target ? [target] : []);
     let lo = Math.min(...vals), hi = Math.max(...vals); if (hi - lo < 2) { lo -= 1; hi += 1; }
@@ -1116,8 +1142,8 @@ a { color: var(--brand-2); }
     const dots = entries.map((e) => `<circle cx="${x(e.date).toFixed(1)}" cy="${y(e.kg).toFixed(1)}" r="3.2" fill="var(--muted)" opacity=".45"/>`).join('');
     const ticks = [lo, (lo + hi) / 2, hi].map((v) => `<text x="${pl - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt1(v)}</text><line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/>`).join('');
     const tgt = target && target >= lo && target <= hi ? `<line x1="${pl}" x2="${W - pr}" y1="${y(target)}" y2="${y(target)}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/>` : '';
-    const lab = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('ar', { day: 'numeric', month: 'short' });
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="رسم بياني للوزن" style="direction:ltr">${ticks}${tgt}${dots}<path d="${line}" fill="none" stroke="var(--brand-2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    const lab = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(LOC, { day: 'numeric', month: 'short' });
+    return L`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="رسم بياني للوزن" style="direction:ltr">${ticks}${tgt}${dots}<path d="${line}" fill="none" stroke="var(--brand-2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       <text x="${pl}" y="${H - 4}" font-size="11" fill="var(--muted)">${lab(entries[0].date)}</text><text x="${W - pr}" y="${H - 4}" font-size="11" fill="var(--muted)" text-anchor="end">${lab(entries[entries.length - 1].date)}</text></svg>`;
   }
   function barChart(days) {
@@ -1125,18 +1151,18 @@ a { color: var(--brand-2); }
     const max = Math.max(...days.map((d) => Math.max(d.intakeKcal, d.targetKcal)), 1) * 1.1;
     const bw = (W - gap * (n + 1)) / n;
     const y = (v) => pt + (1 - v / max) * (H - pt - pb);
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="الأكل مقابل الهدف لآخر 7 أيام" style="direction:ltr">${days.map((d, i) => {
+    return L`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="الأكل مقابل الهدف لآخر 7 أيام" style="direction:ltr">${days.map((d, i) => {
       const x = gap + i * (bw + gap);
       const ok = planGoal === 'gain' ? d.intakeKcal >= d.targetKcal * 0.95 && d.intakeKcal <= d.targetKcal * 1.15 : d.intakeKcal <= d.targetKcal;
-      const lbl = new Date(`${d.date}T12:00:00`).toLocaleDateString('ar', { weekday: 'short' });
+      const lbl = new Date(`${d.date}T12:00:00`).toLocaleDateString(LOC, { weekday: 'short' });
       return `<rect x="${x}" y="${y(d.intakeKcal)}" width="${bw}" height="${Math.max(0, H - pb - y(d.intakeKcal))}" rx="7" fill="${d.meals ? (ok ? 'var(--good)' : 'var(--bad)') : 'var(--line)'}"/>
         <line x1="${x - 3}" x2="${x + bw + 3}" y1="${y(d.targetKcal)}" y2="${y(d.targetKcal)}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
         <text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--muted)">${lbl}</text>`;
     }).join('')}</svg>`;
   }
   $('wSave').onclick = async () => {
-    const kg = Number($('wIn').value); if (!kg) return toast('أدخلي وزنك');
-    try { await api('weights', { method: 'POST', json: { kg } }); $('wIn').value = ''; toast('تم تسجيل الوزن ✓'); loadProgress(); } catch (e) { toast(e.message); }
+    const kg = Number($('wIn').value); if (!kg) return toast(T('أدخلي وزنك'));
+    try { await api('weights', { method: 'POST', json: { kg } }); $('wIn').value = ''; toast(T('تم تسجيل الوزن ✓')); loadProgress(); } catch (e) { toast(e.message); }
   };
 
   // ---------------- plan ----------------
@@ -1144,18 +1170,18 @@ a { color: var(--brand-2); }
     try {
       const [p, prof] = await Promise.all([api('plan'), api('profile')]);
       planCache = p;
-      $('planSub').textContent = `${GOAL_AR[p.effectiveGoal]} · سرعة ${{ relaxed: 'مريحة', moderate: 'متوسطة', fast: 'أسرع' }[p.pace]}`;
-      $('plKcal').textContent = `${fmt(p.targetKcal)} سعرة`;
-      $('plP').textContent = `${fmt(p.proteinG)} غ`; $('plC').textContent = `${fmt(p.carbsG)} غ`; $('plF').textContent = `${fmt(p.fatG)} غ`;
-      $('plMaint').textContent = `${fmt(p.maintenanceKcal)} سعرة`;
+      $('planSub').textContent = L`${GOAL_AR[p.effectiveGoal]} · سرعة ${{ relaxed: T('مريحة'), moderate: T('متوسطة'), fast: T('أسرع') }[p.pace]}`;
+      $('plKcal').textContent = L`${fmt(p.targetKcal)} سعرة`;
+      $('plP').textContent = L`${fmt(p.proteinG)} غ`; $('plC').textContent = L`${fmt(p.carbsG)} غ`; $('plF').textContent = L`${fmt(p.fatG)} غ`;
+      $('plMaint').textContent = L`${fmt(p.maintenanceKcal)} سعرة`;
       const bd = p.burnData || { days: 0, needed: 7, window: 14, avgKcal: null };
-      $('plSrc').textContent = { adaptive: 'يتعلّم من وزنك وأكلك ✓', device: `حرقك الحقيقي (متوسط ${Math.min(bd.days, bd.window)} يوماً) ✓`, formula: 'معادلة مؤقتة' }[p.maintenanceSource];
-      $('plAct').textContent = ({ sedentary: 'قليل الحركة', light: 'نشاط خفيف', moderate: 'متوسط', active: 'نشيط', very_active: 'نشيط جداً' }[p.activityLevel] || '—') + (p.activityCalibration ? ' (معدّل تلقائياً)' : '');
-      $('plBurn').textContent = bd.days >= bd.needed ? `مكتمل — متوسط ${fmt(bd.avgKcal)} سعرة` : `${bd.days} من ${bd.needed} أيام${bd.avgKcal ? ` (متوسط حتى الآن ${fmt(bd.avgKcal)})` : ''}`;
+      $('plSrc').textContent = { adaptive: T('يتعلّم من وزنك وأكلك ✓'), device: L`حرقك الحقيقي (متوسط ${Math.min(bd.days, bd.window)} يوماً) ✓`, formula: T('معادلة مؤقتة') }[p.maintenanceSource];
+      $('plAct').textContent = ({ sedentary: T('قليل الحركة'), light: T('نشاط خفيف'), moderate: T('متوسط'), active: T('نشيط'), very_active: T('نشيط جداً') }[p.activityLevel] || '—') + (p.activityCalibration ? T(' (معدّل تلقائياً)') : '');
+      $('plBurn').textContent = bd.days >= bd.needed ? L`مكتمل — متوسط ${fmt(bd.avgKcal)} سعرة` : L`${bd.days} من ${bd.needed} أيام${bd.avgKcal ? L` (متوسط حتى الآن ${fmt(bd.avgKcal)})` : ''}`;
       $('plBurn').style.color = bd.days >= bd.needed ? 'var(--good)' : 'var(--warn)';
-      $('plDelta').textContent = p.dailyDeltaKcal < 0 ? `عجز ${fmt(-p.dailyDeltaKcal)} سعرة` : p.dailyDeltaKcal > 0 ? `فائض ${fmt(p.dailyDeltaKcal)} سعرة` : 'لا يوجد (محافظة)';
-      $('plWeekly').textContent = p.weeklyChangeKg ? `${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ/أسبوع` : '—';
-      $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = `${fmt(p.fiberG)} غ`;
+      $('plDelta').textContent = p.dailyDeltaKcal < 0 ? L`عجز ${fmt(-p.dailyDeltaKcal)} سعرة` : p.dailyDeltaKcal > 0 ? L`فائض ${fmt(p.dailyDeltaKcal)} سعرة` : T('لا يوجد (محافظة)');
+      $('plWeekly').textContent = p.weeklyChangeKg ? L`${p.weeklyChangeKg > 0 ? '+' : ''}${fmt1(p.weeklyChangeKg)} كغ/أسبوع` : '—';
+      $('plBmi').textContent = p.bmi ?? '—'; $('plFiber').textContent = L`${fmt(p.fiberG)} غ`;
       $('plNotices').innerHTML = renderNotices(p.notices);
       $('pSrc').value = prof.preferredEnergySource || '';
       const rm = prof.ramadan || { enabled: null, suhoorTime: '04:45', iftarTime: '18:00' };
@@ -1167,8 +1193,8 @@ a { color: var(--brand-2); }
     try {
       const w = await api('integrations/whoop/status');
       ls.set('ns_whoop', w.connected ? '1' : '0');
-      $('wStatus').textContent = w.connected ? 'مربوط ✓' : 'غير مربوط';
-      $('wConnect').textContent = w.connected ? 'إعادة الربط' : 'ربط WHOOP';
+      $('wStatus').textContent = w.connected ? T('مربوط ✓') : T('غير مربوط');
+      $('wConnect').textContent = w.connected ? T('إعادة الربط') : T('ربط WHOOP');
       $('wSync').classList.toggle('hidden', !w.connected);
     } catch { $('wStatus').textContent = '—'; }
   }
@@ -1177,8 +1203,8 @@ a { color: var(--brand-2); }
     try {
       const me = await api('auth/me');
       $('acName').textContent = me.name || '—'; $('acEmail').textContent = me.email || '—';
-      $('acRole').textContent = me.role === 'owner' ? 'المالك' : 'مستخدم';
-      if (me.name) ls.set('ns_name', me.name === 'meera' ? 'ميرا' : me.name);
+      $('acRole').textContent = me.role === 'owner' ? T('المالك') : T('مستخدم');
+      if (me.name) ls.set('ns_name', me.name === 'meera' ? T('ميرا') : me.name);
       $('acClaim').classList.toggle('hidden', !(me.role === 'owner' && !me.account && key()));
       $('invCard').classList.toggle('hidden', me.role !== 'owner');
       if (me.role === 'owner') loadInvites();
@@ -1186,8 +1212,8 @@ a { color: var(--brand-2); }
   }
   $('clBtn').onclick = async () => {
     try {
-      const r = await api('auth/register', { method: 'POST', json: { email: $('clEmail').value, password: $('clPass').value, name: ls.get('ns_name') || 'ميرا', claimUserId: user() } });
-      ls.set('ns_token', r.token); toast('تم ربط بريدك ✓ يمكنك الدخول به من أي جهاز'); loadAccount();
+      const r = await api('auth/register', { method: 'POST', json: { email: $('clEmail').value, password: $('clPass').value, name: ls.get('ns_name') || T('ميرا'), claimUserId: user() } });
+      ls.set('ns_token', r.token); toast(T('تم ربط بريدك ✓ يمكنك الدخول به من أي جهاز')); loadAccount();
     } catch (e) { toast(e.message, 3500); }
   };
   async function loadInvites() {
@@ -1196,11 +1222,11 @@ a { color: var(--brand-2); }
       $('invList').innerHTML = list.slice(0, 8).map((i) => {
         const used = i.usedBy, expired = !used && Date.parse(i.expiresAt) < Date.now();
         const link = `${location.origin}/app/#invite=${i.code}`;
-        return `<div class="fav"><div class="t"><span class="code">${esc(i.code)}</span><span class="small muted">${used ? `استُخدمت · ${esc(i.usedByName || '')}` : expired ? 'منتهية' : `صالحة حتى ${new Date(i.expiresAt).toLocaleDateString('ar', { day: 'numeric', month: 'short' })}`}</span></div>${!used && !expired ? `<button class="btn ghost" data-link="${esc(link)}">مشاركة</button>` : ''}</div>`;
+        return `<div class="fav"><div class="t"><span class="code">${esc(i.code)}</span><span class="small muted">${used ? L`استُخدمت · ${esc(i.usedByName || '')}` : expired ? T('منتهية') : L`صالحة حتى ${new Date(i.expiresAt).toLocaleDateString(LOC, { day: 'numeric', month: 'short' })}`}</span></div>${!used && !expired ? L`<button class="btn ghost" data-link="${esc(link)}">مشاركة</button>` : ''}</div>`;
       }).join('');
       $('invList').querySelectorAll('[data-link]').forEach((b) => (b.onclick = async () => {
-        const url = b.dataset.link, text = `انضم إلى NutriSnap — رمز دعوتك: ${url.split('=')[1]}`;
-        try { if (navigator.share) await navigator.share({ title: 'NutriSnap', text, url }); else { await navigator.clipboard.writeText(url); toast('نُسخ الرابط ✓'); } } catch {}
+        const url = b.dataset.link, text = L`انضم إلى NutriSnap — رمز دعوتك: ${url.split('=')[1]}`;
+        try { if (navigator.share) await navigator.share({ title: 'NutriSnap', text, url }); else { await navigator.clipboard.writeText(url); toast(T('نُسخ الرابط ✓')); } } catch {}
       }));
     } catch (e) { $('invList').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
   }
@@ -1215,48 +1241,48 @@ a { color: var(--brand-2); }
       const rm = prof.reminders || { meals: true, weight: true };
       $('rmMeals').checked = rm.meals; $('rmWeight').checked = rm.weight;
       const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-      if (!supported) { $('pushState').textContent = 'غير مدعوم هنا'; $('pushBtn').disabled = true; return; }
+      if (!supported) { $('pushState').textContent = T('غير مدعوم هنا'); $('pushBtn').disabled = true; return; }
       const reg = await navigator.serviceWorker.getRegistration('./');
       const sub = reg && (await reg.pushManager.getSubscription());
-      $('pushState').textContent = sub ? 'مفعّلة ✓' : Notification.permission === 'denied' ? 'محظورة من الإعدادات' : 'غير مفعّلة';
-      $('pushBtn').textContent = sub ? 'إيقاف التنبيهات على هذا الجهاز' : 'تفعيل التنبيهات على هذا الجهاز';
+      $('pushState').textContent = sub ? T('مفعّلة ✓') : Notification.permission === 'denied' ? T('محظورة من الإعدادات') : T('غير مفعّلة');
+      $('pushBtn').textContent = sub ? T('إيقاف التنبيهات على هذا الجهاز') : T('تفعيل التنبيهات على هذا الجهاز');
       $('pushBtn').dataset.on = sub ? '1' : '';
       $('pushTest').classList.toggle('hidden', !sub);
     } catch (e) { console.warn(e); }
   }
   $('pushBtn').onclick = async () => {
     try {
-      const reg = await swReg(); if (!reg) return toast('المتصفح لا يدعم التنبيهات');
+      const reg = await swReg(); if (!reg) return toast(T('المتصفح لا يدعم التنبيهات'));
       await navigator.serviceWorker.ready;
       if ($('pushBtn').dataset.on) {
         const sub = await reg.pushManager.getSubscription();
         if (sub) { await api('push/unsubscribe', { method: 'POST', json: { endpoint: sub.endpoint } }); await sub.unsubscribe(); }
-        toast('أوقفنا التنبيهات'); return loadPushState();
+        toast(T('أوقفنا التنبيهات')); return loadPushState();
       }
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') return toast('لم يتم السماح بالتنبيهات');
+      if (perm !== 'granted') return toast(T('لم يتم السماح بالتنبيهات'));
       const { publicKey } = await api('push/key');
-      if (!publicKey) return toast('التنبيهات غير مُعدّة على الخادم');
+      if (!publicKey) return toast(T('التنبيهات غير مُعدّة على الخادم'));
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(publicKey) });
       await api('push/subscribe', { method: 'POST', json: sub.toJSON() });
-      toast('تم تفعيل التنبيهات ✓'); loadPushState();
-    } catch (e) { toast(e.message || 'تعذّر تفعيل التنبيهات', 3500); }
+      toast(T('تم تفعيل التنبيهات ✓')); loadPushState();
+    } catch (e) { toast(e.message || T('تعذّر تفعيل التنبيهات'), 3500); }
   };
-  $('pushTest').onclick = async () => { try { const r = await api('push/test', { method: 'POST' }); toast(r.sent ? 'أرسلنا تنبيهاً تجريبياً' : 'لم يُرسل — أعد التفعيل'); } catch (e) { toast(e.message); } };
+  $('pushTest').onclick = async () => { try { const r = await api('push/test', { method: 'POST' }); toast(r.sent ? T('أرسلنا تنبيهاً تجريبياً') : T('لم يُرسل — أعد التفعيل')); } catch (e) { toast(e.message); } };
   for (const id of ['rmMeals', 'rmWeight']) $(id).onchange = async () => {
-    try { await api('profile', { method: 'PUT', json: { reminders: { meals: $('rmMeals').checked, weight: $('rmWeight').checked } } }); toast('تم الحفظ ✓'); } catch (e) { toast(e.message); }
+    try { await api('profile', { method: 'PUT', json: { reminders: { meals: $('rmMeals').checked, weight: $('rmWeight').checked } } }); toast(T('تم الحفظ ✓')); } catch (e) { toast(e.message); }
   };
 
-  $('pSrc').onchange = async () => { try { await api('profile', { method: 'PUT', json: { preferredEnergySource: $('pSrc').value || null } }); toast('تم الحفظ ✓'); } catch (e) { toast(e.message); } };
+  $('pSrc').onchange = async () => { try { await api('profile', { method: 'PUT', json: { preferredEnergySource: $('pSrc').value || null } }); toast(T('تم الحفظ ✓')); } catch (e) { toast(e.message); } };
   const numOrNull = (v) => (v === '' ? null : Number(v));
   $('eSave').onclick = async () => {
     const a = numOrNull($('eActive').value), b = numOrNull($('eBasal').value);
-    if (a == null && b == null) return toast('أدخلي رقماً واحداً على الأقل');
-    try { await api('energy/samples', { method: 'POST', json: { samples: [{ date: isoDay(new Date()), source: 'manual', activeKcal: a, basalKcal: b }] } }); toast('تم حفظ الحرق ✓'); } catch (e) { toast(e.message); }
+    if (a == null && b == null) return toast(T('أدخلي رقماً واحداً على الأقل'));
+    try { await api('energy/samples', { method: 'POST', json: { samples: [{ date: isoDay(new Date()), source: 'manual', activeKcal: a, basalKcal: b }] } }); toast(T('تم حفظ الحرق ✓')); } catch (e) { toast(e.message); }
   };
   $('wConnect').onclick = async () => {
     try { const r = await api('integrations/whoop/connect?target=web'); location.href = r.url; }
-    catch (e) { toast(e.message.includes('WHOOP_CLIENT_ID') ? 'WHOOP غير مُعدّ على الخادم' : e.message, 3500); }
+    catch (e) { toast(e.message.includes('WHOOP_CLIENT_ID') ? T('WHOOP غير مُعدّ على الخادم') : e.message, 3500); }
   };
   $('wSync').onclick = async () => {
     const y = new Date(); y.setDate(y.getDate() - 1);
@@ -1264,7 +1290,7 @@ a { color: var(--brand-2); }
       const r = await api(`integrations/whoop/sync?from=${isoDay(y)}&to=${isoDay(new Date())}`, { method: 'POST' });
       ls.set('ns_whoop_sync', String(Date.now()));
       const t = r.days && r.days[isoDay(new Date())];
-      toast(t ? `تمت المزامنة ✓ — حرق اليوم ${fmt(t)} سعرة${r.weightKg ? ` · الوزن ${fmt1(r.weightKg)} كغ` : ''}` : 'تمت المزامنة ✓', 3500);
+      toast(t ? L`تمت المزامنة ✓ — حرق اليوم ${fmt(t)} سعرة${r.weightKg ? L` · الوزن ${fmt1(r.weightKg)} كغ` : ''}` : T('تمت المزامنة ✓'), 3500);
     } catch (e) { toast(e.message); }
   };
 
@@ -1281,18 +1307,18 @@ a { color: var(--brand-2); }
   // text + voice
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null;
-  if (!SR) { $('micBtn').classList.add('hidden'); $('micHint').textContent = 'الإملاء الصوتي غير مدعوم هنا — استخدم ميكروفون لوحة المفاتيح.'; }
+  if (!SR) { $('micBtn').classList.add('hidden'); $('micHint').textContent = T('الإملاء الصوتي غير مدعوم هنا — استخدم ميكروفون لوحة المفاتيح.'); }
   $('micBtn').onclick = () => {
     if (rec) { rec.stop(); return; }
-    rec = new SR(); rec.lang = 'ar-AE'; rec.interimResults = true; rec.continuous = false;
+    rec = new SR(); rec.lang = LANG === 'ar' ? 'ar-AE' : 'en-US'; rec.interimResults = true; rec.continuous = false;
     const base = $('txtMeal').value ? $('txtMeal').value + ' ' : '';
     rec.onresult = (e) => { $('txtMeal').value = base + Array.from(e.results).map((r) => r[0].transcript).join(' '); };
-    rec.onend = () => { rec = null; $('micBtn').classList.remove('on'); $('micHint').textContent = 'اضغط على الميكروفون وتحدث بالعربي'; };
-    rec.onerror = (e) => toast(e.error === 'not-allowed' ? 'اسمح بالوصول للميكروفون' : 'تعذّر التعرف على الصوت');
-    rec.start(); $('micBtn').classList.add('on'); $('micHint').textContent = 'أستمع… اضغط مرة أخرى للإيقاف';
+    rec.onend = () => { rec = null; $('micBtn').classList.remove('on'); $('micHint').textContent = T('اضغط على الميكروفون وتحدث بالعربي'); };
+    rec.onerror = (e) => toast(e.error === 'not-allowed' ? T('اسمح بالوصول للميكروفون') : T('تعذّر التعرف على الصوت'));
+    rec.start(); $('micBtn').classList.add('on'); $('micHint').textContent = T('أستمع… اضغط مرة أخرى للإيقاف');
   };
   $('txtBtn').onclick = async () => {
-    const t = $('txtMeal').value.trim(); if (t.length < 3) return toast('اكتب وصفاً للوجبة');
+    const t = $('txtMeal').value.trim(); if (t.length < 3) return toast(T('اكتب وصفاً للوجبة'));
     $('txtBtn').disabled = true; $('txtLoading').classList.remove('hidden');
     try {
       const r = await api('meals/analyze-text', { method: 'POST', json: { text: t, restaurant: $('txtRest').value.trim() || undefined, eatenAt: new Date().toISOString() } });
@@ -1320,24 +1346,24 @@ a { color: var(--brand-2); }
         $('scanVideo').classList.remove('hidden'); $('scanBtn').classList.add('hidden');
         scanControls = await reader.decodeFromVideoDevice(undefined, $('scanVideo'), (result) => { if (result) { stopScan(); lookupBarcode(result.getText()); } });
       }
-    } catch (e) { stopScan(); toast('تعذّر تشغيل الكاميرا — اكتب الرقم يدوياً'); }
+    } catch (e) { stopScan(); toast(T('تعذّر تشغيل الكاميرا — اكتب الرقم يدوياً')); }
   };
   $('bcBtn').onclick = () => lookupBarcode($('bcIn').value);
   async function lookupBarcode(code) {
     $('bcIn').value = code;
-    $('bcResult').innerHTML = '<div class="loading"><div class="spinner"></div>نبحث عن المنتج…</div>';
+    $('bcResult').innerHTML = T('<div class="loading"><div class="spinner"></div>نبحث عن المنتج…</div>');
     try {
       const p = await api(`foods/barcode/${encodeURIComponent(code)}`);
       const g0 = p.servingG || 100;
-      $('bcResult').innerHTML = `<div class="opt"><div class="row"><b>${esc(p.name_ar || p.name)}</b>${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" style="width:46px;height:46px;object-fit:contain;border-radius:10px;background:#fff">` : ''}</div>
-        <div class="small muted">${esc(p.brand || '')}${p.servingLabel ? ` · الحصة: ${esc(p.servingLabel)}` : ''}</div>
+      $('bcResult').innerHTML = L`<div class="opt"><div class="row"><b>${esc(nameOf(p))}</b>${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" style="width:46px;height:46px;object-fit:contain;border-radius:10px;background:#fff">` : ''}</div>
+        <div class="small muted">${esc(p.brand || '')}${p.servingLabel ? L` · الحصة: ${esc(p.servingLabel)}` : ''}</div>
         <div class="small" style="margin-top:6px">لكل 100 غ: <b class="num">${fmt(p.per100.calories)}</b> سعرة · بروتين ${fmt1(p.per100.protein_g)} غ · سكر ${fmt1(p.per100.sugar_g)} غ</div>
         <div class="grid2" style="margin-top:10px;align-items:end"><div><label for="bcG" style="margin-top:0">الكمية (غ أو مل)</label><input id="bcG" type="number" inputmode="decimal" value="${g0}"></div><div class="small" id="bcCalc" style="padding-bottom:12px"></div></div>
         <div style="height:10px"></div><button class="btn" id="bcAdd">أضف للوجبات</button></div>`;
-      const calc = () => { const g = Number($('bcG').value) || 0; $('bcCalc').innerHTML = `<b class="num">${fmt((p.per100.calories * g) / 100)}</b> سعرة · <b class="num">${fmt1((p.per100.protein_g * g) / 100)}</b> غ بروتين`; };
+      const calc = () => { const g = Number($('bcG').value) || 0; $('bcCalc').innerHTML = L`<b class="num">${fmt((p.per100.calories * g) / 100)}</b> سعرة · <b class="num">${fmt1((p.per100.protein_g * g) / 100)}</b> غ بروتين`; };
       $('bcG').oninput = calc; calc();
       $('bcAdd').onclick = async () => {
-        const g = Number($('bcG').value) || 0; if (!g) return toast('أدخل الكمية');
+        const g = Number($('bcG').value) || 0; if (!g) return toast(T('أدخل الكمية'));
         const f = g / 100, k = (x) => Math.round(x * f * 10) / 10;
         const item = { name: p.name, name_ar: p.name_ar || p.name, quantity: g, unit: 'g', grams: g, calories: Math.round(p.per100.calories * f), protein_g: k(p.per100.protein_g), carbs_g: k(p.per100.carbs_g), fat_g: k(p.per100.fat_g), fiber_g: k(p.per100.fiber_g), sugar_g: k(p.per100.sugar_g), sodium_mg: Math.round(p.per100.sodium_mg * f) };
         try {
@@ -1346,7 +1372,7 @@ a { color: var(--brand-2); }
           openReview(await api(`meals/${m.id}`));
         } catch (e) { toast(e.message); }
       };
-    } catch (e) { $('bcResult').innerHTML = `<div class="empty small">${esc(e.message)}<br>جرّب التصوير أو الكتابة بدلاً من ذلك.</div>`; }
+    } catch (e) { $('bcResult').innerHTML = L`<div class="empty small">${esc(e.message)}<br>جرّب التصوير أو الكتابة بدلاً من ذلك.</div>`; }
   }
 
   // favourites
@@ -1354,13 +1380,13 @@ a { color: var(--brand-2); }
     $('favList').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     try {
       const list = await api('meals/favorites');
-      $('favList').innerHTML = list.length ? list.map((f, i) => `<div class="fav"><div class="t"><b>${esc(f.name_ar || f.name)}</b><span class="small muted">${f.restaurant ? esc(f.restaurant) + ' · ' : ''}<span class="num">${fmt(f.calories)}</span> سعرة · <span class="num">${fmt(f.protein_g)}</span> غ بروتين · ${f.timesLogged}×</span></div>
+      $('favList').innerHTML = list.length ? list.map((f, i) => L`<div class="fav"><div class="t"><b>${esc(nameOf(f))}</b><span class="small muted">${f.restaurant ? esc(f.restaurant) + ' · ' : ''}<span class="num">${fmt(f.calories)}</span> سعرة · <span class="num">${fmt(f.protein_g)}</span> غ بروتين · ${f.timesLogged}×</span></div>
         <select data-p="${i}" aria-label="الكمية"><option value="0.5">½</option><option value="1" selected>1</option><option value="1.5">1½</option><option value="2">2</option></select>
-        <button class="btn" data-k="${i}">سجّل</button></div>`).join('') : '<div class="empty small">كل وجبة تؤكدها تظهر هنا لتسجيلها لاحقاً بضغطة واحدة.</div>';
+        <button class="btn" data-k="${i}">سجّل</button></div>`).join('') : T('<div class="empty small">كل وجبة تؤكدها تظهر هنا لتسجيلها لاحقاً بضغطة واحدة.</div>');
       $('favList').querySelectorAll('[data-k]').forEach((b) => (b.onclick = async () => {
         const f = list[+b.dataset.k], pf = Number($('favList').querySelector(`[data-p="${b.dataset.k}"]`).value);
         b.disabled = true;
-        try { await api('meals/favorites/log', { method: 'POST', json: { key: f.key, portionFactor: pf, eatenAt: new Date().toISOString() } }); toast(`أُضيفت: ${f.name_ar || f.name} ✓`); show('today'); }
+        try { await api('meals/favorites/log', { method: 'POST', json: { key: f.key, portionFactor: pf, eatenAt: new Date().toISOString() } }); toast(L`أُضيفت: ${nameOf(f)} ✓`); show('today'); }
         catch (e) { toast(e.message); b.disabled = false; }
       }));
     } catch (e) { $('favList').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
@@ -1373,7 +1399,7 @@ a { color: var(--brand-2); }
   for (const id of ['file', 'fileLib']) $(id).onchange = async (e) => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     try { photo = await resize(f); $('preview').src = URL.createObjectURL(photo); $('preview').classList.remove('hidden'); $('drop').classList.add('hidden'); $('analyzeBtn').disabled = false; }
-    catch { toast('تعذّر قراءة الصورة'); }
+    catch { toast(T('تعذّر قراءة الصورة')); }
   };
   async function resize(file, max = 1568) {
     const bmp = await createImageBitmap(file).catch(() => null);
@@ -1399,19 +1425,19 @@ a { color: var(--brand-2); }
   }
 
   // ---------------- review ----------------
-  const NUM_FIELDS = [['calories', 'السعرات'], ['protein_g', 'بروتين (غ)'], ['carbs_g', 'كربوهيدرات (غ)'], ['fat_g', 'دهون (غ)'], ['fiber_g', 'ألياف (غ)'], ['sugar_g', 'سكر (غ)'], ['sodium_mg', 'صوديوم (ملغ)'], ['grams', 'الوزن (غ)']];
+  const NUM_FIELDS = [['calories', T('السعرات')], ['protein_g', T('بروتين (غ)')], ['carbs_g', T('كربوهيدرات (غ)')], ['fat_g', T('دهون (غ)')], ['fiber_g', T('ألياف (غ)')], ['sugar_g', T('سكر (غ)')], ['sodium_mg', T('صوديوم (ملغ)')], ['grams', T('الوزن (غ)')]];
   async function openReview(meal) {
     current = meal; const f = meal.final;
     items = f.items.map((i) => ({ ...i }));
-    $('rName').value = f.meal_name_ar || f.meal_name; $('rRest').value = f.restaurant || '';
+    $('rName').value = nameOf(f, 'meal_name'); $('rRest').value = f.restaurant || '';
     const [cls, lbl] = BADGE[f.source] || ['est', f.source];
-    $('rBadge').className = `pill ${cls}`; $('rBadge').textContent = `${lbl} · ثقة ${fmt(f.confidence * 100)}%`;
+    $('rBadge').className = `pill ${cls}`; $('rBadge').textContent = L`${lbl} · ثقة ${fmt(f.confidence * 100)}%`;
     $('rServing').textContent = f.serving_description || '';
     $('rPortion').value = 1; $('rPortionLbl').textContent = '100%';
     list($('rAssume'), $('rAssumeCard'), f.assumptions.map(esc));
     list($('rWarn'), $('rWarnCard'), f.warnings.map((w) => esc(w.replace(/^\[check\]\s*/, ''))));
     list($('rSrc'), $('rSrcCard'), f.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`));
-    $('rConfirm').textContent = meal.status === 'confirmed' ? 'حفظ التعديلات' : 'تأكيد وإضافة لليوم';
+    $('rConfirm').textContent = meal.status === 'confirmed' ? T('حفظ التعديلات') : T('تأكيد وإضافة لليوم');
     renderScore(meal);
     if (!planCache) { try { planCache = await api('plan'); } catch {} }
     renderItems(); show('review');
@@ -1422,23 +1448,23 @@ a { color: var(--brand-2); }
     if (!sc) return;
     $('rScore').className = `big num g-${sc.grade}`;
     $('rScore').innerHTML = `${sc.score}<small>/10</small>`;
-    $('rScoreLbl').textContent = sc.label_ar;
-    $('rReasons').innerHTML = sc.reasons.map((r) => `<span class="chip ${r.good ? 'good' : 'bad'}">${esc(r.text_ar)}</span>`).join('');
+    $('rScoreLbl').textContent = tx(sc, 'label');
+    $('rReasons').innerHTML = sc.reasons.map((r) => `<span class="chip ${r.good ? 'good' : 'bad'}">${esc(tx(r, 'text'))}</span>`).join('');
     $('rNote').textContent = f.coach_note_ar || '';
     const sw = f.swaps || [];
-    $('rSwaps').innerHTML = sw.length ? `<h3 style="margin:14px 0 0">بدائل أذكى</h3>` + sw.map((x) => {
+    $('rSwaps').innerHTML = sw.length ? L`<h3 style="margin:14px 0 0">بدائل أذكى</h3>` + sw.map((x) => {
       const dk = Math.round(x.delta_kcal), dp = Math.round(x.delta_protein_g);
       const good = planGoal === 'gain' ? dk > 0 : dk <= 0;
       return `<div class="swap"><div class="arrow"><span class="from">${esc(x.instead_of_ar)}</span><svg width="16" height="16"><use href="#i-chev-l"/></svg><span>${esc(x.choose_ar)}</span></div>
-        <div class="chips">${dk ? `<span class="chip ${good ? 'good' : 'bad'}"><span dir="ltr">${dk > 0 ? '+' : '−'}${fmt(Math.abs(dk))}</span> سعرة</span>` : ''}${dp ? `<span class="chip ${dp > 0 ? 'good' : 'bad'}"><span dir="ltr">${dp > 0 ? '+' : '−'}${fmt(Math.abs(dp))}</span> غ بروتين</span>` : ''}</div>
+        <div class="chips">${dk ? L`<span class="chip ${good ? 'good' : 'bad'}"><span dir="ltr">${dk > 0 ? '+' : '−'}${fmt(Math.abs(dk))}</span> سعرة</span>` : ''}${dp ? L`<span class="chip ${dp > 0 ? 'good' : 'bad'}"><span dir="ltr">${dp > 0 ? '+' : '−'}${fmt(Math.abs(dp))}</span> غ بروتين</span>` : ''}</div>
         ${x.why_ar ? `<div class="small muted" style="margin-top:6px">${esc(x.why_ar)}</div>` : ''}</div>`;
     }).join('') : '';
   }
   function list(ul, card, arr) { ul.innerHTML = arr.map((x) => `<li>${x}</li>`).join(''); card.classList.toggle('hidden', !arr.length); }
   function renderItems() {
-    $('rItems').innerHTML = items.map((it, idx) => `
-      <details class="item"><summary><span><b>${esc(it.name_ar || it.name)}</b><br><span class="small muted">${fmt1(it.quantity)} ${esc(it.unit)}${it.grams ? ` · ${fmt(it.grams)} غ` : ''}</span></span><b class="num">${fmt(it.calories)}</b></summary>
-        <label>الاسم</label><input data-i="${idx}" data-k="name_ar" value="${esc(it.name_ar)}">
+    $('rItems').innerHTML = items.map((it, idx) => L`
+      <details class="item"><summary><span><b>${esc(nameOf(it))}</b><br><span class="small muted">${fmt1(it.quantity)} ${esc(it.unit)}${it.grams ? L` · ${fmt(it.grams)} غ` : ''}</span></span><b class="num">${fmt(it.calories)}</b></summary>
+        <label>الاسم</label><input data-i="${idx}" data-k="${LANG === 'en' ? 'name' : 'name_ar'}" value="${esc(nameOf(it))}">
         <div class="fields">
           <div><label>الكمية</label><input data-i="${idx}" data-k="quantity" type="number" inputmode="decimal" step="0.25" value="${it.quantity}"></div>
           <div><label>الوحدة</label><input data-i="${idx}" data-k="unit" value="${esc(it.unit)}"></div>
@@ -1448,7 +1474,7 @@ a { color: var(--brand-2); }
       </details>`).join('');
     $('rItems').querySelectorAll('input').forEach((inp) => (inp.oninput = () => {
       const it = items[+inp.dataset.i], k = inp.dataset.k;
-      it[k] = ['name_ar', 'unit'].includes(k) ? inp.value : inp.value === '' ? (k === 'grams' ? null : 0) : Number(inp.value);
+      it[k] = ['name', 'name_ar', 'unit'].includes(k) ? inp.value : inp.value === '' ? (k === 'grams' ? null : 0) : Number(inp.value);
       updateTotals();
     }));
     $('rItems').querySelectorAll('[data-del]').forEach((b) => (b.onclick = () => { items.splice(+b.dataset.del, 1); renderItems(); }));
@@ -1458,35 +1484,38 @@ a { color: var(--brand-2); }
     const p = Number($('rPortion').value);
     const t = items.reduce((a, i) => { for (const k of ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g']) a[k] += (Number(i[k]) || 0) * p; return a; }, { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 });
     $('rTotal').textContent = fmt(t.calories);
-    $('rShare').textContent = planCache ? `${fmt((t.calories / planCache.targetKcal) * 100)}% من هدف اليوم` : '';
+    $('rShare').textContent = planCache ? L`${fmt((t.calories / planCache.targetKcal) * 100)}% من هدف اليوم` : '';
     $('rMacros').innerHTML = macroRows(t, planCache ? { protein_g: planCache.proteinG, carbs_g: planCache.carbsG, fat_g: planCache.fatG, fiber_g: planCache.fiberG } : null);
   }
   $('rPortion').oninput = () => { $('rPortionLbl').textContent = `${fmt(Number($('rPortion').value) * 100)}%`; updateTotals(); };
-  $('rAdd').onclick = () => { items.push({ name: 'Item', name_ar: 'صنف', quantity: 1, unit: 'حصة', grams: null, calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0, sodium_mg: 0 }); renderItems(); const d = $('rItems').lastElementChild; if (d) d.open = true; };
+  $('rAdd').onclick = () => { items.push({ name: 'Item', name_ar: T('صنف'), quantity: 1, unit: T('حصة'), grams: null, calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0, sodium_mg: 0 }); renderItems(); const d = $('rItems').lastElementChild; if (d) d.open = true; };
   $('rBack').onclick = () => show('today');
   $('rConfirm').onclick = async () => {
-    if (!items.length) return toast('أضيفي صنفاً واحداً على الأقل');
+    if (!items.length) return toast(T('أضيفي صنفاً واحداً على الأقل'));
     $('rConfirm').disabled = true;
     try {
       const f = current.final, p = Number($('rPortion').value);
-      const patch = { items: items.map((i) => ({ ...i, name: i.name || i.name_ar })), meal_name_ar: $('rName').value.trim() || f.meal_name_ar, restaurant: $('rRest').value.trim() || null, ...(p !== 1 ? { portionFactor: p } : {}) };
-      if (!f.meal_name) patch.meal_name = patch.meal_name_ar;
+      const patch = { items: items.map((i) => ({ ...i, name: i.name || i.name_ar })), [LANG === 'en' ? 'meal_name' : 'meal_name_ar']: $('rName').value.trim() || nameOf(f, 'meal_name'), restaurant: $('rRest').value.trim() || null, ...(p !== 1 ? { portionFactor: p } : {}) };
+      if (!f.meal_name && !patch.meal_name) patch.meal_name = patch.meal_name_ar;
+      if (!f.meal_name_ar && !patch.meal_name_ar) patch.meal_name_ar = patch.meal_name;
       await api(`meals/${current.id}`, { method: 'PATCH', json: patch });
       if (current.status !== 'confirmed') await api(`meals/${current.id}/confirm`, { method: 'POST' });
-      toast('تمت الإضافة ✓'); show('today');
+      toast(T('تمت الإضافة ✓')); show('today');
     } catch (e) { toast(e.message); }
     finally { $('rConfirm').disabled = false; }
   };
   let delArmed = 0;
   $('rDelete').onclick = async () => {
-    if (Date.now() - delArmed > 3000) { delArmed = Date.now(); return toast('اضغطي "حذف" مرة أخرى للتأكيد'); }
-    try { await api(`meals/${current.id}`, { method: 'DELETE' }); toast('تم الحذف'); show('today'); } catch (e) { toast(e.message); }
+    if (Date.now() - delArmed > 3000) { delArmed = Date.now(); return toast(T('اضغطي "حذف" مرة أخرى للتأكيد')); }
+    try { await api(`meals/${current.id}`, { method: 'DELETE' }); toast(T('تم الحذف')); show('today'); } catch (e) { toast(e.message); }
   };
 
   // ---------------- boot ----------------
   async function boot() {
     if (!signedIn()) return show('setup');
     const prof = await api('profile');
+    // keep the AI / notification language in step with the UI
+    if (prof.language !== LANG) api('profile', { method: 'PUT', json: { language: LANG } }).catch(() => {});
     if (!prof.onboarded) return startOnboarding(prof);
     show('today');
   }
@@ -1499,7 +1528,7 @@ a { color: var(--brand-2); }
     const ok = location.hash.includes('status=connected');
     history.replaceState(null, '', location.pathname);
     if (ok) { ls.set('ns_whoop', '1'); ls.del('ns_whoop_sync'); }
-    setTimeout(() => toast(ok ? 'تم ربط WHOOP ✓' : 'لم يكتمل ربط WHOOP', 3000), 300);
+    setTimeout(() => toast(ok ? T('تم ربط WHOOP ✓') : T('لم يكتمل ربط WHOOP'), 3000), 300);
   }
   boot().catch((e) => toast(e.message));
 })();

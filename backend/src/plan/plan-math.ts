@@ -71,7 +71,7 @@ export interface Plan {
   targetBmi: number | null;
   etaDate: string | null;
   weeksToGoal: number | null;
-  notices: { level: 'info' | 'warn' | 'stop'; code: string; text_ar: string }[];
+  notices: { level: 'info' | 'warn' | 'stop'; code: string; text_ar: string; text_en: string }[];
 }
 
 const r = (n: number, step = 1) => Math.round(n / step) * step;
@@ -96,33 +96,33 @@ export function computePlan(i: PlanInput): Plan {
   // ---- safety rules: when any applies we do not prescribe a deficit or surplus ----
   const s = i.screening ?? {};
   if (i.age != null && i.age < 18) {
-    notices.push({ level: 'stop', code: 'under18', text_ar: 'لمن هم دون 18 سنة نعرض أرقاماً للمتابعة فقط بدون هدف إنقاص أو زيادة. استشر طبيب الأطفال أو أخصائي تغذية.' });
+    notices.push({ level: 'stop', code: 'under18', text_ar: 'لمن هم دون 18 سنة نعرض أرقاماً للمتابعة فقط بدون هدف إنقاص أو زيادة. استشر طبيب الأطفال أو أخصائي تغذية.', text_en: 'Under 18 we only show numbers for tracking, with no loss or gain target. Please talk to a paediatrician or dietitian.' });
     goal = 'maintain';
   }
   if (s.pregnant || s.breastfeeding) {
-    notices.push({ level: 'stop', code: 'pregnancy', text_ar: 'أثناء الحمل أو الرضاعة لا يضع التطبيق عجزاً في السعرات. احتياجك يحدده طبيبك.' });
+    notices.push({ level: 'stop', code: 'pregnancy', text_ar: 'أثناء الحمل أو الرضاعة لا يضع التطبيق عجزاً في السعرات. احتياجك يحدده طبيبك.', text_en: 'During pregnancy or breastfeeding the app never sets a calorie deficit. Your doctor decides what you need.' });
     goal = 'maintain';
   }
   if (s.edHistory) {
-    notices.push({ level: 'stop', code: 'ed', text_ar: 'لسلامتك لن نضع هدفاً لإنقاص الوزن. يمكنك استخدام التطبيق للمتابعة، ونشجعك على العمل مع مختص.' });
+    notices.push({ level: 'stop', code: 'ed', text_ar: 'لسلامتك لن نضع هدفاً لإنقاص الوزن. يمكنك استخدام التطبيق للمتابعة، ونشجعك على العمل مع مختص.', text_en: "For your safety we won't set a weight-loss target. You can still use the app for tracking, and we encourage working with a specialist." });
     if (goal === 'lose') goal = 'maintain';
   }
   if (s.medicalSupervision) {
-    notices.push({ level: 'warn', code: 'medical', text_ar: 'لديك حالة صحية تحتاج إشرافاً: راجع طبيبك قبل تغيير نظامك الغذائي، والأرقام هنا إرشادية.' });
+    notices.push({ level: 'warn', code: 'medical', text_ar: 'لديك حالة صحية تحتاج إشرافاً: راجع طبيبك قبل تغيير نظامك الغذائي، والأرقام هنا إرشادية.', text_en: 'You have a condition that needs supervision: check with your doctor before changing your diet. These numbers are a guide only.' });
   }
   if (goal === 'lose' && bmi != null && bmi < 18.5) {
-    notices.push({ level: 'stop', code: 'underweight', text_ar: 'مؤشر كتلة جسمك أقل من 18.5، لذلك لا ننصح بإنقاص الوزن. حوّلنا هدفك إلى المحافظة.' });
+    notices.push({ level: 'stop', code: 'underweight', text_ar: 'مؤشر كتلة جسمك أقل من 18.5، لذلك لا ننصح بإنقاص الوزن. حوّلنا هدفك إلى المحافظة.', text_en: "Your BMI is below 18.5, so we don't recommend losing weight. We've switched your goal to maintain." });
     goal = 'maintain';
   }
   if (goal === 'lose' && targetBmi != null && targetBmi < 18.5) {
-    notices.push({ level: 'warn', code: 'target_low', text_ar: 'الوزن المستهدف يجعل مؤشر كتلة الجسم أقل من 18.5. ننصح بهدف أعلى.' });
+    notices.push({ level: 'warn', code: 'target_low', text_ar: 'الوزن المستهدف يجعل مؤشر كتلة الجسم أقل من 18.5. ننصح بهدف أعلى.', text_en: 'That target weight puts your BMI below 18.5. We recommend a higher target.' });
   }
   if (goal === 'lose' && i.targetWeightKg && i.weightKg && i.targetWeightKg >= i.weightKg) {
-    notices.push({ level: 'info', code: 'target_reached', text_ar: 'وصلت إلى وزنك المستهدف 🎉 — حان وقت المحافظة.' });
+    notices.push({ level: 'info', code: 'target_reached', text_ar: 'وصلت إلى وزنك المستهدف 🎉 — حان وقت المحافظة.', text_en: "You've reached your target weight 🎉 — time to maintain." });
     goal = 'maintain';
   }
   if (goal === 'gain' && i.targetWeightKg && i.weightKg && i.targetWeightKg <= i.weightKg) {
-    notices.push({ level: 'info', code: 'target_reached', text_ar: 'وصلت إلى وزنك المستهدف 🎉 — حان وقت المحافظة.' });
+    notices.push({ level: 'info', code: 'target_reached', text_ar: 'وصلت إلى وزنك المستهدف 🎉 — حان وقت المحافظة.', text_en: "You've reached your target weight 🎉 — time to maintain." });
     goal = 'maintain';
   }
 
@@ -144,7 +144,7 @@ export function computePlan(i: PlanInput): Plan {
     target = floor;
     limitedByFloor = goal === 'lose';
     if (limitedByFloor) {
-      notices.push({ level: 'info', code: 'floor', text_ar: `هدفك محدود بحد أدنى آمن (${floor} سعرة)، لذلك سيكون التقدم أبطأ قليلاً.` });
+      notices.push({ level: 'info', code: 'floor', text_ar: `هدفك محدود بحد أدنى آمن (${floor} سعرة)، لذلك سيكون التقدم أبطأ قليلاً.`, text_en: `Your target is held at a safe minimum (${floor} kcal), so progress will be a little slower.` });
     }
   }
   target = r(target, 10);

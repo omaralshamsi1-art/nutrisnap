@@ -4,13 +4,15 @@ import SwiftUI
 struct NutriSnapApp: App {
     @State private var store = AppStore()
     @Environment(\.scenePhase) private var phase
+    @AppStorage(appLanguageKey) private var lang = "en"
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(store)
-                .environment(\.layoutDirection, .rightToLeft)
-                .environment(\.locale, Locale(identifier: "ar"))
+                .environment(\.layoutDirection, lang == "ar" ? .rightToLeft : .leftToRight)
+                .environment(\.locale, appLocale)
+                .id(lang) // rebuild every screen when the language changes
                 .tint(Theme.brand2)
                 .onChange(of: phase) { _, p in
                     if p == .active, store.signedIn { Task { await store.refresh() } }
@@ -34,13 +36,13 @@ struct RootView: View {
             } else {
                 TabView(selection: $tab) {
                     TodayView(onLog: { tab = 2 })
-                        .tag(0).tabItem { Label("اليوم", systemImage: "sun.max.fill") }
+                        .tag(0).tabItem { Label(t("Today", "اليوم"), systemImage: "sun.max.fill") }
                     ProgressTab()
-                        .tag(1).tabItem { Label("التقدم", systemImage: "chart.line.uptrend.xyaxis") }
+                        .tag(1).tabItem { Label(t("Progress", "التقدم"), systemImage: "chart.line.uptrend.xyaxis") }
                     LogView(onLogged: { tab = 0 })
-                        .tag(2).tabItem { Label("سجّل وجبة", systemImage: "plus.circle.fill") }
+                        .tag(2).tabItem { Label(t("Log meal", "سجّل وجبة"), systemImage: "plus.circle.fill") }
                     PlanTab()
-                        .tag(3).tabItem { Label("الخطة", systemImage: "target") }
+                        .tag(3).tabItem { Label(t("Plan", "الخطة"), systemImage: "target") }
                 }
                 .task {
                     if !UserDefaults.standard.bool(forKey: "screenshotMode") {
@@ -50,7 +52,7 @@ struct RootView: View {
                     await store.refresh()
                 }
                 .fullScreenCover(isPresented: $store.needsOnboarding) {
-                    OnboardingView().environment(store).environment(\.layoutDirection, .rightToLeft)
+                    OnboardingView().environment(store).environment(\.layoutDirection, appLayoutDirection)
                 }
             }
         }
@@ -69,6 +71,7 @@ final class AppStore {
     var day = Date()
     var whoopConnected = UserDefaults.standard.bool(forKey: "whoopConnected")
     var signedIn: Bool = AppStore.hasCredentials()
+    private var languageSynced = false
 
     var isOwner: Bool { me?.role == "owner" }
     var isToday: Bool { Calendar.current.isDateInToday(day) }
@@ -99,6 +102,10 @@ final class AppStore {
             if b.onboarded == false && isToday { needsOnboarding = true }
         } catch {
             self.error = error.localizedDescription
+        }
+        if !languageSynced { // AI texts and notifications follow the app language
+            languageSynced = true
+            _ = try? await APIClient.shared.updateProfile(["language": appLang.rawValue])
         }
         if me == nil { me = try? await APIClient.shared.me() }
         if isToday { motivation = try? await APIClient.shared.motivation() }
@@ -143,7 +150,7 @@ final class AppStore {
         if !(UserDefaults.standard.string(forKey: "accessToken") ?? "").isEmpty,
            (UserDefaults.standard.string(forKey: "apiKey") ?? "").isEmpty {
             signOut()
-            error = "انتهت الجلسة — سجّل الدخول مرة أخرى"
+            error = t("Session expired — please sign in again", "انتهت الجلسة — سجّل الدخول مرة أخرى")
         }
     }
 }

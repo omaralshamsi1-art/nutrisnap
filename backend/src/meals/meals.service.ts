@@ -60,6 +60,7 @@ export class MealsService {
       remainingKcal: plan.targetKcal - eaten.calories,
       proteinLeftG: Math.max(0, plan.proteinG - eaten.protein_g),
       avoidRestriction: !!profile.screening?.edHistory,
+      language: profile.language ?? 'en',
     };
   }
 

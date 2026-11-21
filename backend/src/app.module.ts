@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { LocalizedErrorFilter } from './common/i18n-errors';
 import { ANTHROPIC_CLIENT, anthropicFactory, NutritionAgentService } from './agent/nutrition-agent.service';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthService, UsageService } from './auth/auth.service';
@@ -37,6 +38,7 @@ import { REPOSITORY } from './storage/repository';
   controllers: [HealthController, AuthController, FoodsController, MotivationController, PushController, MealsController, PlanController, WorkoutsController, CoachController, EnergyController, ProfileController, WhoopController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_FILTER, useClass: LocalizedErrorFilter },
     { provide: ANTHROPIC_CLIENT, useFactory: anthropicFactory, inject: [ConfigService] },
     {
       provide: REPOSITORY,

@@ -23,6 +23,7 @@ export const DEFAULT_PROFILE = (userId: string): Profile => ({
   onboarded: false,
   ramadan: { enabled: null, suhoorTime: '04:45', iftarTime: '18:00' },
   reminders: { meals: true, weight: true },
+  language: 'en',
   activityCalibration: null,
 });
 
@@ -126,6 +127,9 @@ export function validateProfilePatch(patch: Partial<Profile>): Partial<Profile> 
     } else if (k === 'reminders') {
       const r = (v ?? {}) as Record<string, unknown>;
       out.reminders = { meals: r.meals !== false, weight: r.weight !== false };
+    } else if (k === 'language') {
+      if (v !== 'en' && v !== 'ar') throw new BadRequestException('language must be en or ar');
+      out.language = v;
     } else if (k === 'onboarded') {
       out.onboarded = !!v;
     } else if (['timezone', 'city', 'country', 'startDate'].includes(k)) {

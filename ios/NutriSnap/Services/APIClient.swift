@@ -4,7 +4,7 @@ import UIKit
 enum APIError: LocalizedError {
     case http(Int, String)
     var errorDescription: String? {
-        switch self { case let .http(code, msg): return "خطأ من الخادم (\(code)): \(msg)" }
+        switch self { case let .http(code, msg): return t("Server error (\(code)): \(msg)", "خطأ من الخادم (\(code)): \(msg)") }
     }
 }
 
@@ -196,6 +196,7 @@ final class APIClient {
         var req = URLRequest(url: URL(string: path, relativeTo: baseURL.appendingPathComponent("/"))!)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(appLang.rawValue, forHTTPHeaderField: "Accept-Language")
         // Owner: server key + user id. Invited users: account token from /auth/login.
         if let apiKey {
             req.setValue(apiKey, forHTTPHeaderField: "X-API-Key")

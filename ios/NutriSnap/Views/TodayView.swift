@@ -12,12 +12,12 @@ struct TodayView: View {
                     if let b = store.balance {
                         EnergyCard(balance: b)
                         if b.pendingDrafts.calories > 0 {
-                            Notice(text: "لديك وجبات مسودة (\(fmt(b.pendingDrafts.calories)) سعرة) لم تُحسب بعد — افتحها وأكّدها.", level: "warn")
+                            Notice(text: t("You have draft meals (\(fmt(b.pendingDrafts.calories)) kcal) not counted yet — open and confirm them.", "لديك وجبات مسودة (\(fmt(b.pendingDrafts.calories)) سعرة) لم تُحسب بعد — افتحها وأكّدها."), level: "warn")
                         }
                         MacrosCard(balance: b)
                         if let r = b.ramadan, r.active || r.needsChoice { RamadanCard(view: r) }
                         if let tips = b.tips, !tips.isEmpty, store.isToday {
-                            VStack(spacing: 8) { ForEach(tips, id: \.self) { Notice(text: $0.textAr, level: $0.kind == "over" ? "warn" : "info") } }
+                            VStack(spacing: 8) { ForEach(tips, id: \.self) { Notice(text: $0.text, level: $0.kind == "over" ? "warn" : "info") } }
                         }
                         if store.isToday, let c = store.motivation?.challenge { ChallengeCard(challenge: c) }
                         if store.isToday { SuggestCard() }
@@ -26,9 +26,9 @@ struct TodayView: View {
                     } else if let e = store.error {
                         Card { VStack(spacing: 10) {
                             Image(systemName: "wifi.exclamationmark").font(.largeTitle).foregroundStyle(Theme.muted)
-                            Text("تعذّر الاتصال").font(.headline)
+                            Text(t("Couldn't connect", "تعذّر الاتصال")).font(.headline)
                             Text(e).font(.footnote).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
-                            Button("إعادة المحاولة") { Task { await store.refresh() } }.buttonStyle(SoftButtonStyle())
+                            Button(t("Try again", "إعادة المحاولة")) { Task { await store.refresh() } }.buttonStyle(SoftButtonStyle())
                         }.frame(maxWidth: .infinity) }
                     } else {
                         ProgressView().padding(60)
@@ -46,18 +46,18 @@ struct TodayView: View {
     private var header: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(store.isToday ? "اليوم" : store.day.arWeekday)
+                Text(store.isToday ? t("Today", "اليوم") : store.day.arWeekday)
                     .font(.title.bold()).foregroundStyle(Theme.ink)
                 Text(store.day.arDayMonth)
                     .font(.subheadline).foregroundStyle(Theme.muted)
             }
             Spacer()
             if let s = store.motivation?.streak, s.current > 0 {
-                Chip(text: "\(s.current) \(s.current == 1 ? "يوم" : "أيام")", icon: "flame.fill", fg: Theme.warn, bg: Theme.accentSoft)
+                Chip(text: "\(s.current) \(s.current == 1 ? t("day", "يوم") : t("days", "أيام"))", icon: "flame.fill", fg: Theme.warn, bg: Theme.accentSoft)
             }
             HStack(spacing: 0) {
-                Button { store.shiftDay(-1) } label: { Image(systemName: "chevron.right").frame(width: 36, height: 36) }
-                Button { store.shiftDay(1) } label: { Image(systemName: "chevron.left").frame(width: 36, height: 36) }
+                Button { store.shiftDay(-1) } label: { Image(systemName: "chevron.backward").frame(width: 36, height: 36) }
+                Button { store.shiftDay(1) } label: { Image(systemName: "chevron.forward").frame(width: 36, height: 36) }
                     .disabled(store.isToday)
             }
             .font(.headline)
@@ -81,7 +81,7 @@ struct EnergyCard: View {
         Card {
             VStack(spacing: 16) {
                 HStack {
-                    Chip(text: within ? "ضمن الهدف" : "فوق الهدف",
+                    Chip(text: within ? t("On target", "ضمن الهدف") : t("Over target", "فوق الهدف"),
                          icon: within ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
                          fg: Theme.status(within), bg: Theme.statusSoft(within))
                     Spacer()
@@ -98,29 +98,29 @@ struct EnergyCard: View {
                         Text(fmt(abs(remaining)))
                             .font(.system(size: 44, weight: .bold, design: .rounded)).monospacedDigit()
                             .foregroundStyle(Theme.status(within))
-                        Text(within ? "سعرة متبقية" : "سعرة فوق الهدف").font(.subheadline).foregroundStyle(Theme.muted)
+                        Text(within ? t("kcal left", "سعرة متبقية") : t("kcal over target", "سعرة فوق الهدف")).font(.subheadline).foregroundStyle(Theme.muted)
                     }
                 }
                 .frame(width: 190, height: 190)
 
                 HStack(spacing: 0) {
-                    stat("أكلت", eaten, "fork.knife", Theme.ink)
+                    stat(t("Eaten", "أكلت"), eaten, "fork.knife", Theme.ink)
                     Divider().frame(height: 34)
-                    stat(balance.burnIsPartialDay ? "حرقت حتى الآن" : "حرقت", balance.burn?.totalKcal ?? balance.estimatedTdee, "flame.fill", Theme.accent)
+                    stat(balance.burnIsPartialDay ? t("Burned so far", "حرقت حتى الآن") : t("Burned", "حرقت"), balance.burn?.totalKcal ?? balance.estimatedTdee, "flame.fill", Theme.accent)
                     Divider().frame(height: 34)
-                    stat("هدفك", target, "target", Theme.brand2)
+                    stat(t("Target", "هدفك"), target, "target", Theme.brand2)
                 }
                 if let burn = balance.burn {
                     let net = burn.totalKcal - eaten
                     HStack(spacing: 6) {
-                        Text("الفرق (الحرق − الأكل):").foregroundStyle(Theme.muted)
+                        Text(t("Difference (burn − food):", "الفرق (الحرق − الأكل):")).foregroundStyle(Theme.muted)
                         Text(signed(net)).bold().foregroundStyle(Theme.status(net >= 0))
                             .environment(\.layoutDirection, .leftToRight)
                         Text("• \(sourceName(burn.source))").foregroundStyle(Theme.muted)
                     }
                     .font(.footnote)
                 } else {
-                    Text("الحرق تقديري — اربط Apple Health أو WHOOP من صفحة الخطة").font(.caption).foregroundStyle(Theme.muted)
+                    Text(t("Burn is estimated — connect Apple Health or WHOOP from the Plan tab", "الحرق تقديري — اربط Apple Health أو WHOOP من صفحة الخطة")).font(.caption).foregroundStyle(Theme.muted)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -137,18 +137,18 @@ struct EnergyCard: View {
     }
 }
 
-func goalName(_ g: String) -> String { ["lose": "إنقاص الوزن", "maintain": "المحافظة على الوزن", "gain": "زيادة الوزن"][g] ?? g }
+func goalName(_ g: String) -> String { ["lose": t("Lose weight", "إنقاص الوزن"), "maintain": t("Maintain weight", "المحافظة على الوزن"), "gain": t("Gain weight", "زيادة الوزن")][g] ?? g }
 
 struct MacrosCard: View {
     let balance: Balance
     var body: some View {
         let n = balance.intake, t = balance.macroTargets
-        Card(title: "العناصر الغذائية", icon: "chart.bar.fill") {
+        Card(title: t("Nutrients", "العناصر الغذائية"), icon: "chart.bar.fill") {
             VStack(spacing: 12) {
-                MacroProgress(title: "بروتين", value: n.proteinG, target: t?.proteinG, color: Theme.protein)
-                MacroProgress(title: "كربوهيدرات", value: n.carbsG, target: t?.carbsG, color: Theme.carbs)
-                MacroProgress(title: "دهون", value: n.fatG, target: t?.fatG, color: Theme.fat)
-                MacroProgress(title: "ألياف", value: n.fiberG, target: t?.fiberG, color: Theme.fiber)
+                MacroProgress(title: t("Protein", "بروتين"), value: n.proteinG, target: t?.proteinG, color: Theme.protein)
+                MacroProgress(title: t("Carbs", "كربوهيدرات"), value: n.carbsG, target: t?.carbsG, color: Theme.carbs)
+                MacroProgress(title: t("Fat", "دهون"), value: n.fatG, target: t?.fatG, color: Theme.fat)
+                MacroProgress(title: t("Fibre", "ألياف"), value: n.fiberG, target: t?.fiberG, color: Theme.fiber)
             }
         }
     }
@@ -160,30 +160,30 @@ struct RamadanCard: View {
     @Environment(AppStore.self) private var store
     let view: RamadanView
     var body: some View {
-        Card(title: "وضع رمضان", icon: "moon.stars.fill") {
+        Card(title: t("Ramadan mode", "وضع رمضان"), icon: "moon.stars.fill") {
             if view.needsChoice && !view.active {
-                Text("رمضان مبارك! هل تريد تفعيل وضع رمضان؟ نقسّم سعراتك بين السحور والإفطار.").font(.subheadline)
+                Text(t("Ramadan Mubarak! Turn on Ramadan mode? We'll split your calories between suhoor and iftar.", "رمضان مبارك! هل تريد تفعيل وضع رمضان؟ نقسّم سعراتك بين السحور والإفطار.")).font(.subheadline)
                 HStack {
-                    Button("تفعيل") { Task { await set(true) } }.buttonStyle(PrimaryButtonStyle())
-                    Button("ليس الآن") { Task { await set(false) } }.buttonStyle(SoftButtonStyle())
+                    Button(t("Turn on", "تفعيل")) { Task { await set(true) } }.buttonStyle(PrimaryButtonStyle())
+                    Button(t("Not now", "ليس الآن")) { Task { await set(false) } }.buttonStyle(SoftButtonStyle())
                 }
             } else {
                 if view.fasting, let m = view.minutesToIftar {
-                    Chip(text: "باقي على الإفطار \(m / 60) س \(m % 60) د", icon: "clock", fg: Theme.warn, bg: Theme.accentSoft)
+                    Chip(text: t("\(m / 60) h \(m % 60) min to iftar", "باقي على الإفطار \(m / 60) س \(m % 60) د"), icon: "clock", fg: Theme.warn, bg: Theme.accentSoft)
                 }
                 if let s = view.split {
                     HStack {
-                        part("السحور", s.suhoor, view.suhoorTime)
-                        part("الإفطار", s.iftar, view.iftarTime)
-                        part("المساء", s.evening, nil)
+                        part(t("Suhoor", "السحور"), s.suhoor, view.suhoorTime)
+                        part(t("Iftar", "الإفطار"), s.iftar, view.iftarTime)
+                        part(t("Evening", "المساء"), s.evening, nil)
                     }
                 }
             }
         }
     }
-    private func part(_ t: String, _ kcal: Double, _ time: String?) -> some View {
+    private func part(_ label: String, _ kcal: Double, _ time: String?) -> some View {
         VStack(spacing: 3) {
-            Text(t).font(.caption).foregroundStyle(Theme.muted)
+            Text(label).font(.caption).foregroundStyle(Theme.muted)
             Text(fmt(kcal)).font(.headline).monospacedDigit()
             if let time { Text(time).font(.caption2).foregroundStyle(Theme.muted).environment(\.layoutDirection, .leftToRight) }
         }
@@ -205,13 +205,13 @@ struct RamadanCard: View {
 struct ChallengeCard: View {
     let challenge: Motivation.Challenge
     var body: some View {
-        Card(title: "تحدي الأسبوع", icon: "trophy.fill",
-             trailing: AnyView(Text(challenge.done ? "أُنجز ✓" : "باقي \(challenge.daysLeft) \(challenge.daysLeft == 1 ? "يوم" : "أيام")")
+        Card(title: t("Weekly challenge", "تحدي الأسبوع"), icon: "trophy.fill",
+             trailing: AnyView(Text(challenge.done ? t("Done ✓", "أُنجز ✓") : t("\(challenge.daysLeft) \(challenge.daysLeft == 1 ? t("day", "يوم") : t("days", "أيام")) left", "باقي \(challenge.daysLeft) \(challenge.daysLeft == 1 ? t("day", "يوم") : t("days", "أيام"))"))
                 .font(.caption).foregroundStyle(challenge.done ? Theme.good : Theme.muted))) {
-            Text(challenge.titleAr).font(.subheadline.weight(.semibold))
+            Text(challenge.title).font(.subheadline.weight(.semibold))
             ProgressView(value: min(challenge.progress, challenge.target), total: max(challenge.target, 1))
                 .tint(challenge.done ? Theme.good : Theme.accent)
-            Text("\(fmt(challenge.progress)) من \(fmt(challenge.target)) \(challenge.unit)").font(.caption).foregroundStyle(Theme.muted)
+            Text(t("\(fmt(challenge.progress)) of \(fmt(challenge.target)) \(challenge.unitText)", "\(fmt(challenge.progress)) من \(fmt(challenge.target)) \(challenge.unitText)")).font(.caption).foregroundStyle(Theme.muted)
         }
     }
 }
@@ -224,7 +224,7 @@ struct SuggestCard: View {
     @State private var error: String?
 
     var body: some View {
-        Card(title: "ماذا آكل الآن؟", icon: "sparkles",
+        Card(title: t("What should I eat now?", "ماذا آكل الآن؟"), icon: "sparkles",
              trailing: data == nil ? nil : AnyView(Button { Task { await load(force: true) } } label: { Image(systemName: "arrow.clockwise") })) {
             if let data {
                 if !data.introAr.isEmpty { Text(data.introAr).font(.subheadline).foregroundStyle(Theme.muted) }
@@ -233,19 +233,19 @@ struct SuggestCard: View {
                         HStack(alignment: .firstTextBaseline) {
                             Text(o.titleAr).font(.subheadline.weight(.semibold))
                             Spacer()
-                            Text("\(fmt(o.kcal)) سعرة").font(.caption.weight(.bold)).monospacedDigit()
+                            Text(t("\(fmt(o.kcal)) kcal", "\(fmt(o.kcal)) سعرة")).font(.caption.weight(.bold)).monospacedDigit()
                         }
-                        Text("\(o.whereAr) • \(fmt(o.proteinG)) غ بروتين").font(.caption).foregroundStyle(Theme.protein)
+                        Text(t("\(o.whereAr) • \(fmt(o.proteinG)) g protein", "\(o.whereAr) • \(fmt(o.proteinG)) غ بروتين")).font(.caption).foregroundStyle(Theme.protein)
                         Text(o.whyAr).font(.caption).foregroundStyle(Theme.muted)
                     }
                     .padding(12)
                     .background(Theme.card2, in: RoundedRectangle(cornerRadius: 14))
                 }
-                if data.options.isEmpty { Text("لا خيارات مناسبة الآن — جرّب لاحقاً.").font(.footnote).foregroundStyle(Theme.muted) }
+                if data.options.isEmpty { Text(t("No suitable options right now — try again later.", "لا خيارات مناسبة الآن — جرّب لاحقاً.")).font(.footnote).foregroundStyle(Theme.muted) }
             } else {
-                Text("اقتراحات تناسب ما تبقى من سعراتك وبروتينك اليوم.").font(.footnote).foregroundStyle(Theme.muted)
+                Text(t("Suggestions that fit the calories and protein you have left today.", "اقتراحات تناسب ما تبقى من سعراتك وبروتينك اليوم.")).font(.footnote).foregroundStyle(Theme.muted)
                 Button { Task { await load() } } label: {
-                    if busy { ProgressView() } else { Label("اقترح عليّ", systemImage: "wand.and.stars") }
+                    if busy { ProgressView() } else { Label(t("Suggest something", "اقترح عليّ"), systemImage: "wand.and.stars") }
                 }
                 .buttonStyle(SoftButtonStyle()).disabled(busy)
             }
@@ -265,10 +265,10 @@ struct SuggestCard: View {
 struct ActivityCard: View {
     let activity: DayActivity
     var body: some View {
-        Card(title: "النشاط", icon: "figure.run",
-             trailing: activity.workouts.isEmpty ? nil : AnyView(Text("\(fmt(activity.totalMin)) د • \(fmt(activity.totalKcal)) سعرة").font(.caption).foregroundStyle(Theme.muted))) {
+        Card(title: t("Activity", "النشاط"), icon: "figure.run",
+             trailing: activity.workouts.isEmpty ? nil : AnyView(Text(t("\(fmt(activity.totalMin)) min • \(fmt(activity.totalKcal)) kcal", "\(fmt(activity.totalMin)) د • \(fmt(activity.totalKcal)) سعرة")).font(.caption).foregroundStyle(Theme.muted))) {
             if activity.workouts.isEmpty {
-                Text("لا تمارين مسجلة لهذا اليوم.").font(.footnote).foregroundStyle(Theme.muted)
+                Text(t("No workouts recorded for this day.", "لا تمارين مسجلة لهذا اليوم.")).font(.footnote).foregroundStyle(Theme.muted)
             }
             ForEach(activity.workouts) { w in
                 HStack(spacing: 12) {
@@ -277,12 +277,12 @@ struct ActivityCard: View {
                         .frame(width: 42, height: 42)
                         .background(Theme.brandSoft, in: RoundedRectangle(cornerRadius: 12))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(w.sportAr ?? w.sport).font(.subheadline.weight(.semibold))
+                        Text(w.displayName).font(.subheadline.weight(.semibold))
                         Text(details(w)).font(.caption).foregroundStyle(Theme.muted)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(fmt(w.kcal ?? 0)) سعرة").font(.subheadline.weight(.semibold)).monospacedDigit()
+                        Text(t("\(fmt(w.kcal ?? 0)) kcal", "\(fmt(w.kcal ?? 0)) سعرة")).font(.subheadline.weight(.semibold)).monospacedDigit()
                         Text(sourceName(w.source)).font(.caption2).foregroundStyle(Theme.muted)
                     }
                 }
@@ -290,10 +290,10 @@ struct ActivityCard: View {
         }
     }
     private func details(_ w: Workout) -> String {
-        var parts = ["\(fmt(w.durationMin)) د", w.start.arTime]
-        if let s = w.strain { parts.append("إجهاد \(fmt1(s))") }
-        if let hr = w.avgHr { parts.append("نبض \(fmt(hr))") }
-        if let d = w.distanceM, d > 0 { parts.append("\(fmt1(d / 1000)) كم") }
+        var parts = [t("\(fmt(w.durationMin)) min", "\(fmt(w.durationMin)) د"), w.start.arTime]
+        if let s = w.strain { parts.append(t("Strain \(fmt1(s))", "إجهاد \(fmt1(s))")) }
+        if let hr = w.avgHr { parts.append(t("HR \(fmt(hr))", "نبض \(fmt(hr))")) }
+        if let d = w.distanceM, d > 0 { parts.append(t("\(fmt1(d / 1000)) km", "\(fmt1(d / 1000)) كم")) }
         return parts.joined(separator: " • ")
     }
 }
@@ -304,10 +304,10 @@ struct MealsCard: View {
     let meals: [Balance.MealRow]
     var onLog: () -> Void
     var body: some View {
-        Card(title: "وجبات اليوم", icon: "fork.knife") {
+        Card(title: t("Today's meals", "وجبات اليوم"), icon: "fork.knife") {
             if meals.isEmpty {
-                Text("لا وجبات بعد.").font(.footnote).foregroundStyle(Theme.muted)
-                Button(action: onLog) { Label("سجّل وجبتك", systemImage: "camera.fill") }.buttonStyle(SoftButtonStyle())
+                Text(t("No meals yet.", "لا وجبات بعد.")).font(.footnote).foregroundStyle(Theme.muted)
+                Button(action: onLog) { Label(t("Log your meal", "سجّل وجبتك"), systemImage: "camera.fill") }.buttonStyle(SoftButtonStyle())
             }
             ForEach(meals) { m in
                 NavigationLink(value: m.id) {
@@ -315,7 +315,7 @@ struct MealsCard: View {
                         Image(systemName: m.status == "confirmed" ? "checkmark.seal.fill" : "hourglass")
                             .foregroundStyle(m.status == "confirmed" ? Theme.good : Theme.warn)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(m.nameAr.isEmpty ? m.name : m.nameAr).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                            Text(m.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                                 .lineLimit(1)
                             Text([m.restaurant, m.eatenAt.arTime].compactMap { $0 }.joined(separator: " • "))
                                 .font(.caption).foregroundStyle(Theme.muted).lineLimit(1)
@@ -323,9 +323,9 @@ struct MealsCard: View {
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
                             Text(fmt(m.calories)).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.ink)
-                            if let p = m.proteinG { Text("\(fmt(p)) غ بروتين").font(.caption2).foregroundStyle(Theme.protein) }
+                            if let p = m.proteinG { Text(t("\(fmt(p)) g protein", "\(fmt(p)) غ بروتين")).font(.caption2).foregroundStyle(Theme.protein) }
                         }
-                        Image(systemName: "chevron.left").font(.caption).foregroundStyle(Theme.muted)
+                        Image(systemName: "chevron.forward").font(.caption).foregroundStyle(Theme.muted)
                     }
                     .padding(.vertical, 4)
                 }
