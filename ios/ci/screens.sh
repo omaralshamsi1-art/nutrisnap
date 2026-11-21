@@ -6,7 +6,7 @@ mkdir -p shots
 shot() { # tab name appearance lang
   xcrun simctl ui booted appearance "$3"
   xcrun simctl terminate booted $APP 2>/dev/null || true
-  xcrun simctl launch booted $APP -apiKey dev -devUserId demo -apiBaseURL http://localhost:3999 -initialTab "$1" -screenshotMode YES -appLanguage "$4"
+  xcrun simctl launch booted $APP -apiKey dev -devUserId demo -apiBaseURL http://localhost:3999 -initialTab "$1" -screenshotMode YES -appLanguage "$4" -appTheme "$3"
   sleep 9
   xcrun simctl io booted screenshot "shots/$2-$4-$3.png"
 }

@@ -9,7 +9,7 @@
   var mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
   function apply() {
     var pref = 'system';
-    try { pref = localStorage.getItem('ns_theme') || 'system'; } catch (e) {}
+    try { pref = localStorage.getItem('ns_theme') || 'light'; } catch (e) {}
     var dark = pref === 'dark' || (pref === 'system' && mq && mq.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = dark ? '#0d1411' : '#f4f2ec';
@@ -2069,7 +2069,7 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
 
   // ---------------- appearance ----------------
   function paintThemeSw() {
-    let cur = 'system'; try { cur = localStorage.getItem('ns_theme') || 'system'; } catch {}
+    let cur = 'light'; try { cur = localStorage.getItem('ns_theme') || 'light'; } catch {}
     document.querySelectorAll('#themeSw button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeOpt === cur)));
   }
   document.querySelectorAll('#themeSw button').forEach((b) => (b.onclick = () => {
