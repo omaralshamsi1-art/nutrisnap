@@ -19,11 +19,10 @@ struct TodayView: View {
                         }
                     }
                     if let b = store.balance {
-                        EnergyCard(balance: b)
+                        OverviewSection(balance: b, isToday: store.isToday)
                         if b.pendingDrafts.calories > 0 {
                             Notice(text: t("You have draft meals (\(fmt(b.pendingDrafts.calories)) kcal) not counted yet — open and confirm them.", "لديك وجبات مسودة (\(fmt(b.pendingDrafts.calories)) سعرة) لم تُحسب بعد — افتحها وأكّدها."), level: "warn")
                         }
-                        MacrosCard(balance: b)
                         if let r = b.ramadan, r.active || r.needsChoice { RamadanCard(view: r) }
                         if let tips = b.tips, !tips.isEmpty, store.isToday {
                             VStack(spacing: 8) { ForEach(tips, id: \.self) { Notice(text: $0.text, level: $0.kind == "over" ? "warn" : "info") } }

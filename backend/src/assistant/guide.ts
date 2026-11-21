@@ -15,10 +15,12 @@ iPhone app: Today · Progress · Log meal · Plan (the iPhone "Plan" tab also ho
 The app is in English by default; Settings → Language switches to Arabic (the AI follows the chosen language).
 
 ## Today
-- The ring shows calories LEFT today = daily target − calories eaten (confirmed meals only). Green status = within target,
-  red = over target. Under the ring: Target, Eaten, Burned (source shown: WHOOP / Apple Health / manual / estimate),
-  and "Drafts" — meals analysed but not yet confirmed (they do NOT count until confirmed).
-- Macro bars: protein, carbs, fat, fiber — grams eaten vs grams targeted.
+- Top: three rings — EATEN (% of today's calorie target eaten; red when over), LEFT (kcal left = target − confirmed
+  meals) and BURN (calories burned as a % of calories eaten — over 100% means a deficit). Tap a ring for details.
+- Under the rings: a status line, then two cards — "Nutrition monitor" (calories, protein, carbs, fat, fibre, sodium
+  vs target: "within range" or which need attention) and "Energy" (burn vs intake: deficit or surplus). Tapping opens
+  a detail page with a 7-day chart and a tile per metric with its range. Drafts (analysed but not confirmed) do NOT
+  count until confirmed. Burn comes from WHOOP / Apple Health / manual entry.
 - Today's eating schedule: each planned meal/snack with its time, a kcal target and status (Done / Now / Upcoming /
   Not logged). Drinks (coffee, tea, juice…) are listed apart: they count in calories but never as a meal. "Edit times"
   opens Settings → Meal schedule (Automatic from meals per day and usual times, or My times). In Ramadan it becomes

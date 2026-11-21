@@ -2169,7 +2169,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
     const labels = days.map((d, i) => `<text x="${(w / n) * i + w / n / 2}" y="${h - 1}" text-anchor="middle" font-size="9" fill="var(--muted)">${new Date(d.date + 'T12:00').toLocaleDateString(LOC, { weekday: 'narrow' })}</text>`).join('');
     return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="margin-top:10px">${bars}${lineKey ? `<line x1="0" x2="${w}" y1="${ly}" y2="${ly}" stroke="var(--ink)" stroke-dasharray="4 4" opacity=".45"/>` : ''}${labels}</svg>`;
   }
-  const tileHtml = (label, value, unit, chip, cls) => `<div class="tile"><div class="tl">${label}</div><div class="tv num"><span dir="ltr" style="unicode-bidi:isolate">${value}</span><small>${unit || ''}</small></div>${chip ? `<span class="chip2 ${cls || 'ok'}">${chip}</span>` : ''}</div>`;
+  const tileHtml = (label, value, unit, chip, cls) => `<div class="tile"><div class="tl">${label}</div><div class="tv num"><span dir="ltr" style="unicode-bidi:isolate">${value}${unit === '%' ? '<small>%</small>' : ''}</span>${unit === '%' ? '' : `<small>${unit || ''}</small>`}</div>${chip ? `<span class="chip2 ${cls || 'ok'}">${chip}</span>` : ''}</div>`;
   async function openDetail(kind) {
     const b = lastBal; if (!b) return;
     $('det').classList.remove('hidden'); document.body.style.overflow = 'hidden';
