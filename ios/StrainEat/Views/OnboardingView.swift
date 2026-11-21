@@ -309,7 +309,7 @@ struct OnboardingView: View {
                 Spacer(minLength: 0)
                 ZStack {
                     Circle().stroke(on ? Theme.brand2 : Theme.line, lineWidth: 2).frame(width: 24, height: 24)
-                    if on { Circle().fill(Theme.brand2).frame(width: 24, height: 24); Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.white) }
+                    if on { Circle().fill(Theme.brand2).frame(width: 24, height: 24); Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Theme.bg) }
                 }
             }
             .padding(14)
