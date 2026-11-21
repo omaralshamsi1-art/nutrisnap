@@ -2164,7 +2164,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
   function barsSvg(days, valKey, lineKey, color) {
     const w = 320, h = 120, n = days.length, max = Math.max(1, ...days.map((d) => Math.max(d[valKey] || 0, d[lineKey] || 0))) * 1.1;
     const bw = w / n * 0.56;
-    const bars = days.map((d, i) => { const v = d[valKey] || 0, bh = (v / max) * (h - 18); const x = (w / n) * i + (w / n - bw) / 2; return `<rect x="${x}" y="${h - 14 - bh}" width="${bw}" height="${Math.max(bh, 2)}" rx="5" fill="${color}" opacity="${i === n - 1 ? 1 : 0.55}"/>`; }).join('');
+    const bars = days.map((d, i) => { const v = d[valKey] || 0, bh = (v / max) * (h - 18); const x = (w / n) * i + (w / n - bw) / 2; return `<rect class="dbar" data-i="${i}" x="${x}" y="${h - 14 - bh}" width="${bw}" height="${Math.max(bh, 2)}" rx="5" fill="${color}" opacity="${i === n - 1 ? 1 : 0.45}"/><rect class="dhit" data-i="${i}" x="${(w / n) * i}" y="0" width="${w / n}" height="${h}" fill="transparent" style="cursor:pointer"/>`; }).join('');
     const ly = h - 14 - ((days[n - 1][lineKey] || 0) / max) * (h - 18);
     const labels = days.map((d, i) => `<text x="${(w / n) * i + w / n / 2}" y="${h - 1}" text-anchor="middle" font-size="9" fill="var(--muted)">${new Date(d.date + 'T12:00').toLocaleDateString(LOC, { weekday: 'narrow' })}</text>`).join('');
     return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="margin-top:10px">${bars}${lineKey ? `<line x1="0" x2="${w}" y1="${ly}" y2="${ly}" stroke="var(--ink)" stroke-dasharray="4 4" opacity=".45"/>` : ''}${labels}</svg>`;
@@ -2179,7 +2179,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
     const eaten = b.intake.calories, burn = b.burn ? b.burn.totalKcal : null;
     let chart = '', tiles = '';
     if (kind === 'eaten') {
-      chart = `<div class="dchart"><div class="t">${T('سعرات آخر 7 أيام')}</div><div class="big num">${fmt(eaten)}<small style="font-size:15px"> / ${fmt(b.targetIntakeKcal)}</small></div><div id="detChart"><div class="loading"><div class="spinner"></div></div></div></div>`;
+      chart = `<div class="dchart"><div class="t">${T('سعرات آخر 7 أيام')}</div><div class="small muted" id="detDay">${T('اليوم')}</div><div class="big num" id="detBig">${fmt(eaten)}<small style="font-size:15px"> / ${fmt(b.targetIntakeKcal)}</small></div><div id="detChart"><div class="loading"><div class="spinner"></div></div></div></div>`;
       tiles = nutrientChecks(b).map((c) => tileHtml(c.label, fmt(c.have), ' ' + c.unit, c.chip, c.state)).join('');
     } else if (kind === 'left') {
       const t = b.macroTargets || {}, i = b.intake;
@@ -2194,7 +2194,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
     } else {
       const pct = burn && eaten ? Math.round((burn / eaten) * 100) : null;
       const net = burn != null ? burn - eaten : null;
-      chart = `<div class="dchart"><div class="t">${T('الحرق آخر 7 أيام')}</div><div class="big num">${burn != null ? fmt(burn) : '—'}<small style="font-size:15px"> ${T('سعرة')} ${b.burn ? `· ${esc(SRC[b.burn.source] || b.burn.source)}` : ''}</small></div><div id="detChart"><div class="loading"><div class="spinner"></div></div></div></div>`;
+      chart = `<div class="dchart"><div class="t">${T('الحرق آخر 7 أيام')}</div><div class="small muted" id="detDay">${T('اليوم')}</div><div class="big num" id="detBig">${burn != null ? fmt(burn) : '—'}<small style="font-size:15px"> ${T('سعرة')} ${b.burn ? `· ${esc(SRC[b.burn.source] || b.burn.source)}` : ''}</small></div><div id="detChart"><div class="loading"><div class="spinner"></div></div></div></div>`;
       const act = b.activity || {};
       tiles = [
         tileHtml(T('الحرق ÷ الأكل'), pct != null ? pct : '—', '%', pct != null ? (pct >= 100 ? T('✓ الحرق أعلى') : T('↑ الأكل أعلى')) : '', pct != null && pct >= 100 ? 'ok' : 'hi'),
@@ -2211,7 +2211,22 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
     if (kind !== 'left') {
       try {
         histCache = histCache || (await api('history?days=7'));
-        $('detChart').innerHTML = kind === 'eaten' ? barsSvg(histCache.days, 'intakeKcal', 'targetKcal', '#7ba6c9') : barsSvg(histCache.days, 'burnKcal', 'intakeKcal', '#1e90e8');
+        const days = histCache.days;
+        $('detChart').innerHTML = kind === 'eaten' ? barsSvg(days, 'intakeKcal', 'targetKcal', '#7ba6c9') : barsSvg(days, 'burnKcal', 'intakeKcal', '#1e90e8');
+        // tap a day → the big number shows that day
+        const pick = (i) => {
+          const d = days[i]; const last = i === days.length - 1;
+          $('detChart').querySelectorAll('.dbar').forEach((r) => r.setAttribute('opacity', +r.dataset.i === i ? '1' : '0.45'));
+          $('detDay').textContent = last ? T('اليوم') : new Date(d.date + 'T12:00').toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long' });
+          if (kind === 'eaten') {
+            const v = last ? eaten : d.intakeKcal;
+            $('detBig').innerHTML = `${fmt(v)}<small style="font-size:15px"> / ${fmt(last ? b.targetIntakeKcal : d.targetKcal)}</small>`;
+          } else {
+            const v = last && burn != null ? burn : d.burnKcal;
+            $('detBig').innerHTML = `${v != null ? fmt(v) : '—'}<small style="font-size:15px"> ${T('سعرة')} · ${L`أكلت ${fmt(last ? eaten : d.intakeKcal)}`}</small>`;
+          }
+        };
+        $('detChart').querySelectorAll('.dhit').forEach((r) => (r.onclick = () => pick(+r.dataset.i)));
       } catch { $('detChart').innerHTML = ''; }
     }
   }

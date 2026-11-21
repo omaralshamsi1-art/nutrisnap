@@ -9,6 +9,7 @@
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   var EN = {
+"أكلت {}": "ate {}",
 "فائض": "SURPLUS",
 "عجز": "DEFICIT",
 "الأكل ›": "EATEN ›",

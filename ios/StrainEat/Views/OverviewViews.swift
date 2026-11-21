@@ -134,6 +134,18 @@ struct OverviewDetailView: View {
     let isToday: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var history: History?
+    @State private var selected: Date?
+
+    /// The tapped day in the chart (nil = today).
+    private var picked: HistoryDay? {
+        guard let selected, let days = history?.days else { return nil }
+        let d = days.first { Calendar.current.isDate($0.day, inSameDayAs: selected) }
+        return d?.id == days.last?.id ? nil : d
+    }
+    private var pickedLabel: String {
+        guard let p = picked else { return t("Today", "اليوم") }
+        return p.day.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: appLang == .ar ? "ar" : "en")))
+    }
 
     var body: some View {
         NavigationStack {
@@ -161,14 +173,20 @@ struct OverviewDetailView: View {
             switch kind {
             case .eaten:
                 Text(t("CALORIES · LAST 7 DAYS", "سعرات آخر 7 أيام")).font(.caption.weight(.heavy)).tracking(0.8)
-                Text("\(fmt(b.intake.calories)) / \(fmt(b.targetIntakeKcal ?? 0))").font(.system(size: 34, weight: .heavy)).monospacedDigit()
+                Text(pickedLabel).font(.caption).foregroundStyle(Theme.muted)
+                Text("\(fmt(picked?.intakeKcal ?? b.intake.calories)) / \(fmt(picked?.targetKcal ?? b.targetIntakeKcal ?? 0))").font(.system(size: 34, weight: .heavy)).monospacedDigit()
+                    .contentTransition(.numericText())
                 chart(\.intakeKcal, color: eatColor, line: b.targetIntakeKcal)
             case .left:
                 Text(t("LEFT TODAY", "متبقي لك اليوم")).font(.caption.weight(.heavy)).tracking(0.8)
                 Text("\(fmt(b.remainingKcal ?? 0)) \(t("kcal", "سعرة"))").font(.system(size: 34, weight: .heavy)).monospacedDigit()
             case .burn:
                 Text(t("BURN · LAST 7 DAYS", "الحرق آخر 7 أيام")).font(.caption.weight(.heavy)).tracking(0.8)
-                Text(b.burn.map { "\(fmt($0.totalKcal)) \(t("kcal", "سعرة"))" } ?? "—").font(.system(size: 34, weight: .heavy)).monospacedDigit()
+                Text(pickedLabel).font(.caption).foregroundStyle(Theme.muted)
+                let burnV: Double? = picked != nil ? picked!.burnKcal : b.burn?.totalKcal
+                Text(burnV.map { "\(fmt($0)) \(t("kcal", "سعرة"))" } ?? "—").font(.system(size: 34, weight: .heavy)).monospacedDigit()
+                    .contentTransition(.numericText())
+                Text(t("Ate \(fmt(picked?.intakeKcal ?? b.intake.calories))", "أكلت \(fmt(picked?.intakeKcal ?? b.intake.calories))")).font(.caption).foregroundStyle(Theme.muted)
                 chart(\.burnKcalOrZero, color: burnColor, line: b.intake.calories)
             }
         }
@@ -180,12 +198,14 @@ struct OverviewDetailView: View {
         if let days = history?.days {
             Chart {
                 ForEach(days) { d in
-                    BarMark(x: .value("day", d.day, unit: .day), y: .value("kcal", d[keyPath: key])).foregroundStyle(color.opacity(d.id == days.last?.id ? 1 : 0.55)).cornerRadius(5)
+                    let on = selected.map { Calendar.current.isDate(d.day, inSameDayAs: $0) } ?? (d.id == days.last?.id)
+                    BarMark(x: .value("day", d.day, unit: .day), y: .value("kcal", d[keyPath: key])).foregroundStyle(color.opacity(on ? 1 : 0.45)).cornerRadius(5)
                 }
                 if let line { RuleMark(y: .value("ref", line)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4])).foregroundStyle(Theme.ink.opacity(0.45)) }
             }
             .chartXAxis { AxisMarks(values: .stride(by: .day)) { _ in AxisValueLabel(format: .dateTime.weekday(.narrow)) } }
             .chartYAxis(.hidden)
+            .chartXSelection(value: $selected)
             .frame(height: 120)
         } else if kind != .left {
             ProgressView().frame(maxWidth: .infinity, minHeight: 120)
