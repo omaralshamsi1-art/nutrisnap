@@ -13,6 +13,11 @@ shot() { # tab name appearance lang
 for v in "light en" "dark en" "light ar"; do set -- $v; a=$1; l=$2
   shot 0 today $a $l; shot 1 progress $a $l; shot 2 log $a $l; shot 3 plan $a $l
 done
+for l in en ar; do
+  xcrun simctl terminate booted $APP 2>/dev/null || true
+  xcrun simctl launch booted $APP -apiKey dev -devUserId "fresh-$l" -apiBaseURL http://localhost:3999 -initialTab 0 -screenshotMode YES -appLanguage $l
+  sleep 9; xcrun simctl io booted screenshot "shots/onboarding-$l-light.png"
+done
 xcrun simctl terminate booted $APP || true
 xcrun simctl launch booted $APP -apiKey "" -accessToken "" -initialTab 0 -appLanguage en
 sleep 6; xcrun simctl ui booted appearance light; sleep 2; xcrun simctl io booted screenshot shots/auth-en-light.png
