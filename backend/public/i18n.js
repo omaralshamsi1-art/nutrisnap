@@ -9,6 +9,10 @@
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   var EN = {
+"المظهر": "Appearance",
+"فاتح": "Light",
+"داكن": "Dark",
+"تلقائي = يتبع إعداد جهازك.": "Auto follows your device setting.",
 "اسأل StrainEat": "Ask StrainEat",
 "مساعدك الغذائي — يعرف بياناتك وطريقة استخدام التطبيق": "Your nutrition assistant — knows your data and the app",
 "مسح": "Clear",

@@ -34,3 +34,31 @@ struct LanguagePicker: View {
         .pickerStyle(.segmented)
     }
 }
+
+// MARK: Appearance (in-app setting, independent of the iPhone's own setting)
+
+let appThemeKey = "appTheme"
+
+/// Applies light / dark / system to every window (also covers sheets and UIKit views).
+@MainActor func applyAppTheme(_ value: String) {
+    let style: UIUserInterfaceStyle = value == "light" ? .light : value == "dark" ? .dark : .unspecified
+    for scene in UIApplication.shared.connectedScenes {
+        (scene as? UIWindowScene)?.windows.forEach { $0.overrideUserInterfaceStyle = style }
+    }
+}
+
+struct ThemePicker: View {
+    @AppStorage(appThemeKey) private var theme = "system"
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker(t("Appearance", "المظهر"), selection: $theme) {
+                Text(t("Auto", "تلقائي")).tag("system")
+                Text(t("Light", "فاتح")).tag("light")
+                Text(t("Dark", "داكن")).tag("dark")
+            }
+            .pickerStyle(.segmented)
+            Text(t("Auto follows your iPhone setting.", "تلقائي = يتبع إعداد الآيفون.")).font(.caption).foregroundStyle(Theme.muted)
+        }
+        .onChange(of: theme) { _, v in applyAppTheme(v) }
+    }
+}

@@ -19,6 +19,7 @@ struct PlanTab: View {
                         Text(t("Smart reminders (usual meal time and morning weigh-in) currently run from the web app once it's added to your Home Screen.", "التذكيرات الذكية (موعد الوجبة المعتاد ووزن الصباح) تعمل حالياً من تطبيق الويب بعد إضافته للشاشة الرئيسية."))
                             .font(.footnote).foregroundStyle(Theme.muted)
                     }
+                    Card(title: t("Appearance", "المظهر"), icon: "circle.lefthalf.filled") { ThemePicker() }
                     Card(title: "Language · اللغة", icon: "globe") { LanguagePicker() }
                     if let message { Text(message).font(.footnote).foregroundStyle(Theme.muted) }
                     Text("StrainEat \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")

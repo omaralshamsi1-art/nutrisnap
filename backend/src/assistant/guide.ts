@@ -64,7 +64,8 @@ After analysis the Review screen opens.
 ## Settings
 - Account (name, email, role), invite users (owner), reminders (meal and weight notifications; on iPhone allow
   notifications), Ramadan & fasting mode (on/off/auto, suhoor and iftar times), WHOOP connect/disconnect,
-  Apple Health (iPhone app only: syncs burned energy, workouts and weight), Language (English / العربية), sign out.
+  Apple Health (iPhone app only: syncs burned energy, workouts and weight), Appearance (Auto / Light / Dark — Auto
+  follows the phone), Language (English / العربية), sign out.
 
 ## Common questions (answer like this)
 - Water: plain water, sparkling water, black coffee, plain tea and zero-calorie drinks have ~0 kcal — no need to log

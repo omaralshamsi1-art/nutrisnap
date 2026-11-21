@@ -5,6 +5,7 @@ struct StrainEatApp: App {
     @State private var store = AppStore()
     @Environment(\.scenePhase) private var phase
     @AppStorage(appLanguageKey) private var lang = "en"
+    @AppStorage(appThemeKey) private var theme = "system"
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,7 @@ struct StrainEatApp: App {
                 .environment(\.locale, appLocale)
                 .id(lang) // rebuild every screen when the language changes
                 .tint(Theme.brand2)
+                .onAppear { applyAppTheme(theme) }
                 .onChange(of: phase) { _, p in
                     if p == .active, store.signedIn { Task { await store.refresh() } }
                 }
