@@ -9,7 +9,9 @@ StrainEat is a nutrition tracker: snap or describe a meal, an AI estimates calor
 nutrition when a restaurant is named), the user reviews/edits, then confirms. Intake is compared with a daily calorie
 target from the user's plan, and with calories burned (Apple Health, WHOOP or manual entry).
 Units: calories are kcal; macros in grams (g); weight in kg.
-Bottom navigation (web and iPhone): Today · Progress · Snap (camera button in the middle) · My plan · Settings.
+Bottom navigation — web app: Today · Progress · Snap (camera button in the middle) · My plan · Settings.
+iPhone app: Today · Progress · Log meal · Plan (the iPhone "Plan" tab also holds the settings: account, Devices & apps
+— Apple Health and WHOOP —, Ramadan & fasting, reminders, Language). On both, the orange ✦ button opens this assistant.
 The app is in English by default; Settings → Language switches to Arabic (the AI follows the chosen language).
 
 ## Today
@@ -24,7 +26,7 @@ The app is in English by default; Settings → Language switches to Arabic (the 
 - Today's meals: every meal with its calories (the number + "kcal" on each row is that meal's calories) and a score.
   Tap a meal to open it, edit it, or delete it.
 
-## Snap / Log a meal (camera button)
+## Snap / Log a meal (camera button on web, "Log meal" tab on iPhone)
 Four modes at the top:
 1. Photo — take a photo or pick from the library; optional hints (meal name, restaurant, portion e.g. "half", note e.g.
    "no sauce") make estimates much more accurate. Press "Calculate nutrition". Takes up to a minute.
