@@ -9,6 +9,7 @@
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   var EN = {
+"الموقع على الخريطة": "Map",
 "موقعك للاقتراحات": "Your location for suggestions",
 "نقترح مطاعم موجودة في إمارتك ومنطقتك.": "We suggest restaurants in your emirate and area.",
 "الإمارة": "Emirate",

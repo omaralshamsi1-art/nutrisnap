@@ -288,7 +288,8 @@ struct Suggestions: Codable {
     let home: [Home]?
     let healthy: [Out]?
     let fast: [Out]?
-    enum CodingKeys: String, CodingKey { case slot, remainingKcal, proteinLeftG, options, home, healthy, fast; case introAr = "intro_ar" }
+    let mapsArea: String?
+    enum CodingKeys: String, CodingKey { case slot, remainingKcal, proteinLeftG, options, home, healthy, fast, mapsArea; case introAr = "intro_ar" }
 }
 
 struct WeeklyReport: Codable {

@@ -303,7 +303,16 @@ struct SuggestCard: View {
     private func outCard(_ o: Suggestions.Out, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) { Text(o.title).font(.subheadline.weight(.semibold)); Spacer(); macros(o.kcal, o.proteinG) }
-            Text("\(icon) \(o.restaurant)").font(.caption).foregroundStyle(Theme.muted)
+            if let url = mapsURL(o.restaurant) {
+                Link(destination: url) {
+                    HStack(spacing: 4) {
+                        Text("\(icon) \(o.restaurant)").underline()
+                        Image(systemName: "mappin.and.ellipse")
+                        Text(t("Map", "الموقع على الخريطة"))
+                    }
+                    .font(.caption).foregroundStyle(Theme.brand2)
+                }
+            }
             if !o.orderTip.isEmpty { Text("💡 \(o.orderTip)").font(.caption) }
             if !o.why.isEmpty { Text(o.why).font(.caption).foregroundStyle(Theme.muted) }
             logButton(id: "\(o.restaurant)|\(o.title)") {
@@ -312,6 +321,13 @@ struct SuggestCard: View {
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.card2, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// Google Maps search for the chain near the user's saved area (opens the Maps app if installed).
+    private func mapsURL(_ name: String) -> URL? {
+        var c = URLComponents(string: "https://www.google.com/maps/search/")
+        c?.queryItems = [URLQueryItem(name: "api", value: "1"), URLQueryItem(name: "query", value: "\(name) \(data?.mapsArea ?? "UAE")")]
+        return c?.url
     }
 
     private func logButton(id: String, action: @escaping () async throws -> Void) -> some View {

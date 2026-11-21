@@ -171,6 +171,8 @@ Every option needs realistic kcal, protein, carbs and fat for what is described.
       ];
       return { slot, remainingKcal: remaining, proteinLeftG: proteinLeft, intro_ar: out.intro_ar ?? '', home, healthy, fast, options };
     });
+    const mapsQuery = [profile.area, profile.city ?? (profile.country === 'AE' ? 'UAE' : profile.country)].filter(Boolean).join(' ');
+    (result as any).mapsArea = mapsQuery;
     if (!result.cached) {
       const shown = [...result.home.map((o: any) => `home: ${o.title}`), ...[...result.healthy, ...result.fast].map((o: any) => `${o.restaurant}: ${o.title}`)];
       await this.repo.setCache({ userId, key: seenKey, payload: { items: [...seen, ...shown].slice(-40) }, createdAt: new Date().toISOString() });

@@ -81,6 +81,7 @@ describe('coach service', () => {
     expect(r.healthy).toHaveLength(2);
     expect(r.fast.map((o: any) => o.restaurant)).toEqual(['KFC']);
     expect(r.options).toHaveLength(4); // legacy flat list
+    expect(r.mapsArea).toBe('Al Nakheel Ras Al Khaimah');
     expect(r.cached).toBe(false);
     const prompt = s.calls[0].messages[0].content as string;
     expect(prompt).toContain('شاورما (Al Mallah)');
