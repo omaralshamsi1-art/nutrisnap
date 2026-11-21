@@ -15,4 +15,4 @@ COPY supabase ./supabase
 COPY public ./public
 COPY package.json ./
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["sh","-c","node dist/eval/assistant-eval.js & node dist/main.js"]
