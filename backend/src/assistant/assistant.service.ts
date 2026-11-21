@@ -1,4 +1,5 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { ScheduleService } from '../schedule/schedule.service';
 import { randomUUID } from 'crypto';
 import { ChatTool, ChatTurn, NutritionAgentService } from '../agent/nutrition-agent.service';
 import { dietLine } from '../agent/prompts';
@@ -68,6 +69,11 @@ const TOOLS: ChatTool[] = [
     parameters: { type: 'object', properties: {} },
   },
   {
+    name: 'get_schedule',
+    description: "The user's eating schedule for a day: meal/snack slots with times, kcal targets, status (done/now/upcoming/missed) and what was eaten; drinks listed apart.",
+    parameters: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD (optional)' } } },
+  },
+  {
     name: 'get_favorites',
     description: "The user's most-logged meals.",
     parameters: { type: 'object', properties: {} },
@@ -127,6 +133,7 @@ export class AssistantService {
     private readonly energy: EnergyService,
     private readonly meals: MealsService,
     private readonly motivation: MotivationService,
+    @Optional() private readonly schedule?: ScheduleService,
   ) {}
 
   async history(userId: string): Promise<{ messages: AssistantMessage[] }> {
@@ -242,6 +249,8 @@ ${APP_GUIDE}`;
           return this.plans.weights(userId, Math.min(Math.max(Number(args.days) || 90, 7), 365));
         case 'get_motivation':
           return this.motivation.summary(userId);
+        case 'get_schedule':
+          return this.schedule ? this.schedule.day(userId, isIsoDate(args.date) ? args.date : undefined) : { error: 'schedule unavailable' };
         case 'get_favorites':
           return ((await this.meals.favorites(userId)) as any[]).slice(0, 15);
         case 'propose_log_meal': {

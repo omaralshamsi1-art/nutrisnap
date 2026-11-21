@@ -33,6 +33,7 @@ import { MotivationService } from './coach/motivation.service';
 import { RemindersService } from './coach/reminders.service';
 import { Workout } from './common/types';
 import { AssistantService } from './assistant/assistant.service';
+import { ScheduleService } from './schedule/schedule.service';
 import { validateProfilePatch } from './profile/profile.service';
 
 @Controller('health')
@@ -375,5 +376,16 @@ export class AssistantController {
   @Delete('history')
   clear(@UserId() userId: string) {
     return this.assistant.clear(userId);
+  }
+}
+
+@Controller('schedule')
+export class ScheduleController {
+  constructor(private readonly schedule: ScheduleService) {}
+
+  /** The day's eating plan: slots (time, kcal target, status, what was eaten) + drinks. Edit via PUT /profile { mealSchedule }. */
+  @Get()
+  day(@UserId() userId: string, @Query('date') date?: string) {
+    return this.schedule.day(userId, date);
   }
 }

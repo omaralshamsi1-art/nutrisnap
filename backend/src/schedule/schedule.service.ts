@@ -1,0 +1,46 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { isIsoDate, localDate } from '../common/dates';
+import { ramadanView } from '../coach/coach-math';
+import { addDays, PlanService } from '../plan/plan.service';
+import { ProfileService } from '../profile/profile.service';
+import { REPOSITORY, Repository } from '../storage/repository';
+import { buildDay, defaultSchedule, usualMealTimes, ramadanSchedule, SLOT_LABEL, slotTargets, toMin } from './schedule';
+
+const minuteIn = (iso: string, tz: string) =>
+  toMin(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso)));
+
+@Injectable()
+export class ScheduleService {
+  constructor(
+    @Inject(REPOSITORY) private readonly repo: Repository,
+    private readonly profiles: ProfileService,
+    private readonly plans: PlanService,
+  ) {}
+
+  /** Today's eating plan: slots with times, kcal targets and what was logged; drinks listed apart. */
+  async day(userId: string, date?: string, now = new Date()) {
+    const p = await this.profiles.get(userId);
+    const tz = p.timezone;
+    const today = localDate(now, tz);
+    const d = isIsoDate(date) ? date : today;
+    const plan = await this.plans.plan(userId);
+    const ram = ramadanView(p.ramadan, now, tz, plan.targetKcal);
+    const history = await this.repo.listMealsRange(userId, addDays(today, -21), today);
+    let schedule = (p as any).mealSchedule?.slots?.length ? (p as any).mealSchedule : defaultSchedule(p.mealsPerDay, usualMealTimes(history.filter((m) => m.date < today), tz));
+    if (ram.active) schedule = ramadanSchedule(p.ramadan.suhoorTime, p.ramadan.iftarTime);
+    const targets = slotTargets(schedule.slots, plan.targetKcal, ram.split);
+    const meals = d >= addDays(today, -21) && d <= today ? history.filter((m) => m.date === d) : await this.repo.listMeals(userId, d);
+    const nowMin = d === today ? minuteIn(now.toISOString(), tz) : d < today ? 1440 : -1;
+    const view = buildDay(schedule.slots, targets, meals, nowMin, (m) => minuteIn(m.eatenAt, tz));
+    const lang = p.language === 'ar' ? 'ar' : 'en';
+    return {
+      date: d,
+      custom: !!schedule.custom && !ram.active,
+      ramadan: ram.active,
+      fasting: ram.fasting,
+      targetKcal: plan.targetKcal,
+      ...view,
+      slots: view.slots.map((s) => ({ ...s, label: SLOT_LABEL[s.id][lang], label_en: SLOT_LABEL[s.id].en, label_ar: SLOT_LABEL[s.id].ar })),
+    };
+  }
+}

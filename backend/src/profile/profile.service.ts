@@ -1,3 +1,4 @@
+import { validateSchedule } from '../schedule/schedule';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CONDITIONS, DIET_STYLES, Profile } from '../common/types';
 import { REPOSITORY, Repository } from '../storage/repository';
@@ -155,6 +156,12 @@ export function validateProfilePatch(patch: Partial<Profile>): Partial<Profile> 
     } else if (k === 'language') {
       if (v !== 'en' && v !== 'ar') throw new BadRequestException('language must be en or ar');
       out.language = v;
+    } else if (k === 'mealSchedule') {
+      try {
+        out.mealSchedule = validateSchedule(v);
+      } catch (e: any) {
+        throw new BadRequestException(e.message);
+      }
     } else if (k === 'onboarded') {
       out.onboarded = !!v;
     } else if (['timezone', 'city', 'area', 'country', 'startDate'].includes(k)) {

@@ -312,6 +312,12 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
 </style>
 <style>
 /* ---------- assistant chat ---------- */
+.sch { display: grid; grid-template-columns: 54px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.sch:last-of-type { border-bottom: 0; } .sch .tm { font-weight: 700; font-size: 15px; direction: ltr; text-align: start; }
+.sch .st { font-size: 12px; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.sch .st.done { background: var(--good-soft); color: var(--good); } .sch .st.now { background: var(--accent-soft); color: var(--warn); font-weight: 700; }
+.sch .st.upcoming { background: var(--card-2); color: var(--muted); } .sch .st.missed { background: var(--bad-soft); color: var(--bad); }
+.schedrow { display: grid; grid-template-columns: auto 1fr 140px; gap: 10px; align-items: center; padding: 6px 0; }
 #askFab { position: fixed; z-index: 21; inset-inline-end: 16px; bottom: calc(92px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 18px; border: 0; background: var(--accent); color: #1b1407; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(0,0,0,.22); cursor: pointer; }
 #askFab.hidden { display: none; }
 #ask { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; flex-direction: column; }
@@ -466,6 +472,11 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
       <div class="bar"><i id="chalBar" style="width:0;background:var(--accent)"></i></div>
     </div>
 
+    <div class="card" id="schCard">
+      <h3>جدول وجباتك اليوم <button class="chip src" id="schEdit" style="cursor:pointer">تعديل الأوقات</button></h3>
+      <div id="schBody"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
     <div class="card">
       <h3>ماذا آكل الآن؟ <button class="chip src" id="sugRefresh" style="cursor:pointer" aria-label="اقتراحات جديدة">تحديث</button></h3>
       <div id="sugBody"><button class="btn ghost" id="sugBtn"><svg width="20" height="20"><use href="#i-bulb"/></svg>اقترح لي وجبة تناسب ما تبقى</button></div>
@@ -602,6 +613,7 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
       <input id="rName" aria-label="اسم الوجبة" style="font-size:22px;font-weight:700;border:0;padding:2px 0;background:none">
       <input id="rRest" aria-label="المطعم" placeholder="المطعم" style="border:0;padding:2px 0;color:var(--muted);background:none">
       <div class="row" style="margin-top:8px"><span id="rBadge" class="pill"></span><span class="small muted" id="rServing"></span></div>
+      <div class="langsw" role="group" aria-label="النوع" id="rKind" style="margin:12px 0 0;justify-content:flex-start"><button type="button" data-kind="meal">🍽️ وجبة</button><button type="button" data-kind="snack">🍎 سناك</button><button type="button" data-kind="drink">☕ مشروب</button></div>
     </div>
     <div class="card" id="rScoreCard">
       <div class="score"><div class="big num" id="rScore">–</div><div><b id="rScoreLbl" style="font-size:17px"></b><div class="chips" id="rReasons"></div></div></div>
@@ -712,6 +724,16 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
       <button class="btn ghost hidden" id="wSync">مزامنة الآن</button>
       <label for="pSrc">مصدر الحرق المفضل</label>
       <select id="pSrc"><option value="">تلقائي</option><option value="whoop">WHOOP</option><option value="apple_health">Apple Health</option><option value="manual">يدوي</option></select>
+    </div>
+
+    <div class="card" id="schSettings">
+      <h3>جدول الوجبات</h3>
+      <p class="small muted" style="margin-top:-4px">نذكّرك قبل كل وجبة بـ10 دقائق، وإذا لم تسجّل الوجبة بعد ساعة. القهوة والمشروبات لا تُحسب كوجبة.</p>
+      <div class="langsw" role="group" aria-label="جدول الوجبات" id="schMode" style="justify-content:flex-start"><button type="button" data-mode="auto">تلقائي</button><button type="button" data-mode="custom">أوقاتي</button></div>
+      <p class="small muted" id="schAutoNote" style="margin:8px 0 0">تلقائي = من عدد وجباتك وأوقات أكلك المعتادة.</p>
+      <div id="schRows" class="hidden" style="margin-top:8px"></div>
+      <div style="height:12px"></div>
+      <button class="btn ghost" id="schSave">حفظ الجدول</button>
     </div>
 
     <div class="card">
@@ -829,7 +851,7 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
     window.scrollTo(0, 0);
     if (v === 'today') loadToday();
     if (v === 'progress') loadProgress();
-    if (v === 'plan') loadLocation();
+    if (v === 'plan') { loadLocation(); loadScheduleSettings(); }
     if (v === 'plan') loadPlan().then(() => { if (scrollTo) $('eSave').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   }
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => show(b.dataset.v)));
@@ -1286,10 +1308,11 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
       loadMotivation();
       renderRamadan(b.ramadan);
       _loadToday();
+      loadSchedule();
       ramCtx = b.ramadan;
       $('mealCount').textContent = b.meals.length ? L`${b.meals.length} وجبات` : '';
       $('mealList').innerHTML = b.meals.length ? b.meals.map((m) => {
-        const [slot, icon] = mealSlot(m.eatenAt);
+        const [slot, icon] = m.kind === 'drink' ? [T('☕ مشروب'), 'i-bolt'] : m.kind === 'snack' ? [T('سناك'), 'i-apple'] : mealSlot(m.eatenAt);
         const time = new Date(m.eatenAt).toLocaleTimeString(LOC, { hour: 'numeric', minute: '2-digit' });
         return L`<button class="meal" data-id="${esc(m.id)}"><span class="ic"><svg width="22" height="22"><use href="#${icon}"/></svg></span>
           <span class="t"><b>${esc(nameOf(m))}</b><span class="small muted">${slot} · ${time}${m.restaurant ? ` · ${esc(m.restaurant)}` : ''}</span></span>
@@ -1789,6 +1812,7 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
     const [cls, lbl] = BADGE[f.source] || ['est', f.source];
     $('rBadge').className = `pill ${cls}`; $('rBadge').textContent = L`${lbl} · ثقة ${fmt(f.confidence * 100)}%`;
     $('rServing').textContent = f.serving_description || '';
+    rKindSel = meal.kind || f.kind || 'meal'; paintKind();
     $('rPortion').value = 1; $('rPortionLbl').textContent = '100%';
     list($('rAssume'), $('rAssumeCard'), f.assumptions.map(esc));
     list($('rWarn'), $('rWarnCard'), f.warnings.map((w) => esc(w.replace(/^\[check\]\s*/, ''))));
@@ -1851,7 +1875,7 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
     $('rConfirm').disabled = true;
     try {
       const f = current.final, p = Number($('rPortion').value);
-      const patch = { items: items.map((i) => ({ ...i, name: i.name || i.name_ar })), [LANG === 'en' ? 'meal_name' : 'meal_name_ar']: $('rName').value.trim() || nameOf(f, 'meal_name'), restaurant: $('rRest').value.trim() || null, ...(p !== 1 ? { portionFactor: p } : {}) };
+      const patch = { kind: rKindSel, items: items.map((i) => ({ ...i, name: i.name || i.name_ar })), [LANG === 'en' ? 'meal_name' : 'meal_name_ar']: $('rName').value.trim() || nameOf(f, 'meal_name'), restaurant: $('rRest').value.trim() || null, ...(p !== 1 ? { portionFactor: p } : {}) };
       if (!f.meal_name && !patch.meal_name) patch.meal_name = patch.meal_name_ar;
       if (!f.meal_name_ar && !patch.meal_name_ar) patch.meal_name_ar = patch.meal_name;
       await api(`meals/${current.id}`, { method: 'PATCH', json: patch });
@@ -1867,6 +1891,61 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
   };
 
   // ---------------- boot ----------------
+  // ---------------- meal kind (review) ----------------
+  let rKindSel = 'meal';
+  function paintKind() { document.querySelectorAll('#rKind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.kind === rKindSel))); }
+  document.querySelectorAll('#rKind button').forEach((b) => (b.onclick = () => { rKindSel = b.dataset.kind; paintKind(); }));
+
+  // ---------------- eating schedule ----------------
+  const ST_LBL = () => ({ done: T('✓ تم'), now: T('الآن'), upcoming: T('قادم'), missed: T('لم تُسجّل') });
+  async function loadSchedule() {
+    const isT = isoDay(day) === isoDay(new Date());
+    $('schCard').classList.toggle('hidden', !isT);
+    if (!isT) return;
+    try {
+      const d = await api('schedule');
+      const rows = d.slots.map((s) => {
+        const lbl = LANG === 'en' ? s.label_en : s.label_ar;
+        const eaten = s.items.length ? `<div class="small muted">${s.items.map((i) => esc(LANG === 'en' ? i.name || i.name_ar : i.name_ar || i.name)).join(LANG === 'en' ? ', ' : String.fromCharCode(1548) + ' ')} · <span class="num">${fmt(s.eatenKcal)}</span> ${T('سعرة')}</div>` : '';
+        const st = s.status === 'now' ? `<button class="st now" data-sch-log style="border:0;cursor:pointer">${T('الآن — سجّل')}</button>` : `<span class="st ${s.status}">${ST_LBL()[s.status]}</span>`;
+        return `<div class="sch"><span class="tm num">${esc(s.time)}</span><div><b>${s.kind === 'snack' ? '🍎' : '🍽️'} ${esc(lbl)}</b> <span class="small muted num">~${fmt(s.targetKcal)} ${T('سعرة')}</span>${eaten}</div>${st}</div>`;
+      }).join('');
+      const drinks = d.drinks.length ? `<p class="small" style="margin:10px 0 0">${L`☕ المشروبات اليوم: ${d.drinks.length} · ${fmt(d.drinksKcal)} سعرة`} <span class="muted">${T('(تُحسب في السعرات، لا كوجبة)')}</span></p>` : '';
+      const extras = d.extras && d.extras.length ? `<p class="small muted" style="margin:6px 0 0">${L`خارج الجدول: ${d.extras.map((i) => esc(LANG === 'en' ? i.name || i.name_ar : i.name_ar || i.name)).join(LANG === 'en' ? ', ' : String.fromCharCode(1548) + ' ')}`}</p>` : '';
+      $('schBody').innerHTML = (d.ramadan ? `<p class="small muted" style="margin:0 0 4px">${T('🌙 جدول رمضان: الإفطار والسحور')}</p>` : '') + rows + drinks + extras;
+      const lb = $('schBody').querySelector('[data-sch-log]'); if (lb) lb.onclick = () => show('snap');
+    } catch (e) { $('schBody').innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
+  }
+  $('schEdit').onclick = () => { show('plan'); setTimeout(() => $('schSettings').scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); };
+
+  const SCH_IDS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner', 'snack3'];
+  const SCH_NAME = () => ({ breakfast: T('الفطور'), snack1: T('سناك الصباح'), lunch: T('الغداء'), snack2: T('سناك العصر'), dinner: T('العشاء'), snack3: T('سناك المساء') });
+  const SCH_DEF = { breakfast: '08:00', snack1: '10:30', lunch: '13:30', snack2: '16:30', dinner: '19:30', snack3: '21:30' };
+  let schMode = 'auto';
+  function paintSchMode() {
+    document.querySelectorAll('#schMode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === schMode)));
+    $('schRows').classList.toggle('hidden', schMode !== 'custom'); $('schAutoNote').classList.toggle('hidden', schMode === 'custom');
+  }
+  async function loadScheduleSettings() {
+    try {
+      const [p, d] = await Promise.all([api('profile'), api('schedule')]);
+      const cur = Object.fromEntries(((p.mealSchedule && p.mealSchedule.slots) || (d.ramadan ? [] : d.slots)).map((s) => [s.id, s.time]));
+      schMode = p.mealSchedule && p.mealSchedule.slots && p.mealSchedule.slots.length ? 'custom' : 'auto';
+      $('schRows').innerHTML = SCH_IDS.map((id) => `<label class="schedrow" style="margin:0"><input type="checkbox" data-sch-on="${id}" ${cur[id] ? 'checked' : ''}><span>${id.startsWith('snack') ? '🍎' : '🍽️'} ${SCH_NAME()[id]}</span><input type="time" data-sch-time="${id}" value="${cur[id] || SCH_DEF[id]}" style="margin:0"></label>`).join('');
+      paintSchMode();
+    } catch {}
+  }
+  document.querySelectorAll('#schMode button').forEach((b) => (b.onclick = () => { schMode = b.dataset.mode; paintSchMode(); }));
+  $('schSave').onclick = async () => {
+    let mealSchedule = null;
+    if (schMode === 'custom') {
+      const slots = SCH_IDS.filter((id) => document.querySelector(`[data-sch-on="${id}"]`).checked).map((id) => ({ id, time: document.querySelector(`[data-sch-time="${id}"]`).value }));
+      if (!slots.length) return toast(T('اختر وجبة واحدة على الأقل'));
+      mealSchedule = { slots };
+    }
+    try { await api('profile', { method: 'PUT', json: { mealSchedule } }); toast(T('تم الحفظ ✓')); } catch (e) { toast(e.message); }
+  };
+
   // ---------------- location for suggestions ----------------
   async function loadLocation() {
     try { const p = await api('profile'); $('locCity').value = p.city || ''; $('locArea').value = p.area || ''; } catch {}

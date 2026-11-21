@@ -1,3 +1,4 @@
+import { kindOf, MEAL_KINDS } from '../schedule/schedule';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { NutritionAgentService } from '../agent/nutrition-agent.service';
@@ -25,6 +26,7 @@ export interface MealPatch {
   items?: MealItem[];
   portionFactor?: number;
   eatenAt?: string;
+  kind?: 'meal' | 'snack' | 'drink';
 }
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
@@ -39,11 +41,12 @@ export class MealsService {
   ) {}
 
   /** Meal + its score against the day's budget at the time it was eaten (excluding itself). */
-  async withScore(meal: Meal): Promise<Meal & { score: MealScore }> {
+  async withScore(meal: Meal): Promise<Meal & { score: MealScore; kind: string }> {
     const [plan, dayMeals] = await Promise.all([this.plans.plan(meal.userId), this.repo.listMeals(meal.userId, meal.date)]);
     const before = sumNutrients(dayMeals.filter((m) => m.id !== meal.id && m.status === 'confirmed').map((m) => m.final.totals));
     return {
       ...meal,
+      kind: kindOf(meal),
       score: scoreMeal(meal.final.totals, {
         goal: plan.effectiveGoal,
         remainingBeforeKcal: plan.targetKcal - before.calories,
@@ -198,8 +201,8 @@ export class MealsService {
     return this.withScore(await this.get(userId, id));
   }
 
-  list(userId: string, date: string) {
-    return this.repo.listMeals(userId, date);
+  async list(userId: string, date: string) {
+    return (await this.repo.listMeals(userId, date)).map((m) => ({ ...m, kind: kindOf(m) }));
   }
 
   async update(userId: string, id: string, patch: MealPatch) {
@@ -209,6 +212,10 @@ export class MealsService {
     if (patch.meal_name_ar !== undefined) final.meal_name_ar = patch.meal_name_ar;
     if (patch.restaurant !== undefined) final.restaurant = patch.restaurant;
     if (patch.items) final.items = patch.items;
+    if (patch.kind !== undefined) {
+      if (!MEAL_KINDS.includes(patch.kind)) throw new BadRequestException('kind must be meal, snack or drink');
+      final.kind = patch.kind;
+    }
     final = normalizeEstimate(final);
     if (patch.portionFactor !== undefined) {
       if (!(patch.portionFactor > 0 && patch.portionFactor <= 10)) throw new BadRequestException('portionFactor 0–10');

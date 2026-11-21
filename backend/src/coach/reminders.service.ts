@@ -7,6 +7,8 @@ import { addDays } from '../plan/plan.service';
 import { ProfileService } from '../profile/profile.service';
 import { REPOSITORY, Repository } from '../storage/repository';
 import { ramadanView } from './coach-math';
+import { ScheduleService } from '../schedule/schedule.service';
+import { dueSlotReminders, toMin } from '../schedule/schedule';
 
 export const PUSH_SENDER = Symbol('PUSH_SENDER');
 export type PushSender = (sub: PushSub, payload: string) => Promise<void>;
@@ -24,22 +26,7 @@ const localMinutes = (iso: string | Date, tz: string) => {
 const slotOf = (min: number): Slot | null =>
   (Object.keys(SLOT_RANGE) as Slot[]).find((s) => min >= SLOT_RANGE[s][0] && min < SLOT_RANGE[s][1]) ?? null;
 
-/** Typical time (median, local minutes) per meal slot, from slots seen on ≥4 of the last 21 days. */
-export function usualMealTimes(meals: Meal[], tz: string): Partial<Record<Slot, number>> {
-  const per: Record<Slot, Map<string, number>> = { breakfast: new Map(), lunch: new Map(), dinner: new Map() };
-  for (const m of meals) {
-    if (m.status !== 'confirmed') continue;
-    const min = localMinutes(m.eatenAt, tz);
-    const s = slotOf(min);
-    if (s && !per[s].has(m.date)) per[s].set(m.date, min); // first meal of that slot per day
-  }
-  const out: Partial<Record<Slot, number>> = {};
-  for (const s of Object.keys(per) as Slot[]) {
-    const v = [...per[s].values()].sort((a, b) => a - b);
-    if (v.length >= 4) out[s] = v[Math.floor(v.length / 2)];
-  }
-  return out;
-}
+export { usualMealTimes } from '../schedule/schedule';
 
 /**
  * Decide which reminders are due right now (pure; unit-tested).
@@ -91,6 +78,7 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
     private readonly profiles: ProfileService,
     private readonly config: ConfigService,
     @Optional() @Inject(PUSH_SENDER) sender?: PushSender,
+    @Optional() private readonly schedule?: ScheduleService,
   ) {
     const pub = config.get<string>('VAPID_PUBLIC_KEY');
     const priv = config.get<string>('VAPID_PRIVATE_KEY');
@@ -168,22 +156,26 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
       const p = await this.profiles.get(userId);
       const tz = p.timezone;
       const today = localDate(now, tz);
-      const meals = await this.repo.listMealsRange(userId, addDays(today, -21), today);
-      const usual = usualMealTimes(meals.filter((m) => m.date < today), tz);
-      const logged = new Set(
-        meals.filter((m) => m.date === today).map((m) => slotOf(localMinutes(m.eatenAt, tz))).filter(Boolean) as Slot[],
-      );
       const w = await this.repo.listWeights(userId, addDays(today, -30), today);
       const lastW = w.length ? w[w.length - 1].date : null;
+      const prefs = p.reminders ?? { meals: true, weight: true };
+      const lang = p.language ?? 'en';
+      const fasting = ramadanView(p.ramadan, now, tz, 2000).fasting;
+      const nowMin = localMinutes(now, tz);
+      // weight reminder (meal reminders now follow the eating schedule below)
       const due = dueReminders({
-        nowMin: localMinutes(now, tz),
-        usual,
-        loggedSlotsToday: logged,
+        nowMin,
+        usual: {},
+        loggedSlotsToday: new Set(),
         daysSinceWeight: lastW ? Math.round((Date.parse(today) - Date.parse(lastW)) / 86400000) : null,
-        fasting: ramadanView(p.ramadan, now, tz, 2000).fasting,
-        prefs: p.reminders ?? { meals: true, weight: true },
-        lang: p.language ?? 'en',
+        fasting,
+        prefs: { meals: false, weight: prefs.weight },
+        lang,
       });
+      if (prefs.meals && this.schedule) {
+        const day = await this.schedule.day(userId, undefined, now);
+        due.push(...dueSlotReminders(day.slots, toMin(`${Math.floor(nowMin / 60)}:${nowMin % 60}`), lang, { fasting }));
+      }
       for (const r of due) {
         const key = `reminder:${today}:${r.key}`;
         if (await this.repo.getCache(userId, key)) continue;

@@ -1,3 +1,4 @@
+import { kindOf } from '../schedule/schedule';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { isIsoDate, localDate } from '../common/dates';
 import { sumNutrients } from '../common/nutrition-math';
@@ -110,6 +111,7 @@ export class EnergyService {
         source: m.final.source,
         calories: m.final.totals.calories,
         protein_g: m.final.totals.protein_g,
+        kind: kindOf(m),
       })),
       availableSources: days.map((x) => x.source),
     };

@@ -51,6 +51,8 @@ export interface NutritionEstimate {
   /** coach (phase 2b): healthier alternatives and a short note, written by the agent */
   swaps?: { instead_of_ar: string; choose_ar: string; delta_kcal: number; delta_protein_g: number; why_ar: string }[];
   coach_note_ar?: string;
+  /** meal | snack | drink — set by the user; otherwise guessed */
+  kind?: 'meal' | 'snack' | 'drink';
 }
 
 export interface Meal {
@@ -132,6 +134,8 @@ export interface Profile {
   dietStyle?: DietStyle;
   conditions?: Condition[];
   mealsPerDay?: number | null;
+  /** user-edited eating times; null/absent = automatic */
+  mealSchedule?: { custom: boolean; slots: { id: string; kind: 'meal' | 'snack'; time: string }[] } | null;
   activityCalibration: {
     from: Profile['activityLevel'];
     to: Profile['activityLevel'];
