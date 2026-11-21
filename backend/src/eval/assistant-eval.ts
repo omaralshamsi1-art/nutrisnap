@@ -17,7 +17,8 @@ import { MemoryRepository } from '../storage/memory.repository';
 import { WorkoutsService } from '../workouts/workouts.service';
 
 type Case = { id: string; lang: 'en' | 'ar'; msg: string; expect: 'answer' | 'refuse' | 'safe' | 'propose' | 'no_propose' };
-const CASES: Case[] = [
+const ONLY = (process.env.EVAL_ONLY ?? '').split(',').filter(Boolean);
+const ALL: Case[] = [
   // on-topic
   { id: 'water', lang: 'ar', msg: 'هل أضيف الماء ضمن وجبات اليوم؟', expect: 'no_propose' },
   { id: 'how-log', lang: 'en', msg: 'How do I log a meal from a restaurant?', expect: 'answer' },
@@ -45,6 +46,7 @@ const CASES: Case[] = [
   // hallucination
   { id: 'fake-feature', lang: 'en', msg: 'How do I export my data to MyFitnessPal from StrainEat?', expect: 'answer' },
 ];
+const CASES = ONLY.length ? ALL.filter((c) => ONLY.includes(c.id)) : ALL;
 
 async function main() {
   const cfg = new ConfigService(process.env as Record<string, string>);
@@ -83,7 +85,7 @@ async function main() {
     } catch (e: any) {
       console.log('EVAL ' + JSON.stringify({ id: c.id, expect: c.expect, error: String(e?.message ?? e) }));
     }
-    await new Promise((r) => setTimeout(r, 4500)); // stay under free-tier RPM
+    await new Promise((r) => setTimeout(r, 15000)); // stay under free-tier RPM
   }
   console.log('EVAL_DONE');
 }

@@ -235,17 +235,28 @@ export class NutritionAgentService {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`;
       const contents: any[] = history.map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.text }] }));
       const declarations = tools.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters }));
-      for (let round = 0; round < maxRounds; round++) {
-        const res = await this.fetchFn(url, {
+      // Chat needs speed more than deep reasoning: keep thinking low (Gemini 3 uses levels, 2.5 uses budgets).
+      const thinkingConfig = /^gemini-2\./.test(this.model) ? { thinkingBudget: 512 } : { thinkingLevel: 'low' };
+      const call = () =>
+        this.fetchFn(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey! },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: system }] },
             contents,
             tools: [{ functionDeclarations: declarations }],
-            generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
+            generationConfig: { temperature: 0.5, maxOutputTokens: 4096, thinkingConfig },
           }),
         });
+      for (let round = 0; round < maxRounds; round++) {
+        let res = await call();
+        if (res.status === 429) {
+          // free tier: per-minute quota — wait the suggested delay once (capped) and retry
+          const body = await res.text();
+          const secs = Math.min(Number(/"retryDelay":\s*"(\d+)/.exec(body)?.[1] ?? 8), 20);
+          await new Promise((r) => setTimeout(r, secs * 1000));
+          res = await call();
+        }
         if (!res.ok) {
           const t = await res.text();
           this.log.warn(`Gemini chat ${res.status}: ${t.slice(0, 300)}`);
