@@ -28,7 +28,7 @@ struct PlanTab: View {
             }
             .screenBackground()
             .navigationTitle(t("Plan", "الخطة"))
-            .refreshable { await load() }
+            .refreshable { await store.refresh(force: true); await load() }
             .task { await load() }
             .sheet(isPresented: $editing, onDismiss: { Task { await load(); await store.refresh() } }) {
                 OnboardingView(existing: profile).environment(store).environment(\.layoutDirection, appLayoutDirection)

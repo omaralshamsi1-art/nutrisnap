@@ -46,7 +46,7 @@ struct TodayView: View {
                 .padding(16)
             }
             .screenBackground()
-            .refreshable { await store.refresh() }
+            .refreshable { await store.refresh(force: true) }
             .navigationDestination(for: String.self) { MealLoaderView(mealId: $0) }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -266,7 +266,7 @@ struct ScheduleCard: View {
                 ProgressView().frame(maxWidth: .infinity)
             }
         }
-        .task(id: store.balance?.meals.count ?? -1) { await load() }
+        .task(id: store.refreshTick) { await load() }
     }
 
     private func statusChip(_ st: String) -> some View {

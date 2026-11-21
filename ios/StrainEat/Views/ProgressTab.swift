@@ -25,7 +25,7 @@ struct ProgressTab: View {
             }
             .screenBackground()
             .navigationTitle(t("Progress", "التقدم"))
-            .refreshable { await load() }
+            .refreshable { await store.refresh(force: true); await load() }
             .task { await load() }
         }
     }

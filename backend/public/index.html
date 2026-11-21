@@ -448,6 +448,12 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
 .act .b button.ok { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 </style>
 <style>
+/* ---------- pull to refresh ---------- */
+#ptr { position: fixed; top: calc(6px + env(safe-area-inset-top)); left: 50%; z-index: 45; width: 42px; height: 42px; margin-left: -21px; border-radius: 50%;
+  background: var(--card-2); color: var(--ink); box-shadow: 0 6px 18px rgba(0,0,0,.16); display: grid; place-items: center;
+  transform: translateY(-70px); opacity: 0; transition: transform .2s, opacity .2s; pointer-events: none; }
+#ptr.pull { transition: none; } #ptr.ready { background: var(--y); color: #111113; }
+#ptr.spin svg { animation: ptrspin .8s linear infinite; } @keyframes ptrspin { to { transform: rotate(360deg); } }
 /* ---------- WHOOP-style overview ---------- */
 .rings3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 14px 0 6px; }
 .r3 { position: relative; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); display: flex; flex-direction: column; align-items: center; }
@@ -917,6 +923,7 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
     <button data-v="plan-settings"><svg width="24" height="24"><use href="#i-gear"/></svg>الإعدادات</button>
   </div>
 </nav>
+<div id="ptr" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></div>
 <div id="det" class="hidden" role="dialog"><div class="dh"><button id="detBack" aria-label="رجوع">‹</button><b id="detTitle"></b><span></span></div><div class="db" id="detBody"></div></div>
 <button id="askFab" class="hidden" aria-label="اسأل StrainEat"><svg width="26" height="26"><use href="#i-spark"/></svg></button>
 <div id="ask" class="hidden" role="dialog" aria-label="اسأل StrainEat">
@@ -2233,6 +2240,38 @@ html[data-theme="dark"] .lo-t { color: #8cc1f2; }
   function closeDetail() { $('det').classList.add('hidden'); document.body.style.overflow = ''; }
   $('detBack').onclick = closeDetail;
   document.querySelectorAll('[data-det]').forEach((el) => (el.onclick = () => openDetail(el.dataset.det)));
+
+  // ---------------- pull to refresh (sync WHOOP + reload the screen) ----------------
+  (() => {
+    const ptr = $('ptr'); let y0 = null, dist = 0, busy = false;
+    const overlayOpen = () => curView === 'onb' || curView === 'setup' || ['ask', 'det'].some((id) => !$(id).classList.contains('hidden'));
+    window.addEventListener('touchstart', (e) => { if (busy || overlayOpen() || window.scrollY > 0 || e.touches.length !== 1) { y0 = null; return; } y0 = e.touches[0].clientY; dist = 0; }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (y0 == null) return;
+      dist = Math.max(0, e.touches[0].clientY - y0);
+      if (window.scrollY > 0) { y0 = null; return; }
+      const d = Math.min(dist * 0.5, 90);
+      ptr.classList.add('pull'); ptr.style.opacity = String(Math.min(1, d / 45));
+      ptr.style.transform = `translateY(${d - 50}px) rotate(${d * 4}deg)`;
+      ptr.classList.toggle('ready', d >= 60);
+    }, { passive: true });
+    window.addEventListener('touchend', async () => {
+      if (y0 == null) return;
+      y0 = null; ptr.classList.remove('pull');
+      if (Math.min(dist * 0.5, 90) < 60) { ptr.style.transform = ''; ptr.style.opacity = '0'; ptr.classList.remove('ready'); return; }
+      busy = true; ptr.classList.add('spin'); ptr.style.transform = 'translateY(14px)'; ptr.style.opacity = '1';
+      try {
+        ls.set('ns_whoop_sync', '0'); // force a WHOOP sync now
+        histCache = null; planCache = null;
+        const v = document.querySelector('nav button.on')?.dataset.v || 'today';
+        if (v === 'progress') { await autoSyncWhoop(); await loadProgress(); }
+        else if (v === 'plan' || v === 'plan-settings') { await autoSyncWhoop(); await loadPlan(); }
+        else await loadToday();
+        toast(T('تم التحديث ✓'));
+      } catch (e) { toast(e.message); }
+      finally { busy = false; ptr.classList.remove('spin', 'ready'); ptr.style.transform = ''; ptr.style.opacity = '0'; }
+    });
+  })();
 
   // ---------------- quick links ----------------
   $('qlSnap').onclick = () => show('snap');

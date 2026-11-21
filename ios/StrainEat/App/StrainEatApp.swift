@@ -98,14 +98,18 @@ final class AppStore {
         return !(d.string(forKey: "apiKey") ?? "").isEmpty || !(d.string(forKey: "accessToken") ?? "").isEmpty
     }
 
-    func refresh() async {
+    /// Bumped on every refresh so cards that load their own data (schedule…) reload too.
+    var refreshTick = 0
+
+    /// `force` = pull-to-refresh: sync WHOOP now instead of waiting for the 15-minute throttle.
+    func refresh(force: Bool = false) async {
         isLoading = true
-        defer { isLoading = false }
+        defer { isLoading = false; refreshTick += 1 }
         await HealthKitManager.shared.syncBurnToServer()
         await HealthKitManager.shared.syncWorkoutsToServer()
         if whoopConnected {
             let lastSync = UserDefaults.standard.double(forKey: "whoopLastSync")
-            if Date().timeIntervalSince1970 - lastSync > 15 * 60 { // at most every 15 min
+            if force || Date().timeIntervalSince1970 - lastSync > 15 * 60 { // at most every 15 min unless pulled
                 let from = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
                 if (try? await APIClient.shared.whoopSync(from: from, to: Date())) != nil {
                     UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "whoopLastSync")
