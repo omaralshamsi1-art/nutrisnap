@@ -364,6 +364,4 @@ struct WorkoutUpload: Encodable {
     let avgHr: Double?
     let maxHr: Double?
     let distanceM: Double?
-    let sportEn: String?
-    var displayName: String { (appLang == .ar ? sportAr : sportEn) ?? sport }
 }

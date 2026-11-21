@@ -142,13 +142,13 @@ func goalName(_ g: String) -> String { ["lose": t("Lose weight", "إنقاص ا�
 struct MacrosCard: View {
     let balance: Balance
     var body: some View {
-        let n = balance.intake, t = balance.macroTargets
+        let n = balance.intake, mt = balance.macroTargets
         Card(title: t("Nutrients", "العناصر الغذائية"), icon: "chart.bar.fill") {
             VStack(spacing: 12) {
-                MacroProgress(title: t("Protein", "بروتين"), value: n.proteinG, target: t?.proteinG, color: Theme.protein)
-                MacroProgress(title: t("Carbs", "كربوهيدرات"), value: n.carbsG, target: t?.carbsG, color: Theme.carbs)
-                MacroProgress(title: t("Fat", "دهون"), value: n.fatG, target: t?.fatG, color: Theme.fat)
-                MacroProgress(title: t("Fibre", "ألياف"), value: n.fiberG, target: t?.fiberG, color: Theme.fiber)
+                MacroProgress(title: t("Protein", "بروتين"), value: n.proteinG, target: mt?.proteinG, color: Theme.protein)
+                MacroProgress(title: t("Carbs", "كربوهيدرات"), value: n.carbsG, target: mt?.carbsG, color: Theme.carbs)
+                MacroProgress(title: t("Fat", "دهون"), value: n.fatG, target: mt?.fatG, color: Theme.fat)
+                MacroProgress(title: t("Fibre", "ألياف"), value: n.fiberG, target: mt?.fiberG, color: Theme.fiber)
             }
         }
     }
