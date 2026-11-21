@@ -233,6 +233,8 @@ struct Plan: Codable {
     let changeSinceStartKg: Double?
     let burnData: BurnData?
     let activityLevel: String?
+    let bmr: Double?
+    let ageYears: Int?
 }
 
 struct WeightEntry: Codable, Identifiable { let date: String; let kg: Double; let trend: Double; let source: String?
@@ -335,6 +337,10 @@ struct Profile: Codable {
     var ramadan: Ramadan?
     var reminders: Reminders?
     var language: String?
+    var birthDate: String?
+    var dietStyle: String?
+    var conditions: [String]?
+    var mealsPerDay: Int?
 }
 
 struct EnergySample: Codable {
