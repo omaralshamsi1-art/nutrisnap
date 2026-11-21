@@ -447,6 +447,46 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
 #ask .ft button.mic { background: var(--card); color: var(--ink); }
 .act .b button.ok { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 </style>
+<style>
+/* ---------- WHOOP-style overview ---------- */
+.rings3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 14px 0 6px; }
+.r3 { position: relative; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); display: flex; flex-direction: column; align-items: center; }
+.r3 svg { width: 100%; max-width: 116px; transform: rotate(-90deg); }
+.r3 .trk { fill: none; stroke: var(--ring-track); stroke-width: 9; }
+.r3 .arc { fill: none; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+.r3 .v { position: absolute; top: 0; left: 0; right: 0; aspect-ratio: 1; max-width: 116px; margin: 0 auto; display: grid; place-items: center; }
+.r3 .v b { font-size: 26px; font-weight: 800; letter-spacing: -0.04em; }
+.r3 .v b small { font-size: 15px; font-weight: 700; }
+.r3 .lb { margin-top: 8px; font-size: 13px; font-weight: 800; letter-spacing: .06em; }
+.mon2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.mon { border: 0; text-align: start; background: var(--card); border-radius: 24px; padding: 16px; cursor: pointer; color: var(--ink); }
+.mon .mh { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; }
+.mon .mh span { color: var(--muted); font-size: 18px; line-height: 1; }
+.mon .mb { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+.mon .mb b { display: block; font-size: 13px; font-weight: 800; letter-spacing: .04em; }
+.badge2 { min-width: 38px; height: 38px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+.badge2.ok, .chip2.ok { background: var(--good-soft); color: var(--good); } .badge2.hi, .chip2.hi { background: var(--accent-soft); color: var(--warn); }
+.badge2.lo, .chip2.lo { background: #e3effa; color: #1f5fa8; } html[data-theme="dark"] .badge2.lo, html[data-theme="dark"] .chip2.lo { background: #17283a; color: #8cc1f2; }
+.ok-t { color: var(--good); } .hi-t { color: var(--warn); } .lo-t { color: #1f5fa8; }
+html[data-theme="dark"] .lo-t { color: #8cc1f2; }
+#dayStatus { border-radius: 16px; margin-top: 8px; }
+/* detail page */
+#det { position: fixed; inset: 0; z-index: 38; background: var(--bg); overflow-y: auto; }
+#det.hidden { display: none; }
+#det .dh { position: sticky; top: 0; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: calc(10px + env(safe-area-inset-top)) 12px 10px; background: var(--bg); z-index: 1; }
+#det .dh b { text-align: center; font-size: 15px; font-weight: 800; letter-spacing: .1em; }
+#det .dh button { width: 42px; height: 42px; border: 0; background: var(--card); border-radius: 14px; color: var(--ink); font-size: 20px; cursor: pointer; }
+#det .db { max-width: 640px; margin: 0 auto; padding: 0 16px 40px; }
+.dchart { background: var(--card); border-radius: 24px; padding: 16px; margin: 6px 0 14px; }
+.dchart .t { font-size: 12.5px; font-weight: 800; letter-spacing: .08em; }
+.dchart .big { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; margin-top: 4px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tile { background: var(--card); border-radius: 22px; padding: 14px; min-height: 128px; display: flex; flex-direction: column; }
+.tile .tl { font-size: 11.5px; font-weight: 800; letter-spacing: .07em; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.tile .tv { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; margin: 8px 0 10px; white-space: nowrap; }
+.tile .tv small { font-size: 14px; font-weight: 600; letter-spacing: 0; margin-inline-start: 3px; }
+.chip2 { margin-top: auto; align-self: flex-start; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 9px; }
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -540,26 +580,19 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
       <button class="p" id="qlAsk"><div class="ti"><svg width="26" height="26"><use href="#i-spark"/></svg></div><b>المساعد</b></button>
     </div>
 
-    <div class="card heroc">
-      <div class="hero">
-        <div class="ring">
-          <svg width="168" height="168" viewBox="0 0 168 168" aria-hidden="true">
-            <circle cx="84" cy="84" r="72" fill="none" stroke="var(--ring-track)" stroke-width="14"/>
-            <circle id="ringArc" cx="84" cy="84" r="72" fill="none" stroke="var(--brand-2)" stroke-width="14" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4" style="transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)"/>
-          </svg>
-          <div class="c"><div><div class="big num" id="ringNum" dir="ltr" style="unicode-bidi:isolate">—</div><div class="lbl" id="ringLbl">سعرة متبقية</div></div></div>
-        </div>
-        <div class="kv">
-          <div><span class="muted">الهدف</span><b class="num" id="kTarget">—</b></div>
-          <div><span class="muted">أكلت</span><b class="num" id="kEaten">—</b></div>
-          <div><span class="muted">حرقت <span id="kSrc" class="small"></span></span><b class="num" id="kBurn">—</b></div>
-          <div id="kPendRow" class="hidden"><span class="muted">مسودات</span><b class="num" id="kPend" style="color:var(--warn)">—</b></div>
-        </div>
-      </div>
-      <div class="legend2"><span><i style="background:var(--good)"></i>ضمن الهدف (+)</span><span><i style="background:var(--bad)"></i>تجاوز الهدف (−)</span></div>
-      <div class="macro" id="macros"></div>
-      <div class="status" id="dayStatus" role="status"></div>
+    <div class="rings3">
+      <button class="r3" data-det="eaten"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" class="trk"/><circle cx="60" cy="60" r="50" class="arc" id="r3Eat" stroke-dasharray="314.2" stroke-dashoffset="314.2"/></svg><div class="v"><b class="num" id="r3EatV" dir="ltr">—</b></div><span class="lb">الأكل ›</span></button>
+      <button class="r3" data-det="left"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" class="trk"/><circle cx="60" cy="60" r="50" class="arc" id="r3Left" stroke-dasharray="314.2" stroke-dashoffset="314.2"/></svg><div class="v"><b class="num" id="r3LeftV" dir="ltr">—</b></div><span class="lb" id="r3LeftL">المتبقي ›</span></button>
+      <button class="r3" data-det="burn"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" class="trk"/><circle cx="60" cy="60" r="50" class="arc" id="r3Burn" stroke-dasharray="314.2" stroke-dashoffset="314.2"/></svg><div class="v"><b class="num" id="r3BurnV" dir="ltr">—</b></div><span class="lb">الحرق ›</span></button>
     </div>
+    <div class="status" id="dayStatus" role="status"></div>
+    <div class="mon2">
+      <button class="mon" data-det="eaten"><div class="mh">مراقبة التغذية <span>›</span></div><div class="mb"><span class="badge2" id="monNutB">—</span><div><b id="monNutT">—</b><span class="small muted" id="monNutS"></span></div></div></button>
+      <button class="mon" data-det="burn"><div class="mh">الطاقة <span>›</span></div><div class="mb"><span class="badge2" id="monEnB">—</span><div><b id="monEnT">—</b><span class="small muted" id="monEnS"></span></div></div></button>
+    </div>
+    <div id="kPendRow" class="hidden small" style="margin:8px 4px 0;color:var(--warn)">مسودات غير مؤكدة: <b class="num" id="kPend">—</b> سعرة</div>
+
+    <div class="sect"><em class="acc">يومي</em></div>
 
     <div class="card ram hidden" id="ramCard">
       <div class="row"><b style="font-size:17px">🌙 وضع رمضان</b><span class="small muted" id="ramTimes"></span></div>
@@ -884,6 +917,7 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
     <button data-v="plan-settings"><svg width="24" height="24"><use href="#i-gear"/></svg>الإعدادات</button>
   </div>
 </nav>
+<div id="det" class="hidden" role="dialog"><div class="dh"><button id="detBack" aria-label="رجوع">‹</button><b id="detTitle"></b><span></span></div><div class="db" id="detBody"></div></div>
 <button id="askFab" class="hidden" aria-label="اسأل StrainEat"><svg width="26" height="26"><use href="#i-spark"/></svg></button>
 <div id="ask" class="hidden" role="dialog" aria-label="اسأل StrainEat">
   <div class="hd">
@@ -1396,21 +1430,13 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
       if (b.onboarded === false && isoDay(day) === isoDay(new Date())) { startOnboarding(await api('profile')); return; }
       $('goalLine').textContent = L`هدفك: ${GOAL_AR[b.goal] || ''}${deltaWords(b.goalDeltaKcal)}`;
       const eaten = b.intake.calories, target = b.targetIntakeKcal;
-      const p = target ? Math.min(eaten / target, 1) : 0;
-      requestAnimationFrame(() => { $('ringArc').style.strokeDashoffset = String(452.4 * (1 - p)); });
-      const st = dayState(b.goal, eaten, target, b.meals.length, isoDay(day) === isoDay(new Date()));
-      $('ringArc').setAttribute('stroke', st.color);
-      $('ringNum').textContent = `${b.remainingKcal > 0 ? '+' : b.remainingKcal < 0 ? '−' : ''}${fmt(Math.abs(b.remainingKcal))}`;
-      $('ringNum').style.color = st.color;
-      $('ringNum').style.fontSize = $('ringNum').textContent.length > 5 ? '31px' : '';
-      $('ringLbl').textContent = b.remainingKcal >= 0 ? T('سعرة متبقية لك') : T('سعرة فوق هدفك');
+      const isTodayV = isoDay(day) === isoDay(new Date());
+      const st = dayState(b.goal, eaten, target, b.meals.length, isTodayV);
       $('dayStatus').className = `status ${st.cls}`;
       $('dayStatus').innerHTML = `<svg width="22" height="22"><use href="#${st.cls === 'good' ? 'i-check' : 'i-alert'}"/></svg><span>${st.text}</span>`;
-      $('kTarget').textContent = fmt(target); $('kEaten').textContent = fmt(eaten);
-      $('kBurn').textContent = b.burn ? fmt(b.burn.totalKcal) : '—';
-      $('kSrc').textContent = b.burn ? `(${SRC[b.burn.source] || b.burn.source})` : '';
       $('kPendRow').classList.toggle('hidden', !(b.pendingDrafts.calories > 0)); $('kPend').textContent = fmt(b.pendingDrafts.calories);
-      $('macros').innerHTML = macroRows(b.intake, b.macroTargets);
+      lastBal = b;
+      renderOverview(b, st);
       $('tips').innerHTML = (b.tips || []).map((t) => `<div class="tip fade"><svg width="20" height="20"><use href="#i-bulb"/></svg><div>${esc(tx(t, 'text'))}</div></div>`).join('');
       planGoal = b.goal;
       renderActivity(b.activity);
@@ -2077,6 +2103,121 @@ html[data-theme="dark"] .bub.me { background: #4a3a8c; }
     window.applyTheme(); paintThemeSw();
   }));
   paintThemeSw();
+
+  // ---------------- overview rings + monitors + detail pages (WHOOP-style) ----------------
+  let lastBal = null, histCache = null;
+  const C = 314.2;
+  const setRing = (id, frac, color) => { const el = $(id); el.setAttribute('stroke', color); requestAnimationFrame(() => { el.style.strokeDashoffset = String(C * (1 - Math.max(0, Math.min(1, frac)))); }); };
+  /** Status of each nutrient for today: ok / hi (over) / lo (well under, only judged late in the day). */
+  function nutrientChecks(b) {
+    const t = b.macroTargets || {}, i = b.intake, hour = new Date().getHours(), late = isoDay(day) !== isoDay(new Date()) || hour >= 19;
+    const kcalT = b.targetIntakeKcal;
+    const row = (key, label, have, want, unit, kind) => {
+      let state = 'ok', chip;
+      if (kind === 'max') { state = have > want * 1.05 ? 'hi' : 'ok'; chip = state === 'ok' ? L`✓ ضمن ≤ ${fmt(want)}` : L`↑ أعلى من ${fmt(want)}`; }
+      else if (kind === 'min') { state = late && have < want * 0.8 ? 'lo' : 'ok'; chip = state === 'lo' ? L`↓ أقل من ${fmt(want)}` : have >= want ? L`✓ وصلت ${fmt(want)}` : L`✓ الهدف ${fmt(want)}`; }
+      return { key, label, have: Math.round(have || 0), want, unit, state, chip };
+    };
+    return [
+      row('kcal', T('السعرات'), i.calories, kcalT, T('سعرة'), b.goal === 'gain' ? 'min' : 'max'),
+      row('protein', T('البروتين'), i.protein_g, t.protein_g || 0, T('غ'), 'min'),
+      row('carbs', T('الكربوهيدرات'), i.carbs_g, t.carbs_g || 0, T('غ'), 'max'),
+      row('fat', T('الدهون'), i.fat_g, t.fat_g || 0, T('غ'), 'max'),
+      row('fiber', T('الألياف'), i.fiber_g, t.fiber_g || 0, T('غ'), 'min'),
+      row('sodium', T('الصوديوم'), i.sodium_mg, 2300, T('ملغ'), 'max'),
+    ];
+  }
+  function renderOverview(b, st) {
+    const eaten = b.intake.calories, target = b.targetIntakeKcal, left = b.remainingKcal;
+    const burn = b.burn ? b.burn.totalKcal : null;
+    const eatPct = target ? Math.round((eaten / target) * 100) : 0;
+    setRing('r3Eat', eaten / (target || 1), eatPct > 105 && b.goal !== 'gain' ? 'var(--bad)' : '#7ba6c9');
+    $('r3EatV').innerHTML = `${eatPct}<small>%</small>`;
+    setRing('r3Left', Math.max(0, left) / (target || 1), left < 0 ? 'var(--bad)' : '#2fbf55');
+    $('r3LeftV').textContent = `${left < 0 ? '−' : ''}${fmt(Math.abs(left))}`;
+    $('r3LeftL').textContent = left < 0 ? T('فوق الهدف ›') : T('المتبقي ›');
+    const burnPct = burn && eaten ? Math.round((burn / eaten) * 100) : null;
+    setRing('r3Burn', burnPct ? burnPct / 200 : 0, '#1e90e8');
+    $('r3BurnV').innerHTML = burnPct != null ? `${burnPct}<small>%</small>` : burn ? fmt(burn) : '—';
+    // monitors
+    const checks = nutrientChecks(b).filter((c) => c.key !== 'sodium' || b.intake.sodium_mg);
+    const okN = checks.filter((c) => c.state === 'ok').length;
+    const allOk = okN === checks.length;
+    $('monNutB').className = `badge2 ${allOk ? 'ok' : checks.some((c) => c.state === 'hi') ? 'hi' : 'lo'}`;
+    $('monNutB').textContent = allOk ? '✓' : String(checks.length - okN);
+    $('monNutT').className = allOk ? 'ok-t' : 'hi-t';
+    $('monNutT').textContent = allOk ? T('ضمن النطاق') : T('يحتاج انتباه');
+    $('monNutS').textContent = L`${okN}/${checks.length} عناصر`;
+    if (burn != null) {
+      const net = burn - eaten;
+      $('monEnB').className = `badge2 ${net >= 0 ? 'ok' : 'hi'}`; $('monEnB').textContent = burnPct != null ? `${burnPct}%` : '—';
+      $('monEnT').className = net >= 0 ? 'ok-t' : 'hi-t';
+      $('monEnT').textContent = net >= 0 ? T('عجز') : T('فائض');
+      $('monEnB').style.fontSize = String($('monEnB').textContent).length > 3 ? '12.5px' : '';
+      $('monEnS').textContent = L`حرقت ${fmt(burn)} · أكلت ${fmt(eaten)}`;
+    } else {
+      $('monEnB').className = 'badge2 lo'; $('monEnB').textContent = '—';
+      $('monEnT').className = ''; $('monEnT').textContent = T('لا توجد بيانات حرق');
+      $('monEnS').textContent = T('اربط WHOOP أو Apple Health');
+    }
+  }
+  function barsSvg(days, valKey, lineKey, color) {
+    const w = 320, h = 120, n = days.length, max = Math.max(1, ...days.map((d) => Math.max(d[valKey] || 0, d[lineKey] || 0))) * 1.1;
+    const bw = w / n * 0.56;
+    const bars = days.map((d, i) => { const v = d[valKey] || 0, bh = (v / max) * (h - 18); const x = (w / n) * i + (w / n - bw) / 2; return `<rect x="${x}" y="${h - 14 - bh}" width="${bw}" height="${Math.max(bh, 2)}" rx="5" fill="${color}" opacity="${i === n - 1 ? 1 : 0.55}"/>`; }).join('');
+    const ly = h - 14 - ((days[n - 1][lineKey] || 0) / max) * (h - 18);
+    const labels = days.map((d, i) => `<text x="${(w / n) * i + w / n / 2}" y="${h - 1}" text-anchor="middle" font-size="9" fill="var(--muted)">${new Date(d.date + 'T12:00').toLocaleDateString(LOC, { weekday: 'narrow' })}</text>`).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="margin-top:10px">${bars}${lineKey ? `<line x1="0" x2="${w}" y1="${ly}" y2="${ly}" stroke="var(--ink)" stroke-dasharray="4 4" opacity=".45"/>` : ''}${labels}</svg>`;
+  }
+  const tileHtml = (label, value, unit, chip, cls) => `<div class="tile"><div class="tl">${label}</div><div class="tv num"><span dir="ltr" style="unicode-bidi:isolate">${value}</span><small>${unit || ''}</small></div>${chip ? `<span class="chip2 ${cls || 'ok'}">${chip}</span>` : ''}</div>`;
+  async function openDetail(kind) {
+    const b = lastBal; if (!b) return;
+    $('det').classList.remove('hidden'); document.body.style.overflow = 'hidden';
+    $('detBack').textContent = '‹'; // bidi-mirrored: shows › in Arabic
+    const titles = { eaten: T('مراقبة التغذية'), left: T('المتبقي اليوم'), burn: T('الطاقة') };
+    $('detTitle').textContent = titles[kind];
+    const eaten = b.intake.calories, burn = b.burn ? b.burn.totalKcal : null;
+    let chart = '', tiles = '';
+    if (kind === 'eaten') {
+      chart = `<div class="dchart"><div class="t">${T('سعرات آخر 7 أيام')}</div><div class="big num">${fmt(eaten)}<small style="font-size:15px"> / ${fmt(b.targetIntakeKcal)}</small></div><div id="detChart"><div class="loading"><div class="spinner"></div></div></div></div>`;
+      tiles = nutrientChecks(b).map((c) => tileHtml(c.label, fmt(c.have), ' ' + c.unit, c.chip, c.state)).join('');
+    } else if (kind === 'left') {
+      const t = b.macroTargets || {}, i = b.intake;
+      const lft = (want, have) => Math.max(0, Math.round((want || 0) - (have || 0)));
+      chart = `<div class="dchart"><div class="t">${T('متبقي لك اليوم')}</div><div class="big num">${b.remainingKcal < 0 ? '−' : ''}${fmt(Math.abs(b.remainingKcal))}<small style="font-size:15px"> ${T('سعرة')}</small></div><div id="detChart"></div></div>`;
+      tiles = [
+        tileHtml(T('البروتين'), fmt(lft(t.protein_g, i.protein_g)), ' ' + T('غ'), L`من ${fmt(t.protein_g)}`, 'lo'),
+        tileHtml(T('الكربوهيدرات'), fmt(lft(t.carbs_g, i.carbs_g)), ' ' + T('غ'), L`من ${fmt(t.carbs_g)}`, 'lo'),
+        tileHtml(T('الدهون'), fmt(lft(t.fat_g, i.fat_g)), ' ' + T('غ'), L`من ${fmt(t.fat_g)}`, 'lo'),
+        tileHtml(T('الألياف'), fmt(lft(t.fiber_g, i.fiber_g)), ' ' + T('غ'), L`من ${fmt(t.fiber_g)}`, 'lo'),
+      ].join('') + `<div style="grid-column:1/-1"><button class="btn" id="detSug" style="margin-top:6px">${T('ماذا آكل الآن؟')}</button></div>`;
+    } else {
+      const pct = burn && eaten ? Math.round((burn / eaten) * 100) : null;
+      const net = burn != null ? burn - eaten : null;
+      chart = `<div class="dchart"><div class="t">${T('الحرق آخر 7 أيام')}</div><div class="big num">${burn != null ? fmt(burn) : '—'}<small style="font-size:15px"> ${T('سعرة')} ${b.burn ? `· ${esc(SRC[b.burn.source] || b.burn.source)}` : ''}</small></div><div id="detChart"><div class="loading"><div class="spinner"></div></div></div></div>`;
+      const act = b.activity || {};
+      tiles = [
+        tileHtml(T('الحرق ÷ الأكل'), pct != null ? pct : '—', '%', pct != null ? (pct >= 100 ? T('✓ الحرق أعلى') : T('↑ الأكل أعلى')) : '', pct != null && pct >= 100 ? 'ok' : 'hi'),
+        tileHtml(T('الفرق'), net != null ? `${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}` : '—', ' ' + T('سعرة'), net != null ? (net >= 0 ? T('✓ عجز') : T('↑ فائض')) : '', net != null && net >= 0 ? 'ok' : 'hi'),
+        tileHtml(T('الحرق النشط'), b.burn && b.burn.activeKcal != null ? fmt(b.burn.activeKcal) : '—', ' ' + T('سعرة'), '', ''),
+        tileHtml(T('الحرق الأساسي'), b.burn && b.burn.basalKcal != null ? fmt(b.burn.basalKcal) : '—', ' ' + T('سعرة'), '', ''),
+        tileHtml(T('التمارين'), act.totalKcal ? fmt(act.totalKcal) : '—', ' ' + T('سعرة'), act.totalMin ? L`${fmt(act.totalMin)} دقيقة` : '', 'lo'),
+        tileHtml(T('أكلت'), fmt(eaten), ' ' + T('سعرة'), L`الهدف ${fmt(b.targetIntakeKcal)}`, 'lo'),
+      ].join('');
+      if (burn == null) tiles += `<div style="grid-column:1/-1" class="small muted">${T('اربط WHOOP أو Apple Health من الإعدادات لحساب الحرق.')}</div>`;
+    }
+    $('detBody').innerHTML = chart + `<div class="tiles">${tiles}</div>`;
+    const sb = $('detSug'); if (sb) sb.onclick = () => { closeDetail(); loadSuggestions(false); setTimeout(() => $('sugBody').scrollIntoView({ behavior: 'smooth', block: 'start' }), 200); };
+    if (kind !== 'left') {
+      try {
+        histCache = histCache || (await api('history?days=7'));
+        $('detChart').innerHTML = kind === 'eaten' ? barsSvg(histCache.days, 'intakeKcal', 'targetKcal', '#7ba6c9') : barsSvg(histCache.days, 'burnKcal', 'intakeKcal', '#1e90e8');
+      } catch { $('detChart').innerHTML = ''; }
+    }
+  }
+  function closeDetail() { $('det').classList.add('hidden'); document.body.style.overflow = ''; }
+  $('detBack').onclick = closeDetail;
+  document.querySelectorAll('[data-det]').forEach((el) => (el.onclick = () => openDetail(el.dataset.det)));
 
   // ---------------- quick links ----------------
   $('qlSnap').onclick = () => show('snap');
