@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { ConfigService } from '@nestjs/config';
 import { describe, expect, it, vi } from 'vitest';
 import { NutritionAgentService } from '../src/agent/nutrition-agent.service';
-import { AssistantService } from '../src/assistant/assistant.service';
+import { AssistantService, splitOptions } from '../src/assistant/assistant.service';
 import { MotivationService } from '../src/coach/motivation.service';
 import { toEnglish } from '../src/common/i18n-errors';
 import { EnergyService } from '../src/energy/energy.service';
@@ -142,5 +142,19 @@ describe('assistant quota', () => {
     expect(err.getStatus()).toBe(429);
     expect(toEnglish(err.message)).toBe('Daily assistant message limit reached (30). Try again tomorrow.');
     expect(toEnglish('اكتب رسالتك')).toBe('Type your message');
+  });
+});
+
+describe('assistant tap-to-send options', () => {
+  it('parses the OPTIONS block into chips and strips it from the text', () => {
+    expect(splitOptions('Which goal?\n\nOPTIONS:\n> Lose weight\n> Maintain\n- Gain muscle')).toEqual({ text: 'Which goal?', options: ['Lose weight', 'Maintain', 'Gain muscle'] });
+    expect(splitOptions('أي وجبة؟\n**OPTIONS:**\n> الفطور\n> الغداء')).toEqual({ text: 'أي وجبة؟', options: ['الفطور', 'الغداء'] });
+    expect(splitOptions('No options here')).toEqual({ text: 'No options here', options: [] });
+  });
+  it('stores options on the reply', async () => {
+    const client = { messages: { create: vi.fn(async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Pick one:\nOPTIONS:\n> Show my week\n> Protein ideas' }] })) } };
+    const s = setup(new NutritionAgentService(client, new ConfigService({ ANTHROPIC_API_KEY: 'x' })));
+    const r = await s.assistant.chat('u', { message: 'help' });
+    expect(r.message).toMatchObject({ text: 'Pick one:', options: ['Show my week', 'Protein ideas'] });
   });
 });

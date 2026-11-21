@@ -316,7 +316,7 @@ html[dir="ltr"] svg:has(use[href="#i-chev-l"]), html[dir="ltr"] svg:has(use[href
 .act .b button.ok { background: var(--brand); color: #fff; border-color: var(--brand); }
 .act .st { font-size: 13px; font-weight: 600; } .act .st.done { color: var(--good); } .act .st.failed { color: var(--bad); }
 .askSug { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.askSug button { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer; text-align: start; }
+.askSug button { border: 1px solid var(--brand-2); background: var(--brand-soft); color: var(--ink); border-radius: 999px; padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer; text-align: start; }
 #ask .ft { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line); }
 #ask .ft textarea { flex: 1; min-height: 44px; max-height: 120px; resize: none; margin: 0; border-radius: 14px; font-size: 16px; }
 #ask .ft button { width: 44px; height: 44px; border-radius: 14px; border: 0; background: var(--brand); color: #fff; display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
@@ -1832,9 +1832,12 @@ html[dir="rtl"] #askSend svg { transform: scaleX(-1); }
       h += `<div class="bub ai">${T('أهلاً! أنا مساعد StrainEat. اسألني عن طريقة استخدام أي شاشة، أو عن أكلك وتقدّمك — أقرأ بياناتك وأعطيك نصيحة مخصّصة. أقدر أيضاً أسجّل وجبة أو وزنك بعد تأكيدك.')}</div>`;
       h += `<div class="askSug">${ASK_SUGGEST().map((q) => `<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`;
     }
-    for (const m of askMsgs) {
+    askMsgs.forEach((m, i) => {
       h += m.role === 'user' ? `<div class="bub me" dir="auto">${esc(m.text).replace(/\n/g, '<br>')}</div>` : `<div class="bub ai" dir="auto">${md(m.text)}${(m.actions || []).map(actHtml).join('')}</div>`;
-    }
+      if (m.role !== 'user' && i === askMsgs.length - 1 && !typing && (m.options || []).length) {
+        h += `<div class="askSug">${m.options.map((q) => `<button data-q="${esc(q)}" dir="auto">${esc(q)}</button>`).join('')}</div>`;
+      }
+    });
     if (typing) h += `<div class="bub ai typing">${T('يفكّر…')}</div>`;
     log.innerHTML = h;
     log.scrollTop = log.scrollHeight;

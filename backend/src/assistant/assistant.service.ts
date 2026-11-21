@@ -17,6 +17,8 @@ export interface AssistantMessage {
   text: string;
   at: string;
   actions?: PendingAction[];
+  /** tap-to-send follow-ups (choices the assistant offered) */
+  options?: string[];
 }
 export interface PendingAction {
   id: string;
@@ -103,6 +105,18 @@ const TOOLS: ChatTool[] = [
 
 const round = (n: number | null | undefined) => (n == null ? null : Math.round(n));
 
+/** Splits the model's "OPTIONS:" block off the reply text. */
+export function splitOptions(raw: string): { text: string; options: string[] } {
+  const m = /\n?[ \t*_]*(?:OPTIONS|الخيارات)[ \t*_]*[:：][ \t*_]*\n([\s\S]*)$/i.exec(raw);
+  if (!m) return { text: raw.trim(), options: [] };
+  const options = m[1]
+    .split('\n')
+    .map((l) => l.replace(/^\s*(?:>|[-•*]|\d+[.)])\s*/, '').replace(/^["“«]|["”»]$/g, '').trim())
+    .filter((l) => l.length > 0 && l.length <= 80)
+    .slice(0, 4);
+  return { text: raw.slice(0, m.index).trim(), options: [...new Set(options)] };
+}
+
 @Injectable()
 export class AssistantService {
   constructor(
@@ -165,6 +179,10 @@ Rules:
   ${profile.screening?.edHistory ? 'This user asked to avoid restriction talk: never talk about cutting calories; focus on balanced, nourishing choices.' : ''}
   ${supervised ? "This user's plan is supervised: remind them briefly to follow their clinician when giving diet advice." : ''}
   ${dietLine(profile.dietStyle, profile.conditions)}
+- Tap-to-send options: whenever you offer the user choices, ask them to pick something, or there are obvious next
+  questions, end the reply with a line "OPTIONS:" followed by 2–4 lines each starting with "> " — each is the exact
+  short message the user would send (same language as your reply, max 60 characters, no numbering). Don't repeat the
+  options as a list in the body; ask the question in the body and let the options carry the choices.
 - The user is currently on the "${screen ?? 'unknown'}" screen — use it to make how-to answers concrete.
 
 ${APP_GUIDE}`;
@@ -260,14 +278,21 @@ ${APP_GUIDE}`;
 
     const proposals: PendingAction[] = [];
     const out = await this.agent.chatWithTools(this.system(profile, screen, new Date()), turns, TOOLS, this.executor(userId, profile, proposals));
+    const split = splitOptions(out.text);
     const reply =
-      out.text ||
+      split.text ||
       (proposals.length
         ? profile.language === 'ar' ? 'جهّزت لك ذلك — اضغط تأكيد للحفظ.' : 'Ready — tap Confirm to save it.'
         : profile.language === 'ar' ? 'عذراً، لم أفهم. جرّب صياغة أخرى.' : "Sorry, I didn't get that. Try rephrasing.");
     const now = new Date().toISOString();
     const userMsg: AssistantMessage = { role: 'user', text, at: now };
-    const botMsg: AssistantMessage = { role: 'assistant', text: reply, at: now, ...(proposals.length ? { actions: proposals } : {}) };
+    const botMsg: AssistantMessage = {
+      role: 'assistant',
+      text: reply,
+      at: now,
+      ...(proposals.length ? { actions: proposals } : {}),
+      ...(split.options.length ? { options: split.options } : {}),
+    };
     await this.save(userId, [...messages, userMsg, botMsg]);
     return { message: botMsg, toolsUsed: out.toolCalls };
   }

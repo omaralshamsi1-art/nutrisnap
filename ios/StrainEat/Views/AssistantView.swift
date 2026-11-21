@@ -24,7 +24,8 @@ struct AssistantMessage: Codable, Hashable, Identifiable {
     let role: String
     let text: String
     var actions: [AssistantAction]?
-    enum CodingKeys: String, CodingKey { case role, text, actions }
+    var options: [String]?
+    enum CodingKeys: String, CodingKey { case role, text, actions, options }
 }
 
 private struct AssistantHistory: Codable { let messages: [AssistantMessage] }
@@ -93,6 +94,9 @@ struct AssistantView: View {
                         LazyVStack(alignment: .leading, spacing: 8) {
                             if messages.isEmpty { welcome }
                             ForEach(messages) { m in bubble(m).id(m.id) }
+                            if !busy, let last = messages.last, last.role != "user", let opts = last.options, !opts.isEmpty {
+                                ForEach(opts, id: \.self) { q in chip(q) }
+                            }
                             if busy {
                                 Text(t("Thinking…", "يفكّر…")).foregroundStyle(Theme.muted)
                                     .padding(12).background(Theme.card, in: RoundedRectangle(cornerRadius: 18)).id("typing")
@@ -128,15 +132,17 @@ struct AssistantView: View {
             Text(t("Hi! I'm the StrainEat assistant. Ask me how any screen works, or about your eating and progress — I read your data and give personal advice. I can also log a meal or your weight once you confirm.",
                    "أهلاً! أنا مساعد StrainEat. اسألني عن طريقة استخدام أي شاشة، أو عن أكلك وتقدّمك — أقرأ بياناتك وأعطيك نصيحة مخصّصة. أقدر أيضاً أسجّل وجبة أو وزنك بعد تأكيدك."))
                 .padding(12).background(Theme.card, in: RoundedRectangle(cornerRadius: 18))
-            ForEach(suggestions, id: \.self) { q in
-                Button { Task { await send(q) } } label: {
-                    Text(q).font(.subheadline).multilineTextAlignment(.leading)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(Theme.card, in: Capsule()).overlay(Capsule().stroke(Theme.line))
-                }
-                .foregroundStyle(Theme.ink)
-            }
+            ForEach(suggestions, id: \.self) { q in chip(q) }
         }
+    }
+
+    private func chip(_ q: String) -> some View {
+        Button { Task { await send(q) } } label: {
+            Text(q).font(.subheadline).multilineTextAlignment(.leading)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Theme.brandSoft, in: Capsule()).overlay(Capsule().stroke(Theme.brand2))
+        }
+        .foregroundStyle(Theme.ink)
     }
 
     @ViewBuilder private func bubble(_ m: AssistantMessage) -> some View {

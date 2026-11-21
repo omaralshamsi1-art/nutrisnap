@@ -253,6 +253,7 @@ export class NutritionAgentService {
         if (res.status === 429) {
           // free tier: per-minute quota — wait the suggested delay once (capped) and retry
           const body = await res.text();
+          this.log.warn(`Gemini chat 429: ${body.replace(/\s+/g, ' ').slice(0, 400)}`);
           const secs = Math.min(Number(/"retryDelay":\s*"(\d+)/.exec(body)?.[1] ?? 8), 20);
           await new Promise((r) => setTimeout(r, secs * 1000));
           res = await call();
