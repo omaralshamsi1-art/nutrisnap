@@ -50,6 +50,7 @@ export class NutritionAgentService {
   private readonly provider: 'anthropic' | 'gemini';
   private readonly geminiKey: string | undefined;
   private readonly geminiSearch: boolean;
+  private readonly fallbackModel: string;
   private readonly fetchFn: FetchFn;
 
   constructor(
@@ -69,6 +70,7 @@ export class NutritionAgentService {
           : 'anthropic';
     // Google Search grounding is not on the Gemini free tier; enable only on a paid project.
     this.geminiSearch = config.get<string>('GEMINI_GOOGLE_SEARCH') === 'true';
+    this.fallbackModel = config.get<string>('GEMINI_FALLBACK_MODEL') ?? 'gemini-3.5-flash-lite';
     this.model =
       this.provider === 'gemini'
         ? (config.get<string>('GEMINI_MODEL') ?? 'gemini-3.6-flash')
@@ -237,8 +239,10 @@ export class NutritionAgentService {
       const declarations = tools.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters }));
       // Chat needs speed more than deep reasoning: keep thinking low (Gemini 3 uses levels, 2.5 uses budgets).
       const thinkingConfig = /^gemini-2\./.test(this.model) ? { thinkingBudget: 512 } : { thinkingLevel: 'low' };
+      const fallback = this.fallbackModel;
+      let model = this.model;
       const call = () =>
-        this.fetchFn(url, {
+        this.fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.geminiKey! },
           body: JSON.stringify({
@@ -258,10 +262,21 @@ export class NutritionAgentService {
           await new Promise((r) => setTimeout(r, secs * 1000));
           res = await call();
         }
+        if (res.status === 503 || res.status === 500) {
+          // Google-side overload ("high demand"): retry once, then fall back to a lighter model on the first round
+          this.log.warn(`Gemini chat ${res.status} on ${model}: ${(await res.text()).replace(/\s+/g, ' ').slice(0, 300)}`);
+          await new Promise((r) => setTimeout(r, 1500));
+          res = await call();
+          if ((res.status === 503 || res.status === 500) && round === 0 && fallback && fallback !== model) {
+            model = fallback;
+            res = await call();
+          }
+        }
         if (!res.ok) {
           const t = await res.text();
-          this.log.warn(`Gemini chat ${res.status}: ${t.slice(0, 300)}`);
+          this.log.warn(`Gemini chat ${res.status} on ${model}: ${t.replace(/\s+/g, ' ').slice(0, 300)}`);
           if (res.status === 429) throw new ServiceUnavailableException('Gemini free-tier limit reached — try again shortly');
+          if (res.status === 503 || res.status === 500) throw new ServiceUnavailableException('خدمة الذكاء الاصطناعي مزدحمة الآن، جرّب بعد دقيقة');
           throw new BadGatewayException(`Gemini error ${res.status}`);
         }
         const data: any = await res.json();

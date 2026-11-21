@@ -133,6 +133,23 @@ describe('assistant (Gemini function calling)', () => {
   });
 });
 
+describe('assistant Gemini overload', () => {
+  it('retries a 503 and falls back to the lighter model', async () => {
+    const urls: string[] = [];
+    const fetchFn: any = vi.fn(async (url: string) => {
+      urls.push(url);
+      if (!url.includes('flash-lite')) return { ok: false, status: 503, text: async () => '{"error":{"status":"UNAVAILABLE"}}' };
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { role: 'model', parts: [{ text: 'hi' }] } }] }) };
+    });
+    const s = setup(new NutritionAgentService(null, new ConfigService({ GEMINI_API_KEY: 'g' }), fetchFn));
+    const r = await s.assistant.chat('u', { message: 'hello' });
+    expect(r.message.text).toBe('hi');
+    expect(urls).toHaveLength(3);
+    expect(urls[2]).toContain('gemini-3.5-flash-lite');
+    expect(toEnglish('خدمة الذكاء الاصطناعي مزدحمة الآن، جرّب بعد دقيقة')).toContain('busy');
+  });
+});
+
 describe('assistant quota', () => {
   it('has a daily chat limit with an English translation', async () => {
     expect(DAILY_LIMITS.chat).toBe(30);

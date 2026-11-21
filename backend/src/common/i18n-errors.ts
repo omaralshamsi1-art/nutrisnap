@@ -7,6 +7,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 const EXACT: Record<string, string> = {
   'بريد إلكتروني غير صالح': 'Invalid email address',
   'اكتب رسالتك': 'Type your message',
+  'خدمة الذكاء الاصطناعي مزدحمة الآن، جرّب بعد دقيقة': 'The AI service is busy right now — try again in a minute',
   'الرسالة طويلة جداً': 'Message is too long',
   'الإجراء غير موجود': 'Action not found',
   'كلمة المرور يجب أن تكون 8 أحرف على الأقل': 'Password must be at least 8 characters',
