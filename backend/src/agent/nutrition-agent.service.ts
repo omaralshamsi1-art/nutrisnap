@@ -59,7 +59,7 @@ export class NutritionAgentService {
     @Optional() @Inject(FETCH) fetchFn?: FetchFn,
   ) {
     this.fetchFn = fetchFn ?? fetch;
-    this.geminiKey = config.get<string>('GEMINI_API_KEY');
+    this.geminiKey = config.get<string>('GEMINI_API_KEY')?.trim().replace(/^["']|["']$/g, '') || undefined;
     // LLM_PROVIDER wins; otherwise use Gemini when only a Gemini key is configured.
     const explicit = config.get<string>('LLM_PROVIDER');
     this.provider =
@@ -277,6 +277,7 @@ export class NutritionAgentService {
           this.log.warn(`Gemini chat ${res.status} on ${model}: ${t.replace(/\s+/g, ' ').slice(0, 300)}`);
           if (res.status === 429) throw new ServiceUnavailableException('Gemini free-tier limit reached — try again shortly');
           if (res.status === 503 || res.status === 500) throw new ServiceUnavailableException('خدمة الذكاء الاصطناعي مزدحمة الآن، جرّب بعد دقيقة');
+          if (res.status === 401 || res.status === 403 || (res.status === 400 && /API key/i.test(t))) throw new ServiceUnavailableException('مفتاح الذكاء الاصطناعي غير صالح — يجب تحديث GEMINI_API_KEY في الخادم');
           throw new BadGatewayException(`Gemini error ${res.status}`);
         }
         const data: any = await res.json();

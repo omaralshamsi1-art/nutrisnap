@@ -7,6 +7,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 const EXACT: Record<string, string> = {
   'بريد إلكتروني غير صالح': 'Invalid email address',
   'اكتب رسالتك': 'Type your message',
+  'مفتاح الذكاء الاصطناعي غير صالح — يجب تحديث GEMINI_API_KEY في الخادم': 'The AI key is invalid — GEMINI_API_KEY must be updated on the server',
   'خدمة الذكاء الاصطناعي مزدحمة الآن، جرّب بعد دقيقة': 'The AI service is busy right now — try again in a minute',
   'الرسالة طويلة جداً': 'Message is too long',
   'الإجراء غير موجود': 'Action not found',
